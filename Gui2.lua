@@ -1,151 +1,216 @@
--- ShadowCore Library v1.0
-local ShadowCore = {}
+--// ShadowCoreUI - Advanced Roblox UI Library
+-- Author: ChatGPT x SlayHub Concept
+-- Features: Auto layout, draggable windows, collapsible UI, categories, scroll support, styled components
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
+local CoreGui = game:GetService("CoreGui")
 
--- สร้างหน้าจอ
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "ShadowCoreUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.IgnoreGuiInset = true
-ScreenGui.Parent = game.CoreGui
+local ShadowCoreUI = {}
+ShadowCoreUI.__index = ShadowCoreUI
 
--- Theme settings
-local Theme = {
-    Background = Color3.fromRGB(15, 15, 20),
-    Accent = Color3.fromRGB(255, 80, 80),
-    Border = Color3.fromRGB(40, 40, 50),
-    Font = Enum.Font.GothamSemibold
-}
-
--- ฟังก์ชันสร้างหน้าต่างหลัก
-function ShadowCore:CreateWindow(title)
-    local Main = Instance.new("Frame")
-    Main.Size = UDim2.new(0, 420, 0, 320)
-    Main.Position = UDim2.new(0.5, -210, 0.5, -160)
-    Main.BackgroundColor3 = Theme.Background
-    Main.BorderColor3 = Theme.Accent
-    Main.BorderSizePixel = 2
-    Main.AnchorPoint = Vector2.new(0.5, 0.5)
-    Main.Active = true
-    Main.Draggable = true
-    Main.Parent = ScreenGui
-
-    local Title = Instance.new("TextLabel")
-    Title.Text = "⚡ " .. title
-    Title.Font = Theme.Font
-    Title.TextSize = 20
-    Title.TextColor3 = Theme.Accent
-    Title.BackgroundTransparency = 1
-    Title.Size = UDim2.new(1, -10, 0, 30)
-    Title.Position = UDim2.new(0, 5, 0, 0)
-    Title.TextXAlignment = Enum.TextXAlignment.Left
-    Title.Parent = Main
-
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -10, 1, -40)
-    Container.Position = UDim2.new(0, 5, 0, 35)
-    Container.BackgroundTransparency = 1
-    Container.Parent = Main
-
-    local UIList = Instance.new("UIListLayout", Container)
-    UIList.Padding = UDim.new(0, 6)
-    UIList.SortOrder = Enum.SortOrder.LayoutOrder
-
-    local api = {}
-
-    function api:Toggle(text, callback)
-        local ToggleFrame = Instance.new("Frame")
-        ToggleFrame.Size = UDim2.new(1, 0, 0, 30)
-        ToggleFrame.BackgroundColor3 = Theme.Border
-        ToggleFrame.BorderSizePixel = 0
-        ToggleFrame.Parent = Container
-
-        local ToggleBtn = Instance.new("TextButton")
-        ToggleBtn.Text = "☐ " .. text
-        ToggleBtn.Font = Theme.Font
-        ToggleBtn.TextSize = 16
-        ToggleBtn.TextColor3 = Color3.new(1, 1, 1)
-        ToggleBtn.BackgroundTransparency = 1
-        ToggleBtn.Size = UDim2.new(1, -10, 1, 0)
-        ToggleBtn.Position = UDim2.new(0, 5, 0, 0)
-        ToggleBtn.TextXAlignment = Enum.TextXAlignment.Left
-        ToggleBtn.Parent = ToggleFrame
-
-        local toggled = false
-
-        ToggleBtn.MouseButton1Click:Connect(function()
-            toggled = not toggled
-            ToggleBtn.Text = (toggled and "☑ " or "☐ ") .. text
-            if callback then
-                pcall(callback, toggled)
-            end
-        end)
+--// Helper
+local function createInstance(class, props)
+    local inst = Instance.new(class)
+    for i,v in pairs(props) do
+        inst[i] = v
     end
-
-    function api:Dropdown(name, items, callback)
-        local DropFrame = Instance.new("Frame")
-        DropFrame.Size = UDim2.new(1, 0, 0, 30)
-        DropFrame.BackgroundColor3 = Theme.Border
-        DropFrame.BorderSizePixel = 0
-        DropFrame.Parent = Container
-
-        local DropBtn = Instance.new("TextButton")
-        DropBtn.Text = "⏷ " .. name
-        DropBtn.Font = Theme.Font
-        DropBtn.TextSize = 16
-        DropBtn.TextColor3 = Color3.new(1, 1, 1)
-        DropBtn.BackgroundTransparency = 1
-        DropBtn.Size = UDim2.new(1, -10, 1, 0)
-        DropBtn.Position = UDim2.new(0, 5, 0, 0)
-        DropBtn.TextXAlignment = Enum.TextXAlignment.Left
-        DropBtn.Parent = DropFrame
-
-        local Opened = false
-        local Options = {}
-
-        local function ToggleDropdown()
-            if Opened then
-                for _, opt in ipairs(Options) do
-                    opt:Destroy()
-                end
-                Options = {}
-                DropFrame.Size = UDim2.new(1, 0, 0, 30)
-                DropBtn.Text = "⏷ " .. name
-                Opened = false
-            else
-                for _, item in ipairs(items) do
-                    local Option = Instance.new("TextButton")
-                    Option.Size = UDim2.new(1, -20, 0, 25)
-                    Option.Position = UDim2.new(0, 10, 0, 30 + #Options * 25)
-                    Option.Text = "↳ " .. item
-                    Option.TextSize = 14
-                    Option.Font = Theme.Font
-                    Option.TextColor3 = Color3.new(1, 1, 1)
-                    Option.BackgroundColor3 = Theme.Background
-                    Option.BorderColor3 = Theme.Accent
-                    Option.Parent = DropFrame
-                    table.insert(Options, Option)
-
-                    Option.MouseButton1Click:Connect(function()
-                        DropBtn.Text = "⏷ " .. item
-                        callback(item)
-                        ToggleDropdown()
-                    end)
-                end
-                DropFrame.Size = UDim2.new(1, 0, 0, 30 + #Options * 25)
-                DropBtn.Text = "⏶ " .. name
-                Opened = true
-            end
-        end
-
-        DropBtn.MouseButton1Click:Connect(ToggleDropdown)
-    end
-
-    return api
+    return inst
 end
 
-return ShadowCore
+--// Base Styles
+local Theme = {
+    Background = Color3.fromRGB(25,25,25),
+    Accent = Color3.fromRGB(85, 170, 255),
+    Text = Color3.new(1,1,1),
+    Secondary = Color3.fromRGB(40,40,40),
+    Font = Enum.Font.Gotham
+}
+
+--// Create Main Window
+function ShadowCoreUI:CreateWindow(title)
+    title = title or "SlayHub"
+
+    local screenGui = createInstance("ScreenGui", {
+        Name = "ShadowCoreUI",
+        ResetOnSpawn = false,
+        Parent = CoreGui
+    })
+
+    local mainFrame = createInstance("Frame", {
+        Name = "MainWindow",
+        Size = UDim2.new(0, 450, 0, 400),
+        Position = UDim2.new(0.5, -225, 0.5, -200),
+        BackgroundColor3 = Theme.Background,
+        BorderSizePixel = 0,
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Parent = screenGui
+    })
+
+    local topbar = createInstance("TextButton", {
+        Size = UDim2.new(1, 0, 0, 35),
+        BackgroundColor3 = Theme.Secondary,
+        Text = title,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 18,
+        Parent = mainFrame
+    })
+
+    -- Dragging
+    local dragging, offset
+    topbar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            offset = input.Position - mainFrame.Position
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            mainFrame.Position = UDim2.new(0, input.Position.X - offset.X, 0, input.Position.Y - offset.Y)
+        end
+    end)
+
+    topbar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    -- Collapse Button
+    local toggleButton = createInstance("TextButton", {
+        Size = UDim2.new(0, 30, 1, 0),
+        Position = UDim2.new(1, -30, 0, 0),
+        BackgroundTransparency = 1,
+        Text = "_",
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 20,
+        Parent = topbar
+    })
+
+    local contentFrame = createInstance("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -35),
+        Position = UDim2.new(0, 0, 0, 35),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        ScrollBarThickness = 4,
+        BackgroundColor3 = Theme.Background,
+        BorderSizePixel = 0,
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        Parent = mainFrame
+    })
+
+    createInstance("UIListLayout", {
+        Padding = UDim.new(0, 6),
+        SortOrder = Enum.SortOrder.LayoutOrder,
+        Parent = contentFrame
+    })
+
+    local collapsed = false
+    toggleButton.MouseButton1Click:Connect(function()
+        collapsed = not collapsed
+        contentFrame.Visible = not collapsed
+    end)
+
+    local window = setmetatable({}, ShadowCoreUI)
+    window.Container = contentFrame
+    return window
+end
+
+--// Category
+function ShadowCoreUI:CreateCategory(title)
+    local section = createInstance("Frame", {
+        Size = UDim2.new(1, -10, 0, 30),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Parent = self.Container
+    })
+
+    local label = createInstance("TextLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = title,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = section
+    })
+
+    return section
+end
+
+--// Toggle
+function ShadowCoreUI:Toggle(name, callback)
+    local button = createInstance("TextButton", {
+        Size = UDim2.new(1, -10, 0, 30),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Text = name .. ": OFF",
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.Container
+    })
+
+    local state = false
+    button.MouseButton1Click:Connect(function()
+        state = not state
+        button.Text = name .. (state and ": ON" or ": OFF")
+        callback(state)
+    end)
+end
+
+--// Button
+function ShadowCoreUI:Button(name, callback)
+    local btn = createInstance("TextButton", {
+        Size = UDim2.new(1, -10, 0, 30),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Text = name,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.Container
+    })
+    btn.MouseButton1Click:Connect(callback)
+end
+
+--// Dropdown
+function ShadowCoreUI:Dropdown(title, items, callback)
+    local box = createInstance("Frame", {
+        Size = UDim2.new(1, -10, 0, 30 + #items * 28),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Parent = self.Container
+    })
+
+    local label = createInstance("TextLabel", {
+        Size = UDim2.new(1, 0, 0, 30),
+        BackgroundTransparency = 1,
+        Text = title,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = box
+    })
+
+    for _, item in pairs(items) do
+        local option = createInstance("TextButton", {
+            Size = UDim2.new(1, 0, 0, 28),
+            Position = UDim2.new(0, 0, 0, 30 + ((_ - 1) * 28)),
+            BackgroundColor3 = Theme.Background,
+            BorderSizePixel = 0,
+            Text = tostring(item),
+            Font = Theme.Font,
+            TextColor3 = Theme.Text,
+            TextSize = 15,
+            Parent = box
+        })
+        option.MouseButton1Click:Connect(function()
+            callback(item)
+        end)
+    end
+end
+
+return ShadowCoreUI
