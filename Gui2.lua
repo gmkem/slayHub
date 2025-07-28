@@ -1,6 +1,6 @@
 --// ShadowCoreUI - Advanced Roblox UI Library
 -- Author: ChatGPT x SlayHub Concept
--- Features: Auto layout, draggable windows, collapsible UI, categories, scroll support, styled components
+-- Features: Auto layout, draggable windows, collapsible UI, categories, scroll support, styled components, sliders, textbox, keybind
 
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
@@ -195,10 +195,10 @@ function ShadowCoreUI:Dropdown(title, items, callback)
         Parent = box
     })
 
-    for _, item in pairs(items) do
+    for i, item in ipairs(items) do
         local option = createInstance("TextButton", {
             Size = UDim2.new(1, 0, 0, 28),
-            Position = UDim2.new(0, 0, 0, 30 + ((_ - 1) * 28)),
+            Position = UDim2.new(0, 0, 0, 30 + ((i - 1) * 28)),
             BackgroundColor3 = Theme.Background,
             BorderSizePixel = 0,
             Text = tostring(item),
@@ -211,6 +211,99 @@ function ShadowCoreUI:Dropdown(title, items, callback)
             callback(item)
         end)
     end
+end
+
+--// Slider
+function ShadowCoreUI:Slider(title, min, max, callback)
+    local label = createInstance("TextLabel", {
+        Size = UDim2.new(1, -10, 0, 20),
+        BackgroundTransparency = 1,
+        Text = title .. ": " .. min,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.Container
+    })
+
+    local slider = createInstance("TextButton", {
+        Size = UDim2.new(1, -10, 0, 20),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Text = "",
+        Parent = self.Container
+    })
+
+    local bar = createInstance("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = Theme.Accent,
+        BorderSizePixel = 0,
+        Parent = slider
+    })
+
+    slider.MouseButton1Down:Connect(function()
+        local conn
+        conn = UserInputService.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                local pos = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
+                local value = math.floor(min + (max - min) * pos)
+                bar.Size = UDim2.new(pos, 0, 1, 0)
+                label.Text = title .. ": " .. value
+                callback(value)
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                if conn then conn:Disconnect() end
+            end
+        end)
+    end)
+end
+
+--// Textbox
+function ShadowCoreUI:Textbox(placeholder, callback)
+    local box = createInstance("TextBox", {
+        Size = UDim2.new(1, -10, 0, 30),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Text = "",
+        PlaceholderText = placeholder,
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.Container
+    })
+
+    box.FocusLost:Connect(function(enter)
+        if enter then
+            callback(box.Text)
+        end
+    end)
+end
+
+--// Keybind
+function ShadowCoreUI:Keybind(labelText, callback)
+    local btn = createInstance("TextButton", {
+        Size = UDim2.new(1, -10, 0, 30),
+        BackgroundColor3 = Theme.Secondary,
+        BorderSizePixel = 0,
+        Text = labelText .. " [None]",
+        Font = Theme.Font,
+        TextColor3 = Theme.Text,
+        TextSize = 16,
+        Parent = self.Container
+    })
+
+    btn.MouseButton1Click:Connect(function()
+        btn.Text = labelText .. " [Press a key]"
+        local conn
+        conn = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                btn.Text = labelText .. " [" .. input.KeyCode.Name .. "]"
+                conn:Disconnect()
+                callback(input.KeyCode)
+            end
+        end)
+    end)
 end
 
 return ShadowCoreUI
