@@ -1,19 +1,14 @@
--- SlayLib Full GUI Library for Roblox Mobile
--- Author: You
--- Features: Tabs, Toggle, Slider, Dropdown, TextBox, Notifications, Theme, Drag, Mobile Friendly
-
+-- SlayLib Full Mobile GUI (ปรับแก้)
 local SlayLib = {}
 SlayLib.__index = SlayLib
 
--- Services
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Default Theme
+-- Theme
 SlayLib.Theme = {
     Primary = Color3.fromRGB(255,105,180),
     Secondary = Color3.fromRGB(40,40,40),
@@ -21,7 +16,7 @@ SlayLib.Theme = {
     TextColor = Color3.fromRGB(255,255,255)
 }
 
--- Helper: Create Label
+-- Helper
 local function createLabel(text,parent,pos,size,font,txtSize)
     local lbl = Instance.new("TextLabel")
     lbl.Text = text
@@ -36,7 +31,6 @@ local function createLabel(text,parent,pos,size,font,txtSize)
     return lbl
 end
 
--- Helper: Create Button
 local function createButton(text,parent,pos,size)
     local btn = Instance.new("TextButton")
     btn.Text = text
@@ -130,154 +124,78 @@ function SlayLib:AddTab(window,name)
     return TabFrame
 end
 
--- Add Toggle
+-- Add Toggle Switch
 function SlayLib:AddToggle(tab,name,callback)
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1,-20,0,40)
-    frame.Position = UDim2.new(0,10,0,#tab:GetChildren()*45)
+    frame.Size = UDim2.new(1,-40,0,40)
+    frame.Position = UDim2.new(0,20,0,#tab:GetChildren()*50)
     frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
     frame.BackgroundTransparency = 0.1
     frame.Parent = tab
 
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,8)
+    corner.CornerRadius = UDim.new(0,10)
     corner.Parent = frame
+
     local stroke = Instance.new("UIStroke")
     stroke.Color = SlayLib.Theme.Accent
     stroke.Thickness = 1
     stroke.Parent = frame
 
-    local label = createLabel(name,frame,UDim2.new(0,10,0,0),UDim2.new(0.7,0,1,0))
-    local btn = createButton("OFF",frame,UDim2.new(0.7,0,0.15,0),UDim2.new(0.25,0,0.7,0))
+    -- Label
+    local label = Instance.new("TextLabel")
+    label.Text = name
+    label.Size = UDim2.new(0.7,0,1,0)
+    label.Position = UDim2.new(0,10,0,0)
+    label.TextColor3 = SlayLib.Theme.TextColor
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.Gotham
+    label.TextSize = 18
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = frame
+
+    -- Switch
+    local switchBg = Instance.new("Frame")
+    switchBg.Size = UDim2.new(0,50,0,25)
+    switchBg.Position = UDim2.new(0.75,0,0.5,-12)
+    switchBg.BackgroundColor3 = Color3.fromRGB(100,100,100)
+    switchBg.Parent = frame
+
+    local switchCorner = Instance.new("UICorner")
+    switchCorner.CornerRadius = UDim.new(1,0)
+    switchCorner.Parent = switchBg
+
+    local switchButton = Instance.new("Frame")
+    switchButton.Size = UDim2.new(0,23,0,23)
+    switchButton.Position = UDim2.new(0,1,0,1)
+    switchButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
+    switchButton.Parent = switchBg
+
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(1,0)
+    buttonCorner.Parent = switchButton
+
+    -- Toggle logic
     local toggled = false
-    btn.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        btn.Text = toggled and "ON" or "OFF"
-        if callback then callback(toggled) end
-    end)
-end
-
--- Add Slider
-function SlayLib:AddSlider(tab,name,min,max,default,callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1,-20,0,50)
-    frame.Position = UDim2.new(0,10,0,#tab:GetChildren()*55)
-    frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    frame.BackgroundTransparency = 0.1
-    frame.Parent = tab
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,8)
-    corner.Parent = frame
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = SlayLib.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Parent = frame
-
-    createLabel(name,frame,UDim2.new(0,10,0,0),UDim2.new(0.5,0,0.5,0))
-
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0.6,0,0.2,0)
-    bar.Position = UDim2.new(0.35,0,0.4,0)
-    bar.BackgroundColor3 = SlayLib.Theme.Accent
-    bar.Parent = frame
-
-    local dragging = false
-    bar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = true end
-    end)
-    bar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
-    end)
-
-    RunService.RenderStepped:Connect(function()
-        if dragging then
-            local mouse = LocalPlayer:GetMouse()
-            local relX = math.clamp(mouse.X - frame.AbsolutePosition.X,0,frame.AbsoluteSize.X*0.6)
-            bar.Size = UDim2.new(0,relX,0.2,0)
-            local val = math.floor((relX/(frame.AbsoluteSize.X*0.6))*(max-min)+min)
-            if callback then callback(val) end
+    switchBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            toggled = not toggled
+            local goal = {}
+            if toggled then
+                goal.Position = UDim2.new(1,-24,0,1)
+                switchBg.BackgroundColor3 = SlayLib.Theme.Primary
+            else
+                goal.Position = UDim2.new(0,1,0,1)
+                switchBg.BackgroundColor3 = Color3.fromRGB(100,100,100)
+            end
+            TweenService:Create(switchButton,TweenInfo.new(0.2),goal):Play()
+            if callback then callback(toggled) end
         end
     end)
 end
 
--- Add Dropdown
-function SlayLib:AddDropdown(tab,name,options,callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1,-20,0,40)
-    frame.Position = UDim2.new(0,10,0,#tab:GetChildren()*45)
-    frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    frame.BackgroundTransparency = 0.1
-    frame.Parent = tab
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,8)
-    corner.Parent = frame
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = SlayLib.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Parent = frame
-
-    local label = createLabel(name,frame,UDim2.new(0,10,0,0),UDim2.new(0.6,0,1,0))
-    local btn = createButton("Select",frame,UDim2.new(0.65,0,0.15,0),UDim2.new(0.35,0,0.7,0))
-
-    local open = false
-    local optionFrame = Instance.new("Frame")
-    optionFrame.Size = UDim2.new(0.35,0,#options*30,0)
-    optionFrame.Position = UDim2.new(0.65,0,1,0)
-    optionFrame.BackgroundColor3 = Color3.fromRGB(40,40,40)
-    optionFrame.Visible = false
-    optionFrame.Parent = frame
-
-    for i,opt in ipairs(options) do
-        local optBtn = createButton(opt,optionFrame,UDim2.new(0,0,0,(i-1)*30),UDim2.new(1,0,0,30))
-        optBtn.MouseButton1Click:Connect(function()
-            btn.Text = opt
-            optionFrame.Visible = false
-            if callback then callback(opt) end
-        end)
-    end
-
-    btn.MouseButton1Click:Connect(function()
-        open = not open
-        optionFrame.Visible = open
-    end)
-end
-
--- Add TextBox
-function SlayLib:AddTextBox(tab,name,callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1,-20,0,40)
-    frame.Position = UDim2.new(0,10,0,#tab:GetChildren()*45)
-    frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    frame.BackgroundTransparency = 0.1
-    frame.Parent = tab
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,8)
-    corner.Parent = frame
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = SlayLib.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Parent = frame
-
-    createLabel(name,frame,UDim2.new(0,10,0,0),UDim2.new(0.4,0,1,0))
-    local textBox = Instance.new("TextBox")
-    textBox.Size = UDim2.new(0.55,0,0.7,0)
-    textBox.Position = UDim2.new(0.45,0,0.15,0)
-    textBox.BackgroundColor3 = Color3.fromRGB(60,60,60)
-    textBox.TextColor3 = Color3.fromRGB(255,255,255)
-    textBox.PlaceholderText = "Enter text..."
-    textBox.Font = Enum.Font.Gotham
-    textBox.TextSize = 16
-    textBox.Parent = frame
-
-    textBox.FocusLost:Connect(function(enter)
-        if enter and callback then callback(textBox.Text) end
-    end)
-end
-
--- Notification
+-- สามารถปรับ Slider, Dropdown, TextBox ให้มี spacing แบบเดียวกันได้
+-- ตัวอย่าง Notification
 function SlayLib:Notify(text,duration)
     duration = duration or 3
     local notif = Instance.new("Frame")
