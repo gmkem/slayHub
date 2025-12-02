@@ -1,226 +1,290 @@
--- SlayLib Full Mobile GUI (ปรับแก้)
+--[[ 
+   SlayLib.lua
+   Ultimate Roblox GUI Library
+   Author: คุณ Ohvn Bdon
+--]]
+
 local SlayLib = {}
 SlayLib.__index = SlayLib
 
-local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
--- Theme
+-- Default theme
 SlayLib.Theme = {
-    Primary = Color3.fromRGB(255,105,180),
-    Secondary = Color3.fromRGB(40,40,40),
-    Accent = Color3.fromRGB(255,182,193),
+    MainColor = Color3.fromRGB(255, 215, 0), -- Gold
+    Background = Color3.fromRGB(30, 30, 30), -- Dark
+    Accent = Color3.fromRGB(50,50,50),
     TextColor = Color3.fromRGB(255,255,255)
 }
 
--- Helper
-local function createLabel(text,parent,pos,size,font,txtSize)
-    local lbl = Instance.new("TextLabel")
-    lbl.Text = text
-    lbl.Size = size
-    lbl.Position = pos
-    lbl.TextColor3 = SlayLib.Theme.TextColor
-    lbl.BackgroundTransparency = 1
-    lbl.Font = font or Enum.Font.Gotham
-    lbl.TextSize = txtSize or 18
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.Parent = parent
-    return lbl
+-- Utils
+local function Create(class,parent,props)
+    local obj = Instance.new(class)
+    for k,v in pairs(props or {}) do obj[k] = v end
+    obj.Parent = parent
+    return obj
 end
 
-local function createButton(text,parent,pos,size)
-    local btn = Instance.new("TextButton")
-    btn.Text = text
-    btn.Size = size
-    btn.Position = pos
-    btn.BackgroundColor3 = SlayLib.Theme.Accent
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
-    btn.Parent = parent
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,8)
-    corner.Parent = btn
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = SlayLib.Theme.Primary
-    stroke.Thickness = 1
-    stroke.Parent = btn
-
-    return btn
-end
-
--- Create Window
-function SlayLib:CreateWindow(title)
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "SlayLibUI"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.Parent = PlayerGui
-
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0,360,0,480)
-    MainFrame.Position = UDim2.new(0.5,-180,0.5,-240)
-    MainFrame.BackgroundColor3 = self.Theme.Secondary
-    MainFrame.BackgroundTransparency = 0.25
-    MainFrame.BorderSizePixel = 0
-    MainFrame.Parent = ScreenGui
-    MainFrame.Name = "MainFrame"
-
-    local Corner = Instance.new("UICorner")
-    Corner.CornerRadius = UDim.new(0,12)
-    Corner.Parent = MainFrame
-
-    local Stroke = Instance.new("UIStroke")
-    Stroke.Color = self.Theme.Primary
-    Stroke.Thickness = 2
-    Stroke.Parent = MainFrame
-
-    -- Draggable
-    MainFrame.Active = true
-    MainFrame.Draggable = true
-
-    -- Title
-    local TitleLabel = createLabel(title or "SlayLib",MainFrame,UDim2.new(0,10,0,0),UDim2.new(1,-20,0,50),Enum.Font.GothamBold,24)
-
-    -- Tab container
-    local TabContainer = Instance.new("Frame")
-    TabContainer.Size = UDim2.new(1,0,1,-50)
-    TabContainer.Position = UDim2.new(0,0,0,50)
-    TabContainer.BackgroundTransparency = 1
-    TabContainer.Parent = MainFrame
-
-    -- Toggle visibility button
-    local toggleBtn = createButton("Toggle UI",ScreenGui,UDim2.new(0,10,0,10),UDim2.new(0,100,0,30))
-    local visible = true
-    toggleBtn.MouseButton1Click:Connect(function()
-        visible = not visible
-        MainFrame.Visible = visible
-    end)
-
-    local window = {
-        ScreenGui = ScreenGui,
-        MainFrame = MainFrame,
-        TabContainer = TabContainer,
-        Tabs = {},
-        Notifications = {},
-        Visibility = visible
-    }
-    setmetatable(window,self)
-    return window
-end
-
--- Add Tab
-function SlayLib:AddTab(window,name)
-    local TabFrame = Instance.new("Frame")
-    TabFrame.Size = UDim2.new(1,0,1,0)
-    TabFrame.BackgroundTransparency = 1
-    TabFrame.Visible = true
-    TabFrame.Parent = window.TabContainer
-    window.Tabs[name] = TabFrame
-    return TabFrame
-end
-
--- Add Toggle Switch
-function SlayLib:AddToggle(tab,name,callback)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1,-40,0,40)
-    frame.Position = UDim2.new(0,20,0,#tab:GetChildren()*50)
-    frame.BackgroundColor3 = Color3.fromRGB(50,50,50)
-    frame.BackgroundTransparency = 0.1
-    frame.Parent = tab
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,10)
-    corner.Parent = frame
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = SlayLib.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Parent = frame
-
-    -- Label
-    local label = Instance.new("TextLabel")
-    label.Text = name
-    label.Size = UDim2.new(0.7,0,1,0)
-    label.Position = UDim2.new(0,10,0,0)
-    label.TextColor3 = SlayLib.Theme.TextColor
-    label.BackgroundTransparency = 1
-    label.Font = Enum.Font.Gotham
-    label.TextSize = 18
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    -- Switch
-    local switchBg = Instance.new("Frame")
-    switchBg.Size = UDim2.new(0,50,0,25)
-    switchBg.Position = UDim2.new(0.75,0,0.5,-12)
-    switchBg.BackgroundColor3 = Color3.fromRGB(100,100,100)
-    switchBg.Parent = frame
-
-    local switchCorner = Instance.new("UICorner")
-    switchCorner.CornerRadius = UDim.new(1,0)
-    switchCorner.Parent = switchBg
-
-    local switchButton = Instance.new("Frame")
-    switchButton.Size = UDim2.new(0,23,0,23)
-    switchButton.Position = UDim2.new(0,1,0,1)
-    switchButton.BackgroundColor3 = Color3.fromRGB(255,255,255)
-    switchButton.Parent = switchBg
-
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(1,0)
-    buttonCorner.Parent = switchButton
-
-    -- Toggle logic
-    local toggled = false
-    switchBg.InputBegan:Connect(function(input)
+-- Dragging
+function SlayLib:EnableDragging(frame)
+    local dragging, dragInput, dragStart, startPos
+    frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            toggled = not toggled
-            local goal = {}
-            if toggled then
-                goal.Position = UDim2.new(1,-24,0,1)
-                switchBg.BackgroundColor3 = SlayLib.Theme.Primary
-            else
-                goal.Position = UDim2.new(0,1,0,1)
-                switchBg.BackgroundColor3 = Color3.fromRGB(100,100,100)
-            end
-            TweenService:Create(switchButton,TweenInfo.new(0.2),goal):Play()
-            if callback then callback(toggled) end
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
+            end)
+        end
+    end)
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale,startPos.X.Offset + delta.X,startPos.Y.Scale,startPos.Y.Offset + delta.Y)
         end
     end)
 end
 
--- สามารถปรับ Slider, Dropdown, TextBox ให้มี spacing แบบเดียวกันได้
--- ตัวอย่าง Notification
-function SlayLib:Notify(text,duration)
-    duration = duration or 3
-    local notif = Instance.new("Frame")
-    notif.Size = UDim2.new(0,200,0,50)
-    notif.Position = UDim2.new(1,-220,1,-60 - (#self.Notifications*60))
-    notif.BackgroundColor3 = self.Theme.Primary
-    notif.BackgroundTransparency = 0.2
-    notif.Parent = PlayerGui
-
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0,10)
-    corner.Parent = notif
-
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = self.Theme.Accent
-    stroke.Thickness = 1
-    stroke.Parent = notif
-
-    local label = createLabel(text,notif,UDim2.new(0,10,0,0),UDim2.new(1,-20,1,0))
-    table.insert(self.Notifications,notif)
-
-    task.delay(duration,function()
-        notif:Destroy()
-        table.remove(self.Notifications,1)
+-- Notification
+function SlayLib:Notification(title,text,duration,color)
+    local screen = PlayerGui:FindFirstChild("SlayLibScreen") or Create("ScreenGui",PlayerGui,{Name="SlayLibScreen"})
+    local notifFrame = Create("Frame",screen,{
+        Size=UDim2.new(0,250,0,50),
+        Position=UDim2.new(1,-260,1,-60),
+        BackgroundColor3=color or self.Theme.MainColor,
+        AnchorPoint=Vector2.new(1,1),
+        ClipsDescendants=true,
+        BorderSizePixel=0
+    })
+    local notifText = Create("TextLabel",notifFrame,{
+        Size=UDim2.new(1,0,1,0),
+        Text=title.."\n"..text,
+        TextColor3=self.Theme.TextColor,
+        BackgroundTransparency=1,
+        Font=Enum.Font.GothamBold,
+        TextSize=14,
+        TextWrapped=true
+    })
+    notifFrame:TweenPosition(UDim2.new(1,-260,1,-70),Enum.EasingDirection.Out,Enum.EasingStyle.Quad,0.3,true)
+    delay(duration or 3,function()
+        notifFrame:TweenPosition(UDim2.new(1,-260,1,0),Enum.EasingDirection.In,Enum.EasingStyle.Quad,0.3,true)
+        wait(0.3)
+        notifFrame:Destroy()
     end)
+end
+
+-- Loader animation
+function SlayLib:Loader(title)
+    local screen = PlayerGui:FindFirstChild("SlayLibScreen") or Create("ScreenGui",PlayerGui,{Name="SlayLibScreen"})
+    local frame = Create("Frame",screen,{
+        Size=UDim2.new(0,300,0,100),
+        Position=UDim2.new(0.5,-150,0.5,-50),
+        BackgroundColor3=self.Theme.Background,
+        BorderSizePixel=0,
+        ClipsDescendants=true
+    })
+    local label = Create("TextLabel",frame,{
+        Text=title or "Loading...",
+        TextColor3=self.Theme.MainColor,
+        Font=Enum.Font.GothamBold,
+        TextSize=22,
+        Size=UDim2.new(1,0,1,0),
+        BackgroundTransparency=1
+    })
+    local progress = Create("Frame",frame,{
+        Size=UDim2.new(0,0,0,5),
+        Position=UDim2.new(0,0,1,-5),
+        BackgroundColor3=self.Theme.MainColor
+    })
+    for i=0,1,0.02 do
+        progress.Size = UDim2.new(i,0,0,5)
+        wait(0.02)
+    end
+    wait(0.2)
+    frame:Destroy()
+end
+
+-- Create Window
+function SlayLib:CreateWindow(info)
+    self:Loader("SlayLib Initializing...")
+    local screen = PlayerGui:FindFirstChild("SlayLibScreen") or Create("ScreenGui",PlayerGui,{Name="SlayLibScreen"})
+    local mainFrame = Create("Frame",screen,{
+        Size=UDim2.new(0,400,0,300),
+        Position=UDim2.new(0.5,-200,0.5,-150),
+        BackgroundColor3=self.Theme.Background,
+        BorderSizePixel=0
+    })
+    self:EnableDragging(mainFrame)
+
+    local title = Create("TextLabel",mainFrame,{
+        Size=UDim2.new(1,0,0,30),
+        Text=info.Name or "SlayLib",
+        BackgroundTransparency=1,
+        TextColor3=self.Theme.MainColor,
+        Font=Enum.Font.GothamBold,
+        TextSize=18
+    })
+
+    local tabsFolder = Create("Folder",mainFrame,{Name="Tabs"})
+    mainFrame.TabsFolder = tabsFolder
+
+    local windowObj = {}
+    function windowObj:CreateTab(name)
+        local tabFrame = Create("Frame",mainFrame,{
+            Size=UDim2.new(1,0,1,-30),
+            Position=UDim2.new(0,0,0,30),
+            BackgroundTransparency=1,
+            Visible=false
+        })
+        tabFrame.Name = name
+        tabsFolder[name] = tabFrame
+
+        -- Tab button
+        local btn = Create("TextButton",title,{
+            Text=name,
+            Size=UDim2.new(0,100,1,0),
+            Position=UDim2.new(0,#tabsFolder:GetChildren()*100,0,0),
+            BackgroundTransparency=0.5,
+            BackgroundColor3=self.Theme.Accent,
+            TextColor3=self.Theme.TextColor
+        })
+        btn.MouseButton1Click:Connect(function()
+            for _,v in pairs(tabsFolder:GetChildren()) do if v:IsA("Frame") then v.Visible=false end end
+            tabFrame.Visible = true
+        end)
+
+        local tabObj = {}
+        function tabObj:CreateButton(info)
+            local b = Create("TextButton",tabFrame,{
+                Text=info.Name,
+                Size=UDim2.new(0,120,0,30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35,0),
+                BackgroundColor3=self.Theme.MainColor,
+                TextColor3=self.Theme.TextColor
+            })
+            b.MouseButton1Click:Connect(info.Callback)
+        end
+        function tabObj:CreateToggle(info)
+            local b = Create("TextButton",tabFrame,{
+                Text=info.Name.." : "..tostring(info.Default),
+                Size=UDim2.new(0,150,0,30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35,0),
+                BackgroundColor3=self.Theme.Accent,
+                TextColor3=self.Theme.TextColor
+            })
+            local toggled = info.Default or false
+            b.MouseButton1Click:Connect(function()
+                toggled = not toggled
+                b.Text = info.Name.." : "..tostring(toggled)
+                info.Callback(toggled)
+            end)
+        end
+        function tabObj:CreateSlider(info)
+            local sliderFrame = Create("Frame",tabFrame,{
+                Size=UDim2.new(0,150,0,30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35,0),
+                BackgroundColor3=self.Theme.Accent
+            })
+            local label = Create("TextLabel",sliderFrame,{
+                Size=UDim2.new(0.5,0,1,0),
+                Text=info.Name..": "..tostring(info.Default or 0),
+                BackgroundTransparency=1,
+                TextColor3=self.Theme.TextColor,
+                Font=Enum.Font.GothamBold,
+                TextSize=14
+            })
+            local slider = Create("Frame",sliderFrame,{
+                Size=UDim2.new(0.5,0,1,0),
+                Position=UDim2.new(0.5,0,0,0),
+                BackgroundColor3=self.Theme.MainColor
+            })
+            -- Slider dragging
+            slider.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    local function move(input)
+                        local x = math.clamp(input.Position.X - sliderFrame.AbsolutePosition.X,0,sliderFrame.AbsoluteSize.X)
+                        slider.Size = UDim2.new(0,x,1,0)
+                        local val = math.floor((x/sliderFrame.AbsoluteSize.X)*(info.Max or 100))
+                        label.Text = info.Name..": "..val
+                        info.Callback(val)
+                    end
+                    local conn
+                    conn = input.Changed:Connect(function()
+                        if input.UserInputState == Enum.UserInputState.End then
+                            conn:Disconnect()
+                        end
+                    end)
+                    local moveConn
+                    moveConn = UserInputService.InputChanged:Connect(function(i)
+                        if i == input or i.UserInputType == Enum.UserInputType.MouseMovement then
+                            move(i)
+                        end
+                    end)
+                end
+            end)
+        end
+        function tabObj:CreateDropdown(info)
+            local dd = Create("TextButton",tabFrame,{
+                Text=info.Name,
+                Size=UDim2.new(0,150,0,30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35,0),
+                BackgroundColor3=self.Theme.Accent,
+                TextColor3=self.Theme.TextColor
+            })
+            local open = false
+            local ddFrame = Create("Frame",tabFrame,{
+                Size=UDim2.new(0,150,0,#info.Options*30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35+30,0),
+                BackgroundColor3=self.Theme.Background,
+                Visible=false
+            })
+            for i,opt in pairs(info.Options) do
+                local btn = Create("TextButton",ddFrame,{
+                    Text=opt,
+                    Size=UDim2.new(1,0,0,30),
+                    Position=UDim2.new(0,0,(i-1)*30,0),
+                    BackgroundColor3=self.Theme.MainColor,
+                    TextColor3=self.Theme.TextColor
+                })
+                btn.MouseButton1Click:Connect(function()
+                    info.Callback(opt)
+                    ddFrame.Visible = false
+                end)
+            end
+            dd.MouseButton1Click:Connect(function()
+                open = not open
+                ddFrame.Visible = open
+            end)
+        end
+        function tabObj:CreateTextBox(info)
+            local tb = Create("TextBox",tabFrame,{
+                Text=info.Placeholder or "",
+                Size=UDim2.new(0,150,0,30),
+                Position=UDim2.new(0,10,#tabFrame:GetChildren()*35,0),
+                BackgroundColor3=self.Theme.Accent,
+                TextColor3=self.Theme.TextColor,
+                ClearTextOnFocus=false
+            })
+            tb.FocusLost:Connect(function(enter)
+                if enter then
+                    info.Callback(tb.Text)
+                end
+            end)
+        end
+        return tabObj
+    end
+    return windowObj
 end
 
 return SlayLib
