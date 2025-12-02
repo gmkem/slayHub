@@ -1,139 +1,144 @@
---// SlayHub GUI Library - Mobile Friendly Femboy Edition 💅🖤 //
+-- SlayLib GUI Library
+-- Author: You
+-- สไตล์: หรูหรา, รองรับมือถือ, draggable, เปิด/ปิด UI
 
-local SlayHub = {}
-local UserInputService = game:GetService("UserInputService")
+local SlayLib = {}
+SlayLib.__index = SlayLib
 
-function SlayHub:CreateWindow(title)
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- Theme default
+SlayLib.Theme = {
+    Primary = Color3.fromRGB(255, 105, 180), -- สีชมพู
+    Secondary = Color3.fromRGB(50,50,50),
+    TextColor = Color3.fromRGB(255,255,255),
+}
+
+-- Create main window
+function SlayLib:CreateWindow(title)
     local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "SlayHubMobileGUI"
+    ScreenGui.Name = "SlayLibUI"
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-    local ToggleButton = Instance.new("TextButton")
-    ToggleButton.Size = UDim2.new(0, 50, 0, 50)
-    ToggleButton.Position = UDim2.new(0, 10, 0.5, -25)
-    ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-    ToggleButton.Text = "≡"
-    ToggleButton.TextScaled = true
-    ToggleButton.Font = Enum.Font.GothamBold
-    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    ToggleButton.ZIndex = 10
-    ToggleButton.Parent = ScreenGui
+    ScreenGui.Parent = PlayerGui
 
     local MainFrame = Instance.new("Frame")
-    MainFrame.Size = UDim2.new(0, 350, 0, 420)
-    MainFrame.Position = UDim2.new(0.5, -175, 0.5, -210)
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainFrame.Size = UDim2.new(0,400,0,500)
+    MainFrame.Position = UDim2.new(0.5,-200,0.5,-250)
+    MainFrame.BackgroundColor3 = self.Theme.Secondary
     MainFrame.BorderSizePixel = 0
-    MainFrame.Visible = false
     MainFrame.Parent = ScreenGui
+    MainFrame.Name = "MainFrame"
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 12)
-    UICorner.Parent = MainFrame
+    -- Draggable
+    MainFrame.Active = true
+    MainFrame.Draggable = true
 
-    local UIStroke = Instance.new("UIStroke")
-    UIStroke.Thickness = 2
-    UIStroke.Color = Color3.fromRGB(0, 255, 242)
-    UIStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    UIStroke.Parent = MainFrame
+    -- Title
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Size = UDim2.new(1,0,0,50)
+    TitleLabel.BackgroundColor3 = self.Theme.Primary
+    TitleLabel.Text = title or "SlayLib"
+    TitleLabel.TextColor3 = self.Theme.TextColor
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextSize = 24
+    TitleLabel.Parent = MainFrame
 
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, 0, 0, 40)
-    Title.BackgroundTransparency = 1
-    Title.Text = title or "SlayHub 🖤"
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.TextScaled = true
-    Title.Font = Enum.Font.GothamBlack
-    Title.Parent = MainFrame
+    -- Tab container
+    local TabContainer = Instance.new("Frame")
+    TabContainer.Size = UDim2.new(1,0,1,-50)
+    TabContainer.Position = UDim2.new(0,0,0,50)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.Parent = MainFrame
 
-    local Scroll = Instance.new("ScrollingFrame")
-    Scroll.Size = UDim2.new(1, -20, 1, -60)
-    Scroll.Position = UDim2.new(0, 10, 0, 50)
-    Scroll.BackgroundTransparency = 1
-    Scroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-    Scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
-    Scroll.ScrollBarThickness = 6
-    Scroll.ScrollingDirection = Enum.ScrollingDirection.Y
-    Scroll.Parent = MainFrame
-
-    local UIList = Instance.new("UIListLayout")
-    UIList.SortOrder = Enum.SortOrder.LayoutOrder
-    UIList.Padding = UDim.new(0, 10)
-    UIList.Parent = Scroll
-
-    -- Toggle GUI
-    ToggleButton.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible
-    end)
-
-    -- Dragging
-    local dragging, dragInput, dragStart, startPos
-
-    local function update(input)
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-
-    MainFrame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    MainFrame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
-    end)
-
-    SlayHub.ScrollArea = Scroll
-    return SlayHub
+    -- Return window object
+    local window = {
+        ScreenGui = ScreenGui,
+        MainFrame = MainFrame,
+        TabContainer = TabContainer,
+        Tabs = {},
+        Notifications = {},
+    }
+    setmetatable(window, self)
+    return window
 end
 
-function SlayHub:AddButton(text, callback)
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, 0, 0, 45)
-    Button.BackgroundColor3 = Color3.fromRGB(0, 255, 242)
-    Button.TextColor3 = Color3.fromRGB(20, 20, 20)
-    Button.TextScaled = true
-    Button.Font = Enum.Font.GothamSemibold
-    Button.Text = text or "Click"
-    Button.Parent = SlayHub.ScrollArea
+-- Add Tab
+function SlayLib:AddTab(window, tabName)
+    local TabFrame = Instance.new("Frame")
+    TabFrame.Size = UDim2.new(1,0,1,0)
+    TabFrame.BackgroundTransparency = 1
+    TabFrame.Visible = true
+    TabFrame.Parent = window.TabContainer
 
-    local UICorner = Instance.new("UICorner")
-    UICorner.CornerRadius = UDim.new(0, 8)
-    UICorner.Parent = Button
-
-    Button.MouseButton1Click:Connect(function()
-        if callback then pcall(callback) end
-    end)
+    window.Tabs[tabName] = TabFrame
+    return TabFrame
 end
 
-function SlayHub:AddLabel(text)
+-- Add Toggle
+function SlayLib:AddToggle(tab, name, callback)
+    local ToggleFrame = Instance.new("Frame")
+    ToggleFrame.Size = UDim2.new(1, -20, 0, 40)
+    ToggleFrame.BackgroundTransparency = 0.2
+    ToggleFrame.BackgroundColor3 = Color3.fromRGB(60,60,60)
+    ToggleFrame.Position = UDim2.new(0,10,0, #tab:GetChildren()*45)
+    ToggleFrame.Parent = tab
+
     local Label = Instance.new("TextLabel")
-    Label.Size = UDim2.new(1, 0, 0, 30)
+    Label.Size = UDim2.new(0.7,0,1,0)
+    Label.Text = name
+    Label.TextColor3 = Color3.fromRGB(255,255,255)
     Label.BackgroundTransparency = 1
-    Label.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Label.TextScaled = true
     Label.Font = Enum.Font.Gotham
-    Label.Text = text or "Label"
-    Label.Parent = SlayHub.ScrollArea
+    Label.TextSize = 18
+    Label.Parent = ToggleFrame
+
+    local Button = Instance.new("TextButton")
+    Button.Size = UDim2.new(0.25,0,0.6,0)
+    Button.Position = UDim2.new(0.7,0,0.2,0)
+    Button.Text = "OFF"
+    Button.TextColor3 = Color3.fromRGB(255,255,255)
+    Button.BackgroundColor3 = Color3.fromRGB(100,100,100)
+    Button.Font = Enum.Font.GothamBold
+    Button.TextSize = 16
+    Button.Parent = ToggleFrame
+
+    local toggled = false
+    Button.MouseButton1Click:Connect(function()
+        toggled = not toggled
+        Button.Text = toggled and "ON" or "OFF"
+        if callback then callback(toggled) end
+    end)
 end
 
-return SlayHub
+-- Notification
+function SlayLib:Notify(text, duration)
+    duration = duration or 3
+    local notif = Instance.new("Frame")
+    notif.Size = UDim2.new(0,200,0,50)
+    notif.Position = UDim2.new(1,-220,1,-60 - (#self.Notifications*60))
+    notif.BackgroundColor3 = self.Theme.Primary
+    notif.Parent = PlayerGui
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,1,0)
+    label.Text = text
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.BackgroundTransparency = 1
+    label.Font = Enum.Font.GothamBold
+    label.TextSize = 16
+    label.Parent = notif
+
+    table.insert(self.Notifications, notif)
+
+    task.delay(duration, function()
+        notif:Destroy()
+        table.remove(self.Notifications,1)
+    end)
+end
+
+return SlayLib
