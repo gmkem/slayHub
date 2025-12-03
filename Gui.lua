@@ -1,4 +1,4 @@
--- SlayLib.lua
+-- SlayLib.lua (Part 1)
 -- Rebuilt GUI Library
 -- Author: Ohvn Bdon
 -- All-in-One, Pixel-perfect size like MaybeAlexchadlib
@@ -15,13 +15,13 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- THEME
 SlayLib.Theme = {
-	Main = Color3.fromRGB(255,215,0),
-	Background = Color3.fromRGB(30,30,30),
+	Main = Color3.fromRGB(255,215,0), -- Gold
+	Background = Color3.fromRGB(30,30,30), -- Dark
 	Accent = Color3.fromRGB(60,60,60),
 	Text = Color3.fromRGB(255,255,255)
 }
 
--- UTILITY CREATE FUNCTION
+-- UTILITY FUNCTION
 local function Create(class,parent,props)
 	local obj = Instance.new(class)
 	for k,v in pairs(props or {}) do obj[k]=v end
@@ -176,7 +176,7 @@ function SlayLib:CreateWindow(info)
 		if #tabsFolder:GetChildren()==1 then tabFrame.Visible=true end
 
 		local tabObj = {}
-		function tabObj:CreateButton(info)
+function tabObj:CreateButton(info)
 			local b = Create("TextButton",tabFrame,{
 				Text=info.Name,
 				Size=UDim2.new(0,200,0,36),
@@ -308,4 +308,237 @@ function SlayLib:CreateWindow(info)
 	return windowObj
 end
 
+-- SAVE / LOAD CONFIG
+SlayLib.Configs = {}
+function SlayLib:SaveConfig(name,tab)
+	self.Configs[name] = tab
+end
+function SlayLib:LoadConfig(name)
+	return self.Configs[name]
+end
+
+-- PROFILE DISPLAY
+function SlayLib:CreateProfile(player, parent)
+	local frame = Create("Frame", parent or PlayerGui,{Size=UDim2.new(0,100,0,36),BackgroundColor3=self.Theme.Accent})
+	Create("UICorner",frame,{CornerRadius=UDim.new(0,8)})
+	local avatar = Create("ImageLabel",frame,{Size=UDim2.new(0,32,0,32),Position=UDim2.new(0,2,0,2),Image="rbxthumb://type=AvatarHeadShot&id="..player.UserId,BackgroundTransparency=1})
+	local nameLabel = Create("TextLabel",frame,{Text=player.Name,TextColor3=self.Theme.Text,BackgroundTransparency=1,Font=Enum.Font.GothamBold,TextScaled=true,Position=UDim2.new(0,36,0,0),Size=UDim2.new(1,-36,1,0)})
+end
+
 return SlayLib
+-- SlayLib Part 3: Advanced Features
+
+-- ANIMATION HELPERS
+function SlayLib:Tween(obj,props,time,style,dir)
+	style = style or Enum.EasingStyle.Quad
+	dir = dir or Enum.EasingDirection.Out
+	TweenService:Create(obj,TweenInfo.new(time,style,dir),props):Play()
+end
+
+-- HOTKEY UI TOGGLE
+SlayLib.UIVisible = true
+function SlayLib:BindToggleKey(key)
+	UserInputService.InputBegan:Connect(function(input,gp)
+		if gp then return end
+		if input.KeyCode==key then
+			self.UIVisible = not self.UIVisible
+			local screen = PlayerGui:FindFirstChild("SlayLibScreen")
+			if screen then screen.Enabled = self.UIVisible end
+		end
+	end)
+end
+
+-- NOTIFICATIONS QUEUE
+SlayLib.NotificationQueue = {}
+function SlayLib:QueueNotification(title,text,duration,color)
+	table.insert(self.NotificationQueue,{title,text,duration,color})
+	if #self.NotificationQueue==1 then
+		self:_NextNotification()
+	end
+end
+
+function SlayLib:_NextNotification()
+	if #self.NotificationQueue==0 then return end
+	local n = table.remove(self.NotificationQueue,1)
+	self:Notification(n[1],n[2],n[3],n[4])
+	task.delay(n[3] or 3,function()
+		self:_NextNotification()
+	end)
+end
+
+-- LOADER UPGRADE
+function SlayLib:LoaderAdvanced(title)
+	local screen = PlayerGui:FindFirstChild("SlayLibScreen") or Create("ScreenGui",PlayerGui,{Name="SlayLibScreen",ResetOnSpawn=false})
+	local frame = Create("Frame",screen,{
+		Size=UDim2.new(0,280,0,90),
+		Position=UDim2.new(0.5,-140,0.5,-45),
+		BackgroundColor3=self.Theme.Background,
+		BorderSizePixel=0
+	})
+	Create("UICorner",frame,{CornerRadius=UDim.new(0,10)})
+	local label = Create("TextLabel",frame,{
+		Text=title or "SlayLib Loading...",
+		Font=Enum.Font.GothamBold,
+		TextColor3=self.Theme.Main,
+		TextScaled=true,
+		BackgroundTransparency=1,
+		Size=UDim2.new(1,0,1,0)
+	})
+	local bar = Create("Frame",frame,{
+		BackgroundColor3=self.Theme.Main,
+		Size=UDim2.new(0,0,0,6),
+		Position=UDim2.new(0,0,1,-6)
+	})
+	for i=0,1,0.02 do
+		bar.Size = UDim2.new(i,0,0,6)
+		task.wait(0.015)
+	end
+	self:Tween(frame,{Position=UDim2.new(0.5,-140,0.5,50),BackgroundTransparency=1},0.3)
+	task.wait(0.3)
+	frame:Destroy()
+end
+
+-- TOUCH SUPPORT FOR MOBILE
+function SlayLib:EnableTouchDrag(frame)
+	local dragging, dragInput, dragStart, startPos
+	local function update(input)
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+	end
+	frame.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.Touch then
+			dragging=true
+			dragStart=input.Position
+			startPos=frame.Position
+			input.Changed:Connect(function()
+				if input.UserInputState==Enum.UserInputState.End then dragging=false end
+			end)
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.Touch and dragging then
+			update(input)
+		end
+	end)
+end
+
+-- AUTO SAVE WIDGET VALUES
+SlayLib.AutoSaveData = {}
+function SlayLib:AutoSave(tabObj,key,value)
+	if not self.AutoSaveData[tabObj] then self.AutoSaveData[tabObj]={} end
+	self.AutoSaveData[tabObj][key] = value
+end
+function SlayLib:LoadAutoSave(tabObj,key,default)
+	if self.AutoSaveData[tabObj] and self.AutoSaveData[tabObj][key]~=nil then
+		return self.AutoSaveData[tabObj][key]
+	end
+	return default
+end
+
+-- TOUCH-OPTIMIZED BUTTONS
+function SlayLib:CreateTouchButton(tabObj,info)
+	local btn = Create("TextButton",tabObj,{
+		Text=info.Name,
+		Size=UDim2.new(0,220,0,50),
+		BackgroundColor3=self.Theme.Main,
+		TextColor3=self.Theme.Text,
+		Font=Enum.Font.GothamBold,
+		TextScaled=true
+	})
+	Create("UICorner",btn,{CornerRadius=UDim.new(0,10)})
+	btn.InputBegan:Connect(function(input)
+		if input.UserInputType==Enum.UserInputType.Touch then
+			info.Callback()
+		end
+	end)
+end
+
+-- SLAYLIB INIT
+function SlayLib:Init()
+	local screen = PlayerGui:FindFirstChild("SlayLibScreen")
+	if not screen then
+		screen = Create("ScreenGui",PlayerGui,{Name="SlayLibScreen",ResetOnSpawn=false})
+	end
+end
+-- SlayLib Example Usage
+
+local SlayLib = require(game.ReplicatedStorage:WaitForChild("SlayLib"))
+
+SlayLib:Init()
+SlayLib:BindToggleKey(Enum.KeyCode.RightShift)
+
+local window = SlayLib:CreateWindow({Name="SlayLib Demo"})
+
+-- Tab 1
+local tab1 = window:CreateTab("Main")
+tab1:CreateButton({
+	Name="Press Me",
+	Callback=function()
+		SlayLib:QueueNotification("Button","You pressed the button!",2)
+	end
+})
+tab1:CreateToggle({
+	Name="Enable Feature",
+	Default=false,
+	Callback=function(state)
+		SlayLib:QueueNotification("Toggle","Feature: "..tostring(state),2)
+	end
+})
+tab1:CreateSlider({
+	Name="Adjust Speed",
+	Default=50,
+	Max=100,
+	Callback=function(val)
+		SlayLib:QueueNotification("Slider","Value: "..val,1)
+	end
+})
+tab1:CreateDropdown({
+	Name="Select Option",
+	Options={"Option A","Option B","Option C"},
+	Callback=function(opt)
+		SlayLib:QueueNotification("Dropdown","Selected: "..opt,2)
+	end
+})
+tab1:CreateTextBox({
+	Placeholder="Type here...",
+	Callback=function(txt)
+		SlayLib:QueueNotification("Textbox","Typed: "..txt,2)
+	end
+})
+
+-- Tab 2
+local tab2 = window:CreateTab("Profile")
+SlayLib:CreateProfile(Players.LocalPlayer, PlayerGui)
+
+-- Loader Demo
+task.spawn(function()
+	SlayLib:LoaderAdvanced("Loading SlayLib Demo...")
+end)
+
+-- AutoSave Demo
+tab1:CreateToggle({
+	Name="AutoSave Toggle",
+	Default=SlayLib:LoadAutoSave(tab1,"AutoToggle",true),
+	Callback=function(val)
+		SlayLib:AutoSave(tab1,"AutoToggle",val)
+	end
+})
+tab1:CreateSlider({
+	Name="AutoSave Slider",
+	Default=SlayLib:LoadAutoSave(tab1,"AutoSlider",25),
+	Max=100,
+	Callback=function(val)
+		SlayLib:AutoSave(tab1,"AutoSlider",val)
+	end
+})
+
+-- Touch Button Demo (mobile friendly)
+tab1:CreateTouchButton({
+	Name="Touch Me",
+	Callback=function()
+		SlayLib:QueueNotification("Touch","You touched the button!",2)
+	end
+})
+
+-- Final Notification
+SlayLib:QueueNotification("SlayLib","Library loaded successfully!",3,SlayLib.Theme.Main)
