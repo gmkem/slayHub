@@ -1,6 +1,7 @@
--- SlayLib Final.lua
--- Full UI Library (All in One)
+-- SlayLib.lua
+-- Rebuilt GUI Library
 -- Author: Ohvn Bdon
+-- All-in-One, Pixel-perfect size like MaybeAlexchadlib
 
 local SlayLib = {}
 SlayLib.__index = SlayLib
@@ -8,18 +9,19 @@ SlayLib.__index = SlayLib
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- THEME
 SlayLib.Theme = {
-	MainColor = Color3.fromRGB(255,215,0),
+	Main = Color3.fromRGB(255,215,0),
 	Background = Color3.fromRGB(30,30,30),
 	Accent = Color3.fromRGB(60,60,60),
 	Text = Color3.fromRGB(255,255,255)
 }
 
--- CREATE FUNCTION
+-- UTILITY CREATE FUNCTION
 local function Create(class,parent,props)
 	local obj = Instance.new(class)
 	for k,v in pairs(props or {}) do obj[k]=v end
@@ -61,7 +63,7 @@ function SlayLib:Notification(title,text,duration,color)
 		Size=UDim2.new(0,250,0,60),
 		Position=UDim2.new(1,-260,1,-80),
 		AnchorPoint=Vector2.new(1,1),
-		BackgroundColor3=color or self.Theme.MainColor,
+		BackgroundColor3=color or self.Theme.Main,
 		BorderSizePixel=0
 	})
 	Create("UICorner",frame,{CornerRadius=UDim.new(0,8)})
@@ -97,13 +99,13 @@ function SlayLib:Loader(title)
 	local label = Create("TextLabel",frame,{
 		Text=title or "SlayLib Loading...",
 		Font=Enum.Font.GothamBold,
-		TextColor3=self.Theme.MainColor,
+		TextColor3=self.Theme.Main,
 		TextScaled=true,
 		BackgroundTransparency=1,
 		Size=UDim2.new(1,0,1,0)
 	})
 	local bar = Create("Frame",frame,{
-		BackgroundColor3=self.Theme.MainColor,
+		BackgroundColor3=self.Theme.Main,
 		Size=UDim2.new(0,0,0,6),
 		Position=UDim2.new(0,0,1,-6)
 	})
@@ -131,7 +133,7 @@ function SlayLib:CreateWindow(info)
 		Text=info.Name or "SlayLib",
 		Font=Enum.Font.GothamBold,
 		TextScaled=true,
-		TextColor3=self.Theme.MainColor,
+		TextColor3=self.Theme.Main,
 		BackgroundTransparency=1,
 		Size=UDim2.new(1,0,0,40)
 	})
@@ -178,7 +180,7 @@ function SlayLib:CreateWindow(info)
 			local b = Create("TextButton",tabFrame,{
 				Text=info.Name,
 				Size=UDim2.new(0,200,0,36),
-				BackgroundColor3=SlayLib.Theme.MainColor,
+				BackgroundColor3=SlayLib.Theme.Main,
 				TextColor3=SlayLib.Theme.Text,
 				Font=Enum.Font.GothamBold,
 				TextScaled=true
@@ -220,7 +222,7 @@ function SlayLib:CreateWindow(info)
 				Size=UDim2.new(1,0,1,0)
 			})
 			local bar = Create("Frame",frame,{
-				BackgroundColor3=SlayLib.Theme.MainColor,
+				BackgroundColor3=SlayLib.Theme.Main,
 				Size=UDim2.new((info.Default or 0)/(info.Max or 100),0,0.2,0),
 				Position=UDim2.new(0,0,1,-6)
 			})
@@ -268,7 +270,7 @@ function SlayLib:CreateWindow(info)
 				local btn = Create("TextButton",dropFrame,{
 					Text=opt,
 					Size=UDim2.new(1,0,0,28),
-					BackgroundColor3=SlayLib.Theme.MainColor,
+					BackgroundColor3=SlayLib.Theme.Main,
 					TextColor3=SlayLib.Theme.Text,
 					Font=Enum.Font.GothamBold,
 					TextScaled=true
