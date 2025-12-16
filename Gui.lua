@@ -22,13 +22,15 @@ function SlayLib:CreateSlayLib(libName)
     local pagesFolder = Instance.new("Folder")
 
 
+    -- Services
     local UserInputService = game:GetService("UserInputService")
-    local TweenService = game:GetService("TweenService") -- Added TweenService reference
+    local TweenService = game:GetService("TweenService")
 
     local TopBar = header
 
     local Camera = workspace:WaitForChild("Camera")
 
+    -- Dragging functionality
     local DragMousePosition
     local FramePosition
     local Draggable = false
@@ -52,12 +54,15 @@ function SlayLib:CreateSlayLib(libName)
         end
     end)
 
+    -- General Properties and Theme Changes (SlayLib Theme: Dark background with some transparency, Crimson/Red accents)
+
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
     MainWhiteFrame.Name = "MainWhiteFrame"
     MainWhiteFrame.Parent = ScreenGui
-    MainWhiteFrame.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+    MainWhiteFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Darker base
+    MainWhiteFrame.BackgroundTransparency = 0.2 -- **Slight Transparency Change**
     MainWhiteFrame.BorderSizePixel = 0
     MainWhiteFrame.ClipsDescendants = true
     MainWhiteFrame.Position = UDim2.new(0.236969739, 0, 0.360436916, 0)
@@ -69,7 +74,8 @@ function SlayLib:CreateSlayLib(libName)
 
     MainWhiteFrame_2.Name = "MainWhiteFrame"
     MainWhiteFrame_2.Parent = MainWhiteFrame
-    MainWhiteFrame_2.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Main Content Background
+    MainWhiteFrame_2.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Main content background
+    MainWhiteFrame_2.BackgroundTransparency = 0.1 -- **Slight Transparency Change**
     MainWhiteFrame_2.BorderSizePixel = 0
     MainWhiteFrame_2.ClipsDescendants = true
     MainWhiteFrame_2.Position = UDim2.new(0.0113636367, 0, 0, 0)
@@ -81,8 +87,8 @@ function SlayLib:CreateSlayLib(libName)
 
     tabFrame.Name = "tabFrame"
     tabFrame.Parent = MainWhiteFrame_2
-    tabFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Tab Frame Background
-    tabFrame.BorderColor3 = Color3.fromRGB(50, 50, 50)
+    tabFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Tab frame background
+    tabFrame.BorderColor3 = Color3.fromRGB(50, 50, 50) -- Darker border
     tabFrame.ClipsDescendants = true
     tabFrame.Size = UDim2.new(0, 100, 0, 309)
 
@@ -99,7 +105,7 @@ function SlayLib:CreateSlayLib(libName)
 
     header.Name = "header"
     header.Parent = MainWhiteFrame_2
-    header.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+    header.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson**
     header.Position = UDim2.new(0.207619041, 0, 0.0258064512, 0)
     header.Size = UDim2.new(0, 408, 0, 43)
 
@@ -147,17 +153,17 @@ function SlayLib:CreateSlayLib(libName)
             }):Play()
             MainWhiteFrame:TweenSize(UDim2.new(0, 528,0, 310), "In", "Linear", 0.12)
             TweenService:Create(MainWhiteFrame_2, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
-                BackgroundTransparency = 0
+                BackgroundTransparency = 0.1 -- Use the new transparency value
             }):Play()
             TweenService:Create(MainWhiteFrame, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
-                BackgroundTransparency = 0
+                BackgroundTransparency = 0.2 -- Use the new transparency value
             }):Play()
         end
     end)
 
     elementContainer.Name = "elementContainer"
     elementContainer.Parent = MainWhiteFrame_2
-    elementContainer.BackgroundColor3 = Color3.fromRGB(28, 28, 28) -- Element Container Background
+    elementContainer.BackgroundColor3 = Color3.fromRGB(28, 28, 28) -- Element container background
     elementContainer.Position = UDim2.new(0.207619041, 0, 0.187096775, 0)
     elementContainer.Size = UDim2.new(0, 408, 0, 243)
 
@@ -171,22 +177,6 @@ function SlayLib:CreateSlayLib(libName)
     mainList.SortOrder = Enum.SortOrder.LayoutOrder
 
     pagesFolder.Parent = elementContainer
-    
-    -- === NEW: Notification Container Setup ===
-    local NotificationContainer = Instance.new("Frame")
-    NotificationContainer.Name = "NotificationContainer"
-    NotificationContainer.Parent = ScreenGui
-    NotificationContainer.BackgroundTransparency = 1.000
-    NotificationContainer.Size = UDim2.new(0, 300, 1, 0)
-    NotificationContainer.Position = UDim2.new(1, -10, 0, 0)
-    NotificationContainer.AnchorPoint = Vector2.new(1, 0)
-    
-    local NotificationList = Instance.new("UIListLayout")
-    NotificationList.Parent = NotificationContainer
-    NotificationList.HorizontalAlignment = Enum.HorizontalAlignment.Right
-    NotificationList.VerticalAlignment = Enum.VerticalAlignment.Bottom
-    NotificationList.SortOrder = Enum.SortOrder.LayoutOrder
-    NotificationList.Padding = UDim.new(0, 5)
 
     local SectionHandler = {}
 
@@ -199,7 +189,7 @@ function SlayLib:CreateSlayLib(libName)
 
         tabBtn.Name = "tabBtn"..secName
         tabBtn.Parent = tabFrame
-        tabBtn.BackgroundColor3 = Color3.fromRGB(25,25,25) -- Unselected Tab Color
+        tabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Tab button background (unselected)
         tabBtn.BorderColor3 = Color3.fromRGB(50, 50, 50)
         tabBtn.Position = UDim2.new(0.0599999987, 0, 0.0323624611, 0)
         tabBtn.Size = UDim2.new(0, 95, 0, 32)
@@ -226,7 +216,7 @@ function SlayLib:CreateSlayLib(libName)
         newPage.BorderSizePixel = 0
         newPage.Size = UDim2.new(1, 0, 1, 0)
         newPage.ScrollBarThickness = 5
-        newPage.ScrollBarImageColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+        newPage.ScrollBarImageColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson**
         newPage.Visible = false
 
         pageItemList.Name = "pageItemList"
@@ -263,12 +253,12 @@ function SlayLib:CreateSlayLib(libName)
                 if v:IsA("TextButton") then
                     UpdateSize()
                     TweenService:Create(v, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
-                        BackgroundColor3 = Color3.fromRGB(25,25,25)
+                        BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Tab unselected color
                     }):Play()
                 end
             end
             TweenService:Create(tabBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
-                BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent (Selected)
+                BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Selected Tab)**
             }):Play()
         end)
 
@@ -283,7 +273,7 @@ function SlayLib:CreateSlayLib(libName)
 
             labelFrame.Name = "labelFrame"
             labelFrame.Parent = newPage
-            labelFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            labelFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
             labelFrame.Position = UDim2.new(0.0367647074, 0, 0.0185185187, 0)
             labelFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -316,7 +306,7 @@ function SlayLib:CreateSlayLib(libName)
 
             textButtonFrame.Name = "textButtonFrame"
             textButtonFrame.Parent = newPage
-            textButtonFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            textButtonFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
             textButtonFrame.Position = UDim2.new(0.0147058824, 0, 0.0246913582, 0)
             textButtonFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -325,7 +315,7 @@ function SlayLib:CreateSlayLib(libName)
             mainCorner.Parent = textButtonFrame
 
             TextButton.Parent = textButtonFrame
-            TextButton.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+            TextButton.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Button)**
             TextButton.Position = UDim2.new(0.017766498, 0, 0.166666672, 0)
             TextButton.Size = UDim2.new(0, 141, 0, 27)
             TextButton.Font = Enum.Font.GothamSemibold
@@ -345,7 +335,7 @@ function SlayLib:CreateSlayLib(libName)
             textButtonInfo.Size = UDim2.new(0, 226, 0, 41)
             textButtonInfo.Font = Enum.Font.GothamSemibold
             textButtonInfo.Text = buttonInfo
-            textButtonInfo.TextColor3 = Color3.fromRGB(170, 170, 170)
+            textButtonInfo.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
             textButtonInfo.TextSize = 14.000
             textButtonInfo.TextXAlignment = Enum.TextXAlignment.Right
 
@@ -372,7 +362,7 @@ function SlayLib:CreateSlayLib(libName)
 
                 toggleFrame.Name = "toggleFrame"
                 toggleFrame.Parent = newPage
-                toggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                toggleFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
                 toggleFrame.Position = UDim2.new(0.0147058824, 0, 0.0246913582, 0)
                 toggleFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -388,13 +378,13 @@ function SlayLib:CreateSlayLib(libName)
                 toggleInfo.Size = UDim2.new(0, 226, 0, 41)
                 toggleInfo.Font = Enum.Font.GothamSemibold
                 toggleInfo.Text = togInfo
-                toggleInfo.TextColor3 = Color3.fromRGB(170, 170, 170)
+                toggleInfo.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
                 toggleInfo.TextSize = 14.000
                 toggleInfo.TextXAlignment = Enum.TextXAlignment.Right
 
                 toggleInerFrame.Name = "toggleInerFrame"
                 toggleInerFrame.Parent = toggleFrame
-                toggleInerFrame.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent (Track)
+                toggleInerFrame.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Track)**
                 toggleInerFrame.Position = UDim2.new(0.0177664906, 0, 0.166666672, 0)
                 toggleInerFrame.Size = UDim2.new(0, 27, 0, 27)
 
@@ -404,7 +394,7 @@ function SlayLib:CreateSlayLib(libName)
 
                 toggleInnerFrame1.Name = "toggleInnerFrame1"
                 toggleInnerFrame1.Parent = toggleInerFrame
-                toggleInnerFrame1.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Inner Track Part
+                toggleInnerFrame1.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Inner track part
                 toggleInnerFrame1.Position = UDim2.new(0.0177664906, 0, -0.0185185075, 0)
                 toggleInnerFrame1.Size = UDim2.new(0, 25, 0, 25)
 
@@ -414,7 +404,7 @@ function SlayLib:CreateSlayLib(libName)
 
                 toggleBtn.Name = "toggleBtn"
                 toggleBtn.Parent = toggleInnerFrame1
-                toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle Button (Unselected)
+                toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle button (unselected)
                 toggleBtn.Position = UDim2.new(2.2399888, 0, -0.0185185149, 0)
                 toggleBtn.Size = UDim2.new(0, 23, 0, 23)
                 toggleBtn.Font = Enum.Font.GothamSemibold
@@ -443,11 +433,11 @@ function SlayLib:CreateSlayLib(libName)
                     callback(toggled)
                     if toggled then
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
-                            BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent (Selected)
+                            BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Toggle selected)**
                         }):Play()
                     else
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
-                            BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                            BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle unselected color
                         }):Play()
                     end 
                 end)
@@ -472,7 +462,7 @@ function SlayLib:CreateSlayLib(libName)
 
                     sliderFrame.Name = "sliderFrame"
                     sliderFrame.Parent = newPage
-                    sliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                    sliderFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
                     sliderFrame.Position = UDim2.new(0.0147058824, 0, 0.0246913582, 0)
                     sliderFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -488,7 +478,7 @@ function SlayLib:CreateSlayLib(libName)
                     sliderInfo.Size = UDim2.new(0, 157, 0, 41)
                     sliderInfo.Font = Enum.Font.GothamSemibold
                     sliderInfo.Text = sliderin
-                    sliderInfo.TextColor3 = Color3.fromRGB(170, 170, 170)
+                    sliderInfo.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
                     sliderInfo.TextSize = 14.000
                     sliderInfo.TextXAlignment = Enum.TextXAlignment.Right
 
@@ -500,13 +490,13 @@ function SlayLib:CreateSlayLib(libName)
                     sliderValue.Size = UDim2.new(0, 68, 0, 17)
                     sliderValue.Font = Enum.Font.GothamSemibold
                     sliderValue.Text = minvalue.."/"..maxvalue
-                    sliderValue.TextColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+                    sliderValue.TextColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Value)**
                     sliderValue.TextSize = 14.000
                     sliderValue.TextXAlignment = Enum.TextXAlignment.Left
 
                     sliderBtn.Name = "sliderBtn"
                     sliderBtn.Parent = sliderFrame
-                    sliderBtn.BackgroundColor3 = Color3.fromRGB(33, 33, 33) -- Slider Track Color
+                    sliderBtn.BackgroundColor3 = Color3.fromRGB(33, 33, 33) -- Slider track color
                     sliderBtn.BorderSizePixel = 0
                     sliderBtn.Position = UDim2.new(0.0179999992, 0, 0.381000012, 0)
                     sliderBtn.Size = UDim2.new(0, 141, 0, 10)
@@ -523,7 +513,7 @@ function SlayLib:CreateSlayLib(libName)
 
                     sliderMainFrm.Name = "sliderMainFrm"
                     sliderMainFrm.Parent = sliderBtn
-                    sliderMainFrm.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent (Fill)
+                    sliderMainFrm.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Fill)**
                     sliderMainFrm.BorderColor3 = Color3.fromRGB(139, 0, 23)
                     sliderMainFrm.BorderSizePixel = 0
                     sliderMainFrm.Size = UDim2.new(0, 0, 0, 10)
@@ -552,7 +542,7 @@ function SlayLib:CreateSlayLib(libName)
                             pcall(function()
                                 callback(Value)
                             end)
-                            sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10) 
+                            sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10) -- Fixed: use sliderBtn.AbsolutePosition.X
                             
                             local moveconnection = mouse.Move:Connect(function()
                                 sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10)
@@ -590,7 +580,7 @@ function SlayLib:CreateSlayLib(libName)
 
                             keybindFrame.Name = "keybindFrame"
                             keybindFrame.Parent = newPage
-                            keybindFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                            keybindFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
                             keybindFrame.Position = UDim2.new(0.0147058824, 0, 0.0246913582, 0)
                             keybindFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -599,7 +589,7 @@ function SlayLib:CreateSlayLib(libName)
                             mainCorner.Parent = keybindFrame
 
                             TextButton.Parent = keybindFrame
-                            TextButton.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+                            TextButton.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Button)**
                             TextButton.Position = UDim2.new(0.017766498, 0, 0.166666672, 0)
                             TextButton.Size = UDim2.new(0, 76, 0, 27)
                             TextButton.Font = Enum.Font.GothamSemibold
@@ -619,20 +609,20 @@ function SlayLib:CreateSlayLib(libName)
                             keybindinfo.Size = UDim2.new(0, 226, 0, 41)
                             keybindinfo.Font = Enum.Font.GothamSemibold
                             keybindinfo.Text = keInfo
-                            keybindinfo.TextColor3 = Color3.fromRGB(170, 170, 170)
+                            keybindinfo.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
                             keybindinfo.TextSize = 14.000
                             keybindinfo.TextXAlignment = Enum.TextXAlignment.Right
 
                             TextButton.MouseButton1Click:connect(function(e) 
                                 TextButton.Text = ". . ."
-                                local a, b = UserInputService.InputBegan:wait();
+                                local a, b = game:GetService('UserInputService').InputBegan:wait();
                                 if a.KeyCode.Name ~= "Unknown" then
                                     TextButton.Text = a.KeyCode.Name
                                     oldKey = a.KeyCode.Name;
                                 end
                             end)
 
-                            UserInputService.InputBegan:connect(function(current, ok) 
+                            game:GetService("UserInputService").InputBegan:connect(function(current, ok) 
                                 if not ok then 
                                     if current.KeyCode.Name == oldKey then 
                                         callback()
@@ -660,7 +650,7 @@ function SlayLib:CreateSlayLib(libName)
 
                                 textBoxFrame.Name = "textBoxFrame"
                                 textBoxFrame.Parent = newPage
-                                textBoxFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                                textBoxFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Element Background
                                 textBoxFrame.Position = UDim2.new(0.0147058824, 0, 0.0246913582, 0)
                                 textBoxFrame.Size = UDim2.new(0, 394, 0, 42)
 
@@ -676,13 +666,13 @@ function SlayLib:CreateSlayLib(libName)
                                 textboxInfo.Size = UDim2.new(0, 226, 0, 41)
                                 textboxInfo.Font = Enum.Font.GothamSemibold
                                 textboxInfo.Text = textInfo
-                                textboxInfo.TextColor3 = Color3.fromRGB(170, 170, 170)
+                                textboxInfo.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
                                 textboxInfo.TextSize = 14.000
                                 textboxInfo.TextXAlignment = Enum.TextXAlignment.Right
 
                                 texboxInner.Name = "texboxInner"
                                 texboxInner.Parent = textBoxFrame
-                                texboxInner.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent (Border)
+                                texboxInner.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Border)**
                                 texboxInner.Position = UDim2.new(0.017766498, 0, 0.166666672, 0)
                                 texboxInner.Size = UDim2.new(0, 141, 0, 27)
 
@@ -692,7 +682,7 @@ function SlayLib:CreateSlayLib(libName)
 
                                 textboxinneer.Name = "textboxinneer"
                                 textboxinneer.Parent = texboxInner
-                                textboxinneer.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Textbox Inner Background
+                                textboxinneer.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Textbox inner background
                                 textboxinneer.ClipsDescendants = true
                                 textboxinneer.Position = UDim2.new(0.411347508, 0, 0.0370370373, 0)
                                 textboxinneer.Size = UDim2.new(0, 139, 0, 25)
@@ -711,7 +701,7 @@ function SlayLib:CreateSlayLib(libName)
                                 TextBox.BackgroundTransparency = 1.000
                                 TextBox.Size = UDim2.new(1, 0, 1, 0)
                                 TextBox.Font = Enum.Font.GothamSemibold
-                                TextBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90)
+                                TextBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90) -- Darker placeholder text
                                 TextBox.PlaceholderText = placeHolderText1
                                 TextBox.Text = ""
                                 TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -749,7 +739,7 @@ function SlayLib:CreateSlayLib(libName)
 
                                     dropDownFrame.Name = "dropDownFrame"
                                     dropDownFrame.Parent = newPage
-                                    dropDownFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+                                    dropDownFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Slightly darker overall background for dropdown
                                     dropDownFrame.ClipsDescendants = true
                                     dropDownFrame.Position = UDim2.new(0.011029412, 0, 0.0205760058, 0)
                                     dropDownFrame.Size = UDim2.new(0, 394, 0, 42)
@@ -760,7 +750,7 @@ function SlayLib:CreateSlayLib(libName)
 
                                     dropdownmain.Name = "dropdownmain"
                                     dropdownmain.Parent = dropDownFrame
-                                    dropdownmain.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                                    dropdownmain.BackgroundColor3 = Color3.fromRGB(25, 25, 25) -- Dropdown main element background
                                     dropdownmain.Size = UDim2.new(0, 394, 0, 42)
 
                                     mainCorner_2.CornerRadius = UDim.new(0, 3)
@@ -775,7 +765,7 @@ function SlayLib:CreateSlayLib(libName)
                                     dropdownItem.Size = UDim2.new(0, 291, 0, 41)
                                     dropdownItem.Font = Enum.Font.GothamSemibold
                                     dropdownItem.Text = dInfo
-                                    dropdownItem.TextColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+                                    dropdownItem.TextColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Dropdown Info)**
                                     dropdownItem.TextSize = 14.000
                                     dropdownItem.TextXAlignment = Enum.TextXAlignment.Left
 
@@ -785,7 +775,7 @@ function SlayLib:CreateSlayLib(libName)
                                     ImageButton.Position = UDim2.new(0.89974618, 0, 0.238095239, 0)
                                     ImageButton.Size = UDim2.new(0, 27, 0, 21)
                                     ImageButton.Image = "rbxassetid://5165666242"
-                                    ImageButton.ImageColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
+                                    ImageButton.ImageColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Arrow)**
                                     ImageButton.MouseButton1Click:Connect(function()
                                         if isDropped then
                                             isDropped = false
@@ -818,7 +808,7 @@ function SlayLib:CreateSlayLib(libName)
 
                                         optionBtn.Name = "optionBtn"
                                         optionBtn.Parent = dropDownFrame
-                                        optionBtn.BackgroundColor3 = Color3.fromRGB(118, 0, 20) -- Option Hover Color
+                                        optionBtn.BackgroundColor3 = Color3.fromRGB(50, 0, 10) -- Option button color
                                         optionBtn.Position = UDim2.new(0.0253807101, 0, 0.311258286, 0)
                                         optionBtn.Size = UDim2.new(0, 377, 0, 39)
                                         optionBtn.Font = Enum.Font.GothamSemibold
@@ -844,82 +834,115 @@ function SlayLib:CreateSlayLib(libName)
                                         end)
                                     end
         end
+        
+        -- === NEW ELEMENT 1: Separator ===
+        function ElementHandler:Separator(separatorText)
+            separatorText = separatorText or ""
+            
+            local sepFrame = Instance.new("Frame")
+            local mainCorner = Instance.new("UICorner")
+            local line = Instance.new("Frame")
+            local text = Instance.new("TextLabel")
+
+            sepFrame.Name = "Separator"
+            sepFrame.Parent = newPage
+            sepFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) 
+            sepFrame.Size = UDim2.new(0, 394, 0, 22)
+            
+            mainCorner.CornerRadius = UDim.new(0, 3)
+            mainCorner.Parent = sepFrame
+
+            -- Thin line
+            line.Name = "Line"
+            line.Parent = sepFrame
+            line.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            line.Position = UDim2.new(0.01, 0, 0.5, 0)
+            line.Size = UDim2.new(0, 386, 0, 1)
+            line.AnchorPoint = Vector2.new(0, 0.5)
+
+            -- Text (if provided)
+            text.Name = "Text"
+            text.Parent = sepFrame
+            text.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            text.BackgroundTransparency = 1
+            text.Size = UDim2.new(1, 0, 1, 0)
+            text.Font = Enum.Font.GothamSemibold
+            text.Text = separatorText
+            text.TextColor3 = Color3.fromRGB(170, 170, 170)
+            text.TextSize = 12
+            text.TextXAlignment = Enum.TextXAlignment.Center
+        end
+        
+        -- === NEW ELEMENT 2: ColorPicker (Simplified Swatch) ===
+        function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
+            colorInfo = colorInfo or "Color Picker"
+            defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
+            callback = callback or function() end
+
+            local colorFrame = Instance.new("Frame")
+            local mainCorner = Instance.new("UICorner")
+            local colorInfoLabel = Instance.new("TextLabel")
+            local colorSwatchButton = Instance.new("TextButton")
+            local swatchCorner = Instance.new("UICorner")
+
+            colorFrame.Name = "colorFrame"
+            colorFrame.Parent = newPage
+            colorFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            colorFrame.Size = UDim2.new(0, 394, 0, 42)
+
+            mainCorner.CornerRadius = UDim.new(0, 3)
+            mainCorner.Parent = colorFrame
+
+            -- Info Label
+            colorInfoLabel.Parent = colorFrame
+            colorInfoLabel.BackgroundTransparency = 1.000
+            colorInfoLabel.Position = UDim2.new(0.02, 0, 0, 0)
+            colorInfoLabel.Size = UDim2.new(0, 200, 0, 41)
+            colorInfoLabel.Font = Enum.Font.GothamSemibold
+            colorInfoLabel.Text = colorInfo
+            colorInfoLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
+            colorInfoLabel.TextSize = 14.000
+            colorInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- Color Swatch Button (Acts as a display and a click trigger)
+            colorSwatchButton.Name = "ColorSwatch"
+            colorSwatchButton.Parent = colorFrame
+            colorSwatchButton.BackgroundColor3 = defaultColor
+            colorSwatchButton.Position = UDim2.new(0.965, 0, 0.5, 0)
+            colorSwatchButton.AnchorPoint = Vector2.new(1, 0.5)
+            colorSwatchButton.Size = UDim2.new(0, 30, 0, 30)
+            colorSwatchButton.Text = ""
+            colorSwatchButton.AutoButtonColor = false
+
+            swatchCorner.CornerRadius = UDim.new(0, 3)
+            swatchCorner.Parent = colorSwatchButton
+
+            local currentColor = defaultColor
+
+            colorSwatchButton.MouseButton1Click:Connect(function()
+                -- ในการใช้งานจริง โค้ดที่นี่จะเปิดหน้าต่าง ColorPicker ที่ซับซ้อนขึ้น
+                -- สำหรับตอนนี้ มันจะแสดงว่ามีการคลิกและเรียก callback
+                
+                -- *SIMULATION* (จำลองการเลือกสีใหม่):
+                local simulatedNewColor = Color3.fromHSV(math.random(), 1, 1) -- เปลี่ยนเป็นสีสุ่มเพื่อแสดงการทำงาน
+                currentColor = simulatedNewColor
+                colorSwatchButton.BackgroundColor3 = currentColor
+                callback(currentColor)
+            end)
+
+            -- เรียกใช้ callback ทันทีด้วยสีเริ่มต้น
+            callback(defaultColor)
+            
+            -- คืนค่าฟังก์ชันเพื่อให้อนุญาตให้สคริปต์ภายนอกตั้งค่าสีได้
+            return function(newColor)
+                currentColor = newColor
+                colorSwatchButton.BackgroundColor3 = newColor
+                callback(newColor)
+            end
+        end
+        
         return ElementHandler
     end
-    
-    -- === NEW: Global Notification Function ===
-    function SectionHandler:Notification(title, message, duration)
-        duration = duration or 5
-        local NotificationContainer = ScreenGui:FindFirstChild("NotificationContainer")
-
-        local NotifFrame = Instance.new("Frame")
-        NotifFrame.Name = "Notification"
-        NotifFrame.Parent = NotificationContainer
-        NotifFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-        NotifFrame.BorderSizePixel = 0
-        NotifFrame.Size = UDim2.new(0, 250, 0, 65)
-        NotifFrame.Position = UDim2.new(1, 5, 0, 0) -- Start off-screen right
-        
-        local Corner = Instance.new("UICorner")
-        Corner.CornerRadius = UDim.new(0, 5)
-        Corner.Parent = NotifFrame
-
-        local AccentBar = Instance.new("Frame")
-        AccentBar.Parent = NotifFrame
-        AccentBar.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
-        AccentBar.Size = UDim2.new(0, 5, 1, 0)
-        AccentBar.Name = "AccentBar"
-        
-        local TitleLabel = Instance.new("TextLabel")
-        TitleLabel.Parent = NotifFrame
-        TitleLabel.BackgroundTransparency = 1
-        TitleLabel.Position = UDim2.new(0.04, 5, 0.05, 0)
-        TitleLabel.Size = UDim2.new(0.9, 0, 0.3, 0)
-        TitleLabel.Font = Enum.Font.GothamSemibold
-        TitleLabel.Text = title or "SlayLib Notification"
-        TitleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-        TitleLabel.TextSize = 14
-        TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
-        TitleLabel.Name = "TitleLabel"
-
-        local MessageLabel = Instance.new("TextLabel")
-        MessageLabel.Parent = NotifFrame
-        MessageLabel.BackgroundTransparency = 1
-        MessageLabel.Position = UDim2.new(0.04, 5, 0.35, 0)
-        MessageLabel.Size = UDim2.new(0.9, 0, 0.6, 0)
-        MessageLabel.Font = Enum.Font.Gotham
-        MessageLabel.Text = message or "Action completed successfully."
-        MessageLabel.TextColor3 = Color3.fromRGB(198, 198, 198)
-        MessageLabel.TextSize = 13
-        MessageLabel.TextXAlignment = Enum.TextXAlignment.Left
-        MessageLabel.TextWrapped = true
-        MessageLabel.Name = "MessageLabel"
-
-        -- Animation
-        local info = TweenInfo.new(0.3, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-
-        -- 1. Slide In
-        local slideIn = TweenService:Create(NotifFrame, info, {
-            Position = UDim2.new(0, 0, 0, 0) 
-        })
-        
-        slideIn:Play()
-
-        -- 2. Wait and Slide Out (using task.delay for non-blocking timer)
-        task.delay(duration, function()
-            if not NotifFrame or not NotifFrame.Parent then return end 
-
-            local fadeOut = TweenService:Create(NotifFrame, info, {
-                Position = UDim2.new(1, 5, 0, 0), -- Slide out to the right
-            })
-            
-            fadeOut:Play()
-            fadeOut.Completed:Wait()
-
-            NotifFrame:Destroy()
-        end)
-    end
-    
     return SectionHandler
 end 
 
