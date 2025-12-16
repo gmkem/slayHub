@@ -1,16 +1,21 @@
 local SlayLibExtra = {}
 
--- Define the new, refined color palette and constants
+-- Define the new, Aero-Glassmorphism palette and constants
 local Palette = {
-    BG_DARK = Color3.fromRGB(18, 18, 18),         -- Main Background Frame
-    BG_CARD = Color3.fromRGB(24, 24, 24),         -- Element/Tab Background
-    ACCENT = Color3.fromRGB(0, 191, 255),         -- Vibrant Cyan/Deep Sky Blue
-    TEXT_MAIN = Color3.fromRGB(255, 255, 255),    -- White text
-    TEXT_SECONDARY = Color3.fromRGB(160, 160, 160),-- Gray secondary text
-    STROKE_COLOR = Color3.fromRGB(35, 35, 35),    -- Subtle Border/Switch Track Color
-    CORNER_RADIUS = 8,                            -- Global Corner Radius
-    ELEMENT_HEIGHT = 45,                          -- Standard element height
-    TAB_WIDTH = 130
+    -- Core Colors
+    BG_NAVY = Color3.fromRGB(15, 15, 20),           -- Very Dark Blue Base
+    BG_CARD = Color3.fromRGB(30, 30, 40),           -- Element/Tab Background (Slightly lighter)
+    ACCENT = Color3.fromRGB(255, 0, 255),           -- Electric Magenta
+    ACCENT_HOVER = Color3.fromRGB(200, 0, 200),     -- Darker Magenta for hover
+    TEXT_MAIN = Color3.fromRGB(255, 255, 255),      -- White text
+    TEXT_SECONDARY = Color3.fromRGB(150, 150, 180), -- Light blue-grey secondary text
+    STROKE_COLOR = Color3.fromRGB(50, 50, 60),      -- Border/Track Color
+    
+    -- UI Constants
+    CORNER_RADIUS = 8,                              -- Main Corner Radius
+    ELEMENT_HEIGHT = 45,                            -- Standard element height
+    HEADER_HEIGHT = 35,
+    TAB_BAR_HEIGHT = 35,
 }
 
 -- Services
@@ -19,45 +24,44 @@ local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris") 
 local task = task 
 
--- Notification Constants
-local NotifWidth = 320
-local NotifHeight = 70
+-- Notification Constants (New Position: Top Right)
+local NotifWidth = 350
+local NotifHeight = 75
 local NotifFadeTime = 0.35
 local NotifVisibleTime = 4.0
 
--- Notification Status Mapping (using the new palette)
 local StatusMapping = {
     Info = {
         Color = Palette.ACCENT, 
-        Icon = "rbxassetid://10632598818" -- Info icon (i)
+        Icon = "rbxassetid://10632598818" 
     },
     Success = {
-        Color = Color3.fromRGB(0, 170, 0), -- Green
-        Icon = "rbxassetid://10632598687" -- Checkmark icon
+        Color = Color3.fromRGB(0, 200, 0), -- Brighter Green
+        Icon = "rbxassetid://10632598687" 
     },
     Warning = {
-        Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
-        Icon = "rbxassetid://10632599540" -- Warning icon (!)
+        Color = Color3.fromRGB(255, 170, 0), -- Orange
+        Icon = "rbxassetid://10632599540" 
     },
     Error = {
-        Color = Color3.fromRGB(200, 50, 50), -- Red
-        Icon = "rbxassetid://10632599187" -- X / Error icon
+        Color = Color3.fromRGB(255, 50, 50), -- Bright Red
+        Icon = "rbxassetid://10632599187" 
     }
 }
 
--- Global Notification System (Integrated into the library)
+-- Global Notification System (Positioned Top-Right)
 local NotificationQueue = {}
 local ActiveNotifications = {} 
 local Camera = workspace:WaitForChild("Camera")
 
 local function UpdateNotificationPositions()
-    local currentYOffset = 20 
+    local currentYOffset = 20 -- Start offset from the top
     
-    -- Loop from the bottom (highest index) to the top
-    for i = #ActiveNotifications, 1, -1 do
+    -- Loop from the top (newest/highest index) to the bottom
+    for i = 1, #ActiveNotifications do
         local NotifFrame = ActiveNotifications[i]
-        local targetY = -NotifFrame.Size.Y.Offset - currentYOffset
-        local targetPosition = UDim2.new(1, -NotifWidth - 20, 1, targetY)
+        local targetY = currentYOffset
+        local targetPosition = UDim2.new(1, -NotifWidth - 20, 0, targetY)
 
         TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
             Position = targetPosition
@@ -68,10 +72,9 @@ local function UpdateNotificationPositions()
 end
 
 local function ProcessQueue()
-    if #NotificationQueue > 0 then
+    if #NotificationQueue > 0 and #ActiveNotifications < 10 then
         local nextNotifData = table.remove(NotificationQueue, 1)
         task.spawn(function()
-            -- Re-call Alert to show the next notification
             SlayLibExtra:Alert(nextNotifData.status, nextNotifData.title, nextNotifData.message, nextNotifData.duration)
         end)
     end
@@ -86,8 +89,7 @@ local function DismissNotification(NotifFrame, autoDismiss)
 
     local fadeTime = NotifFadeTime
     
-    -- Start simultaneous fade-out for all elements
-    local tweens = {}
+    -- Fade Out Synchronization (As per V7 fix)
     local function applyFade(instance)
         local transparencyProps = {}
         if instance:IsA("Frame") or instance:IsA("TextButton") or instance:IsA("ImageButton") or instance:IsA("UIStroke") then
@@ -105,9 +107,7 @@ local function DismissNotification(NotifFrame, autoDismiss)
         end
         
         if next(transparencyProps) then
-            local t = TweenService:Create(instance, TweenInfo.new(fadeTime, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), transparencyProps)
-            table.insert(tweens, t)
-            t:Play()
+            TweenService:Create(instance, TweenInfo.new(fadeTime, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), transparencyProps):Play()
         end
 
         for _, child in instance:GetChildren() do
@@ -117,7 +117,7 @@ local function DismissNotification(NotifFrame, autoDismiss)
 
     applyFade(NotifFrame)
 
-    task.wait(fadeTime) -- Wait for the entire fade duration
+    task.wait(fadeTime) 
 
     table.remove(ActiveNotifications, index)
     Debris:AddItem(NotifFrame, 0.1) 
@@ -130,29 +130,29 @@ local function ShowNotification(notifData)
     local statusData = StatusMapping[notifData.status]
     local duration = math.clamp(notifData.duration, 1, 15)
     
-    if #ActiveNotifications >= 10 then -- Limit active notifications
+    if #ActiveNotifications >= 10 then 
         table.insert(NotificationQueue, notifData)
         return
     end
 
-    -- 1. Create UI Instances (Sleek, Modern Design)
     local NotifFrame = Instance.new("Frame")
     NotifFrame.Name = "SlayNotif_"..notifData.status
     NotifFrame.Parent = game.CoreGui 
-    NotifFrame.BackgroundColor3 = Palette.BG_CARD
+    NotifFrame.BackgroundColor3 = Palette.BG_CARD 
+    NotifFrame.BackgroundTransparency = 0.1 -- Slight Transparency for Glass effect
     NotifFrame.BorderSizePixel = 0
     NotifFrame.Size = UDim2.new(0, NotifWidth, 0, NotifHeight)
     NotifFrame.ZIndex = 10 
     
     local notifCorner = Instance.new("UICorner")
-    notifCorner.CornerRadius = UDim.new(0, Palette.CORNER_RADIUS)
+    notifCorner.CornerRadius = UDim.new(0, 6)
     notifCorner.Parent = NotifFrame
 
-    -- Inner Stroke/Shadow (Subtle)
+    -- Inner Stroke/Border (Sharp look)
     local notifStroke = Instance.new("UIStroke")
     notifStroke.Parent = NotifFrame
     notifStroke.Color = Color3.fromRGB(0, 0, 0)
-    notifStroke.Transparency = 0.8
+    notifStroke.Transparency = 0.5
     notifStroke.Thickness = 1
     notifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
@@ -161,10 +161,10 @@ local function ShowNotification(notifData)
     notifAccentLine.Name = "AccentLine"
     notifAccentLine.Parent = NotifFrame
     notifAccentLine.BackgroundColor3 = statusData.Color 
-    notifAccentLine.Size = UDim2.new(1, 0, 0, 4) -- Thin line at the top
+    notifAccentLine.Size = UDim2.new(1, 0, 0, 5) -- Thicker line at the top
     notifAccentLine.Position = UDim2.new(0, 0, 0, 0)
     
-    -- Padding for content
+    -- Content Padding
     local contentPadding = Instance.new("UIPadding")
     contentPadding.Parent = NotifFrame
     contentPadding.PaddingLeft = UDim.new(0, 15)
@@ -220,37 +220,37 @@ local function ShowNotification(notifData)
     notifMessage.Name = "Message"
     notifMessage.Parent = NotifFrame
     notifMessage.BackgroundTransparency = 1.000
-    notifMessage.Size = UDim2.new(1, -30, 0, 15) 
+    notifMessage.Size = UDim2.new(1, -30, 0, 20) 
     notifMessage.Font = Enum.Font.Gotham
     notifMessage.Text = notifData.message
     notifMessage.TextColor3 = Palette.TEXT_SECONDARY 
-    notifMessage.TextSize = 12.000
+    notifMessage.TextSize = 13.000
     notifMessage.TextXAlignment = Enum.TextXAlignment.Left
     notifMessage.TextYAlignment = Enum.TextYAlignment.Top
     notifMessage.TextWrapped = true
     
-    -- Dismiss Button (X)
+    -- Dismiss Button (X) - Minimalist placement
     local DismissButton = Instance.new("TextButton")
     DismissButton.Name = "Dismiss"
     DismissButton.Parent = NotifFrame
     DismissButton.BackgroundTransparency = 1
-    DismissButton.Position = UDim2.new(1, -15, 0, 0)
+    DismissButton.Position = UDim2.new(1, -5, 0, 0)
+    DismissButton.AnchorPoint = Vector2.new(1, 0)
     DismissButton.Size = UDim2.new(0, 15, 0, 15)
     DismissButton.Text = "✕"
     DismissButton.TextColor3 = Palette.TEXT_SECONDARY
     DismissButton.TextSize = 16
     DismissButton.Font = Enum.Font.GothamSemibold
-    DismissButton.TextYAlignment = Enum.TextYAlignment.Top
     
-    -- 2. Initial Setup 
-    NotifFrame.Position = UDim2.new(1.1, 0, 1, -NotifHeight - 20) 
+    -- 2. Initial Setup (Start off-screen Top-Right)
+    NotifFrame.Position = UDim2.new(1.1, 0, 0, 20) 
     
-    -- 3. Add to active list 
+    -- 3. Add to active list (Insert at the bottom, so new ones appear at the top)
     table.insert(ActiveNotifications, 1, NotifFrame) 
 
     -- 4. Animate In (From right)
     TweenService:Create(NotifFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        Position = UDim2.new(1, -NotifWidth - 20, 1, NotifFrame.Position.Y.Offset), 
+        Position = UDim2.new(1, -NotifWidth - 20, 0, NotifFrame.Position.Y.Offset), 
     }):Play()
 
     -- 5. Update all positions
@@ -268,6 +268,34 @@ local function ShowNotification(notifData)
         end
     end)
 end
+
+-- Public Alert/Notify functions
+function SlayLibExtra:Alert(status, title, message, duration)
+    local validStatus = StatusMapping[status] and status or "Info"
+
+    local newNotif = {
+        status = validStatus,
+        title = title or validStatus.." Message",
+        message = message or "A message from SlayLib.",
+        duration = duration or NotifVisibleTime
+    }
+    
+    task.spawn(function()
+        if #ActiveNotifications >= 10 and #NotificationQueue < 50 then 
+             table.insert(NotificationQueue, newNotif)
+        else
+             ShowNotification(newNotif)
+        end
+        
+        if #NotificationQueue > 0 and #ActiveNotifications < 50 then
+            task.spawn(ProcessQueue)
+        end
+    end)
+end
+
+function SlayLibExtra:Notify(title, message, duration)
+    self:Alert("Info", title, message, duration)
+end
 -- End of Notification System
 
 function SlayLibExtra:CreateSlayLib(libName)
@@ -276,47 +304,50 @@ function SlayLibExtra:CreateSlayLib(libName)
 
     local ScreenGui = Instance.new("ScreenGui")
     local MainFrame = Instance.new("Frame")
-    local MainCorner = Instance.new("UICorner")
-    local MainStroke = Instance.new("UIStroke")
-    local TabFrame = Instance.new("Frame")
-    local TabList = Instance.new("UIListLayout")
-    local TabPadding = Instance.new("UIPadding")
     local Header = Instance.new("Frame")
     local TitleLabel = Instance.new("TextLabel")
     local CloseButton = Instance.new("ImageButton")
-    local ContentFrame = Instance.new("Frame")
-    local ContentCorner = Instance.new("UICorner")
+    local TabBarFrame = Instance.new("Frame")
+    local TabBarList = Instance.new("UIListLayout")
+    local ContentContainer = Instance.new("Frame")
     local PagesFolder = Instance.new("Folder")
+    
+    -- Apply Services
+    local Camera = workspace:WaitForChild("Camera")
 
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-    -- Main Frame (The whole window)
+    -- Main Frame (Glassmorphism Effect)
     MainFrame.Name = "MainFrame"
     MainFrame.Parent = ScreenGui
-    MainFrame.BackgroundColor3 = Palette.BG_DARK
+    MainFrame.BackgroundColor3 = Palette.BG_NAVY
+    MainFrame.BackgroundTransparency = 0.6 -- Glass effect
     MainFrame.BorderSizePixel = 0
-    MainFrame.ClipsDescendants = true
+    MainFrame.ClipsDescendants = false -- Important for glassmorphism
     MainFrame.Position = UDim2.new(0.25, 0, 0.25, 0)
-    MainFrame.Size = UDim2.new(0, 560, 0, 380) 
-
+    MainFrame.Size = UDim2.new(0, 580, 0, 420) 
+    
+    -- Main Corner
+    local MainCorner = Instance.new("UICorner")
     MainCorner.CornerRadius = UDim.new(0, Palette.CORNER_RADIUS)
     MainCorner.Parent = MainFrame
     
-    -- Outer Stroke for premium look
+    -- Outer Stroke for definition
+    local MainStroke = Instance.new("UIStroke")
     MainStroke.Parent = MainFrame
     MainStroke.Color = Color3.fromRGB(0, 0, 0)
-    MainStroke.Transparency = 0.6
-    MainStroke.Thickness = 1
+    MainStroke.Transparency = 0.5
+    MainStroke.Thickness = 2
     MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
     -- Header (Top Bar for dragging and title)
     Header.Name = "Header"
     Header.Parent = MainFrame
-    Header.BackgroundColor3 = Palette.ACCENT -- Accent Color
-    Header.Size = UDim2.new(1, 0, 0, 35)
+    Header.BackgroundColor3 = Palette.BG_CARD 
+    Header.Size = UDim2.new(1, 0, 0, Palette.HEADER_HEIGHT)
 
-    -- Top Corners for Header
+    -- Top Corners for Header (Matches MainFrame)
     local HeaderCorner = Instance.new("UICorner")
     HeaderCorner.CornerRadius = UDim.new(0, Palette.CORNER_RADIUS)
     HeaderCorner.CornerAxis = Enum.CornerAxis.Y
@@ -325,12 +356,12 @@ function SlayLibExtra:CreateSlayLib(libName)
     TitleLabel.Name = "LibTitle"
     TitleLabel.Parent = Header
     TitleLabel.BackgroundTransparency = 1.000
-    TitleLabel.Position = UDim2.new(0.01, 0, 0, 0)
+    TitleLabel.Position = UDim2.new(0.015, 0, 0, 0)
     TitleLabel.Size = UDim2.new(0.8, 0, 1, 0)
     TitleLabel.Font = Enum.Font.GothamSemibold
     TitleLabel.Text = libName
-    TitleLabel.TextColor3 = Color3.fromRGB(0, 0, 0) -- Dark text on bright accent
-    TitleLabel.TextSize = 16.000
+    TitleLabel.TextColor3 = Palette.ACCENT 
+    TitleLabel.TextSize = 18.000
     TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
     
     CloseButton.Name = "CloseLib"
@@ -339,10 +370,10 @@ function SlayLibExtra:CreateSlayLib(libName)
     CloseButton.Position = UDim2.new(1, -30, 0.5, 0)
     CloseButton.AnchorPoint = Vector2.new(1, 0.5)
     CloseButton.Size = UDim2.new(0, 20, 0, 20)
-    CloseButton.Image = "rbxassetid://4988112250" -- Close icon
-    CloseButton.ImageColor3 = Color3.fromRGB(0, 0, 0)
+    CloseButton.Image = "rbxassetid://4988112250" 
+    CloseButton.ImageColor3 = Palette.ACCENT
 
-    -- Dragging functionality (unchanged)
+    -- Dragging functionality (Attached to Header)
     local DragMousePosition
     local FramePosition
     local Draggable = false
@@ -371,77 +402,76 @@ function SlayLibExtra:CreateSlayLib(libName)
         if isClosed then
             isClosed = false
             CloseButton.Image = "rbxassetid://4988112250"
-            MainFrame:TweenSize(UDim2.new(0, 560, 0, 380), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, Duration, true)
+            MainFrame:TweenSize(UDim2.new(0, 580, 0, 420), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, Duration, true)
         else
             isClosed = true
-            CloseButton.Image = "rbxassetid://5165666242" -- Arrow icon
-            MainFrame:TweenSize(UDim2.new(0, 560, 0, 35), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, Duration, true)
+            CloseButton.Image = "rbxassetid://5165666242" 
+            MainFrame:TweenSize(UDim2.new(0, 580, 0, Palette.HEADER_HEIGHT), Enum.EasingDirection.Out, Enum.EasingStyle.Quart, Duration, true)
         end
     end)
 
-    -- Tab Frame (Left Panel)
-    TabFrame.Name = "TabFrame"
-    TabFrame.Parent = MainFrame
-    TabFrame.BackgroundColor3 = Palette.BG_CARD
-    TabFrame.Position = UDim2.new(0, 0, 0, 35)
-    TabFrame.Size = UDim2.new(0, Palette.TAB_WIDTH, 1, -35) 
-
-    local TabFrameCorner = Instance.new("UICorner")
-    TabFrameCorner.CornerRadius = UDim.new(0, Palette.CORNER_RADIUS)
-    TabFrameCorner.CornerAxis = Enum.CornerAxis.X
-    TabFrameCorner.Parent = TabFrame
-
-    TabList.Name = "TabList"
-    TabList.Parent = TabFrame
-    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    TabList.SortOrder = Enum.SortOrder.LayoutOrder
-    TabList.Padding = UDim.new(0, 5)
-
-    TabPadding.Name = "TabPadding"
-    TabPadding.Parent = TabFrame
-    TabPadding.PaddingTop = UDim.new(0, 10)
+    -- Tab Bar (Under the header)
+    TabBarFrame.Name = "TabBarFrame"
+    TabBarFrame.Parent = MainFrame
+    TabBarFrame.BackgroundColor3 = Palette.BG_CARD
+    TabBarFrame.Position = UDim2.new(0, 0, 0, Palette.HEADER_HEIGHT)
+    TabBarFrame.Size = UDim2.new(1, 0, 0, Palette.TAB_BAR_HEIGHT) 
     
-    -- Content Frame (Right Panel)
-    ContentFrame.Name = "ContentFrame"
-    ContentFrame.Parent = MainFrame
-    ContentFrame.BackgroundColor3 = Palette.BG_DARK
-    ContentFrame.Position = UDim2.new(0, Palette.TAB_WIDTH, 0, 35)
-    ContentFrame.Size = UDim2.new(1, -Palette.TAB_WIDTH, 1, -35)
+    TabBarList.Name = "TabBarList"
+    TabBarList.Parent = TabBarFrame
+    TabBarList.FillDirection = Enum.FillDirection.Horizontal
+    TabBarList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    TabBarList.SortOrder = Enum.SortOrder.LayoutOrder
+    TabBarList.Padding = UDim.new(0, 2)
+    
+    local TabBarPadding = Instance.new("UIPadding")
+    TabBarPadding.Parent = TabBarFrame
+    TabBarPadding.PaddingLeft = UDim.new(0, 5)
+    
+    -- Content Container (Holds the scrolling pages)
+    ContentContainer.Name = "ContentContainer"
+    ContentContainer.Parent = MainFrame
+    ContentContainer.BackgroundColor3 = Palette.BG_NAVY
+    ContentContainer.BackgroundTransparency = 0.4 -- More transparent than the main frame for depth
+    ContentContainer.Position = UDim2.new(0, 0, 0, Palette.HEADER_HEIGHT + Palette.TAB_BAR_HEIGHT)
+    ContentContainer.Size = UDim2.new(1, 0, 1, -(Palette.HEADER_HEIGHT + Palette.TAB_BAR_HEIGHT))
 
+    local ContentCorner = Instance.new("UICorner")
     ContentCorner.CornerRadius = UDim.new(0, Palette.CORNER_RADIUS)
-    ContentCorner.Parent = ContentFrame
+    ContentCorner.Parent = ContentContainer
 
-    PagesFolder.Parent = ContentFrame
-    
-    -- Public Alert/Notify functions are defined globally above
+    PagesFolder.Parent = ContentContainer
     
     local SectionHandler = {}
 
     function SectionHandler:CreateSection(secName)
         secName = secName or "Tab"
         
-        -- Tab Button
+        -- Tab Button (Top Bar Style)
         local TabButton = Instance.new("TextButton")
-        local TabCorner = Instance.new("UICorner")
-
         TabButton.Name = "TabBtn"..secName
-        TabButton.Parent = TabFrame
+        TabButton.Parent = TabBarFrame
         TabButton.BackgroundColor3 = Palette.BG_CARD
-        TabButton.Size = UDim2.new(0, Palette.TAB_WIDTH - 20, 0, 35) -- Slightly wider button
+        TabButton.Size = UDim2.new(0, 100, 1, 0)
         TabButton.Font = Enum.Font.GothamSemibold
         TabButton.Text = secName
         TabButton.TextColor3 = Palette.TEXT_SECONDARY
         TabButton.TextSize = 14.000
         TabButton.AutoButtonColor = false
-
-        TabCorner.CornerRadius = UDim.new(0, 6)
-        TabCorner.Parent = TabButton
         
-        -- Content Page
+        -- Accent Line for Selected Tab (under the text)
+        local TabIndicator = Instance.new("Frame")
+        TabIndicator.Name = "Indicator"
+        TabIndicator.Parent = TabButton
+        TabIndicator.BackgroundColor3 = Palette.ACCENT
+        TabIndicator.Size = UDim2.new(1, 0, 0, 2)
+        TabIndicator.Position = UDim2.new(0, 0, 1, 0)
+        TabIndicator.Visible = false
+
+        -- Content Page (Scrolling Frame)
         local newPage = Instance.new("ScrollingFrame")
         local pageItemList = Instance.new("UIListLayout")
-        local UIPadding = Instance.new("UIPadding")
-
+        
         newPage.Name = "Page"..secName
         newPage.Parent = PagesFolder
         newPage.Active = true
@@ -455,15 +485,12 @@ function SlayLibExtra:CreateSlayLib(libName)
         
         local PagePadding = Instance.new("UIPadding")
         PagePadding.Parent = newPage
-        PagePadding.PaddingTop = UDim.new(0, 10)
-        PagePadding.PaddingBottom = UDim.new(0, 10)
-        PagePadding.PaddingLeft = UDim.new(0, 10)
-        PagePadding.PaddingRight = UDim.new(0, 10)
+        PagePadding.PaddingAll = UDim.new(0, 10)
 
         pageItemList.Name = "pageItemList"
         pageItemList.Parent = newPage
         pageItemList.FillDirection = Enum.FillDirection.Vertical
-        pageItemList.HorizontalAlignment = Enum.HorizontalAlignment.Left
+        pageItemList.HorizontalAlignment = Enum.HorizontalAlignment.Center
         pageItemList.SortOrder = Enum.SortOrder.LayoutOrder
         pageItemList.Padding = UDim.new(0, 8)
 
@@ -479,27 +506,24 @@ function SlayLibExtra:CreateSlayLib(libName)
 
         -- Tab Selection Logic
         TabButton.MouseButton1Click:Connect(function()
+            local TabTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out) 
+            
             for _, v in next, PagesFolder:GetChildren() do
                 v.Visible = false
             end
             newPage.Visible = true
-            
-            local TabTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out) 
 
-            for _, v in next, TabFrame:GetChildren() do
+            for _, v in next, TabBarFrame:GetChildren() do
                 if v:IsA("TextButton") then
-                    TweenService:Create(v, TabTweenInfo,{
-                        BackgroundColor3 = Palette.BG_CARD,
-                        TextColor3 = Palette.TEXT_SECONDARY
-                    }):Play()
+                    v.TextColor3 = Palette.TEXT_SECONDARY
+                    v.Indicator.Visible = false
                 end
             end
             
             -- Highlight selected tab
-            TweenService:Create(TabButton, TabTweenInfo,{
-                BackgroundColor3 = Palette.ACCENT, 
-                TextColor3 = Color3.fromRGB(0, 0, 0)
-            }):Play()
+            TabButton.TextColor3 = Palette.TEXT_MAIN
+            TabIndicator.Visible = true
+
             UpdateCanvasSize()
         end)
 
@@ -510,17 +534,18 @@ function SlayLibExtra:CreateSlayLib(libName)
             local container = Instance.new("Frame")
             container.Parent = parent
             container.BackgroundColor3 = Palette.BG_CARD
+            container.BackgroundTransparency = 0.5 -- Transparent card for glass look
             container.Size = UDim2.new(1, 0, 0, Palette.ELEMENT_HEIGHT) 
             container.BorderSizePixel = 0
             
             local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
+            corner.CornerRadius = UDim.new(0, 5)
             corner.Parent = container
             
             return container
         end
 
-        -- 1. TextLabel
+        -- 1. TextLabel (Same as V1 but new colors)
         function ElementHandler:TextLabel(labelText)
             local container = createContainer(newPage)
             container.Size = UDim2.new(1, 0, 0, 30) 
@@ -537,7 +562,7 @@ function SlayLibExtra:CreateSlayLib(libName)
             label.TextXAlignment = Enum.TextXAlignment.Left
         end
         
-        -- 2. Separator
+        -- 2. Separator (New look: Sharp line with text box)
         function ElementHandler:Separator(separatorText)
             local sepFrame = Instance.new("Frame")
             sepFrame.Name = "Separator"
@@ -550,25 +575,26 @@ function SlayLibExtra:CreateSlayLib(libName)
             line.Parent = sepFrame
             line.BackgroundColor3 = Palette.STROKE_COLOR
             line.Position = UDim2.new(0.5, 0, 0.5, 0)
-            line.Size = UDim2.new(1, -10, 0, 1)
+            line.Size = UDim2.new(1, 0, 0, 1)
             line.AnchorPoint = Vector2.new(0.5, 0.5)
 
             if separatorText and separatorText ~= "" then
                 local text = Instance.new("TextLabel")
                 text.Name = "Text"
                 text.Parent = sepFrame
-                text.BackgroundColor3 = Palette.BG_DARK 
+                text.BackgroundColor3 = Palette.BG_NAVY 
+                text.BackgroundTransparency = 0.6 -- Same as main frame
                 text.Size = UDim2.new(0, 150, 1, 0)
                 text.Position = UDim2.new(0.5, 0, 0.5, 0)
                 text.AnchorPoint = Vector2.new(0.5, 0.5)
                 text.Font = Enum.Font.GothamSemibold
-                text.Text = " "..separatorText.." "
+                text.Text = "  "..separatorText.."  "
                 text.TextColor3 = Palette.TEXT_SECONDARY
                 text.TextSize = 12
             end
         end
 
-        -- 3. TextButton
+        -- 3. Button
         function ElementHandler:Button(buttonText, callback)
             local container = createContainer(newPage)
             
@@ -577,20 +603,27 @@ function SlayLibExtra:CreateSlayLib(libName)
             Button.BackgroundColor3 = Palette.ACCENT
             Button.Size = UDim2.new(1, 0, 1, 0)
             Button.Font = Enum.Font.GothamSemibold
-            Button.Text = buttonText or "Execute"
-            Button.TextColor3 = Color3.fromRGB(0, 0, 0)
+            Button.Text = buttonText or "EXECUTE"
+            Button.TextColor3 = Color3.fromRGB(0, 0, 0) -- Black text on Magenta
             Button.TextSize = 14.000
             
             local corner = Instance.new("UICorner")
-            corner.CornerRadius = UDim.new(0, 6)
+            corner.CornerRadius = UDim.new(0, 5)
             corner.Parent = Button
             
+            Button.MouseEnter:Connect(function()
+                 TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Palette.ACCENT_HOVER}):Play()
+            end)
+            Button.MouseLeave:Connect(function()
+                 TweenService:Create(Button, TweenInfo.new(0.1), {BackgroundColor3 = Palette.ACCENT}):Play()
+            end)
+
             Button.MouseButton1Click:Connect(function()
                 pcall(callback)
             end)
         end
 
-        -- 4. Toggle (Modern Pill Switch)
+        -- 4. Toggle (New Square Toggle Switch)
         function ElementHandler:Toggle(togInfo, callback)
             local container = createContainer(newPage)
             
@@ -606,61 +639,63 @@ function SlayLibExtra:CreateSlayLib(libName)
             label.TextSize = 14.000
             label.TextXAlignment = Enum.TextXAlignment.Left
 
-            -- Switch Track (Background)
-            local switchTrack = Instance.new("Frame")
-            switchTrack.Name = "SwitchTrack"
-            switchTrack.Parent = container
-            switchTrack.BackgroundColor3 = Palette.STROKE_COLOR -- Default Off Color
-            switchTrack.Size = UDim2.new(0, 45, 0, 25)
-            switchTrack.Position = UDim2.new(1, -10, 0.5, 0)
-            switchTrack.AnchorPoint = Vector2.new(1, 0.5)
+            -- Switch Frame (Square Style)
+            local switchFrame = Instance.new("Frame")
+            switchFrame.Name = "SwitchFrame"
+            switchFrame.Parent = container
+            switchFrame.BackgroundColor3 = Palette.BG_CARD
+            switchFrame.Size = UDim2.new(0, 25, 0, 25)
+            switchFrame.Position = UDim2.new(1, -10, 0.5, 0)
+            switchFrame.AnchorPoint = Vector2.new(1, 0.5)
             
-            local trackCorner = Instance.new("UICorner")
-            trackCorner.CornerRadius = UDim.new(0, 12.5) -- Half of height
-            trackCorner.Parent = switchTrack
+            local frameCorner = Instance.new("UICorner")
+            frameCorner.CornerRadius = UDim.new(0, 4)
+            frameCorner.Parent = switchFrame
 
-            -- Switch Thumb (Circle)
-            local switchThumb = Instance.new("Frame")
-            switchThumb.Name = "SwitchThumb"
-            switchThumb.Parent = switchTrack
-            switchThumb.BackgroundColor3 = Palette.TEXT_MAIN
-            switchThumb.Size = UDim2.new(0, 20, 0, 20)
-            switchThumb.Position = UDim2.new(0, 2.5, 0.5, 0) -- Initial Off Position
-            switchThumb.AnchorPoint = Vector2.new(0, 0.5)
-
-            local thumbCorner = Instance.new("UICorner")
-            thumbCorner.CornerRadius = UDim.new(1, 0) -- Perfect circle
-            thumbCorner.Parent = switchThumb
+            -- Indicator (The inner color fill)
+            local indicator = Instance.new("Frame")
+            indicator.Name = "Indicator"
+            indicator.Parent = switchFrame
+            indicator.BackgroundColor3 = Palette.ACCENT
+            indicator.Size = UDim2.new(0, 20, 0, 20)
+            indicator.Position = UDim2.new(0.5, 0, 0.5, 0)
+            indicator.AnchorPoint = Vector2.new(0.5, 0.5)
+            indicator.BackgroundTransparency = 1 -- Start transparent
+            
+            local indicatorCorner = Instance.new("UICorner")
+            indicatorCorner.CornerRadius = UDim.new(0, 3)
+            indicatorCorner.Parent = indicator
 
             local toggled = false
             local TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
-            local POS_ON = UDim2.new(1, -2.5, 0.5, 0)
-            local POS_OFF = UDim2.new(0, 2.5, 0.5, 0)
 
             local function updateSwitch(state)
                 toggled = state
                 pcall(callback, toggled)
 
-                local targetColor = toggled and Palette.ACCENT or Palette.STROKE_COLOR
-                local targetPos = toggled and POS_ON or POS_OFF
+                local targetTransparency = toggled and 0 or 1
 
-                TweenService:Create(switchTrack, TWEEN_INFO, {
-                    BackgroundColor3 = targetColor
+                TweenService:Create(indicator, TWEEN_INFO, {
+                    BackgroundTransparency = targetTransparency
                 }):Play()
 
-                TweenService:Create(switchThumb, TWEEN_INFO, {
-                    Position = targetPos
+                TweenService:Create(switchFrame, TWEEN_INFO, {
+                    BackgroundColor3 = toggled and Palette.ACCENT or Palette.BG_CARD
+                }):Play()
+                
+                TweenService:Create(indicator, TWEEN_INFO, {
+                    Size = toggled and UDim2.new(0, 20, 0, 20) or UDim2.new(0, 0, 0, 0)
                 }):Play()
             end
             
-            switchTrack.MouseButton1Click:Connect(function()
+            switchFrame.MouseButton1Click:Connect(function()
                 updateSwitch(not toggled)
             end)
             
             updateSwitch(false) -- Initialize state
         end
 
-        -- 5. Slider
+        -- 5. Slider (New Chunky Slider)
         function ElementHandler:Slider(sliderin, minvalue, maxvalue, callback)
             minvalue = minvalue or 0
             maxvalue = maxvalue or 100
@@ -694,17 +729,17 @@ function SlayLibExtra:CreateSlayLib(libName)
             valueLabel.TextSize = 14.000
             valueLabel.TextXAlignment = Enum.TextXAlignment.Right
 
-            -- Slider Track
+            -- Slider Track (New Chunky Look)
             local sliderTrack = Instance.new("Frame")
             sliderTrack.Name = "SliderTrack"
             sliderTrack.Parent = container
             sliderTrack.BackgroundColor3 = Palette.STROKE_COLOR
-            sliderTrack.Position = UDim2.new(0.03, 0, 0.7, 0)
-            sliderTrack.Size = UDim2.new(0.94, 0, 0, 5) -- Thin track
+            sliderTrack.Position = UDim2.new(0.03, 0, 0.65, 0)
+            sliderTrack.Size = UDim2.new(0.94, 0, 0, 10) -- Thick track
             sliderTrack.AnchorPoint = Vector2.new(0, 0.5)
             
             local trackCorner = Instance.new("UICorner")
-            trackCorner.CornerRadius = UDim.new(1, 0)
+            trackCorner.CornerRadius = UDim.new(0, 5)
             trackCorner.Parent = sliderTrack
 
             -- Fill Frame
@@ -715,20 +750,20 @@ function SlayLibExtra:CreateSlayLib(libName)
             fillFrame.Size = UDim2.new(0, 0, 1, 0)
             
             local fillCorner = Instance.new("UICorner")
-            fillCorner.CornerRadius = UDim.new(1, 0)
+            fillCorner.CornerRadius = UDim.new(0, 5)
             fillCorner.Parent = fillFrame
 
-            -- Thumb (Draggable handle)
+            -- Thumb (Square handle)
             local thumb = Instance.new("Frame")
             thumb.Name = "Thumb"
             thumb.Parent = sliderTrack
-            thumb.BackgroundColor3 = Palette.ACCENT
-            thumb.Size = UDim2.new(0, 10, 0, 10)
+            thumb.BackgroundColor3 = Palette.TEXT_MAIN
+            thumb.Size = UDim2.new(0, 15, 0, 15)
             thumb.Position = UDim2.new(0, 0, 0.5, 0)
             thumb.AnchorPoint = Vector2.new(0.5, 0.5)
-
+            
             local thumbCorner = Instance.new("UICorner")
-            thumbCorner.CornerRadius = UDim.new(1, 0)
+            thumbCorner.CornerRadius = UDim.new(0, 3)
             thumbCorner.Parent = thumb
             
             local isDragging = false
@@ -751,10 +786,16 @@ function SlayLibExtra:CreateSlayLib(libName)
                 pcall(callback, currentValue)
             end
 
-            sliderTrack.MouseButton1Down:Connect(function()
-                isDragging = true
-                updateSlider(UserInputService:GetMouseLocation().X)
-            end)
+            local function dragStart(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                    isDragging = true
+                    updateSlider(input.Position.X)
+                end
+            end
+            
+            sliderTrack.InputBegan:Connect(dragStart)
+            thumb.InputBegan:Connect(dragStart)
+
 
             UserInputService.InputChanged:Connect(function(input)
                 if isDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
@@ -768,15 +809,14 @@ function SlayLibExtra:CreateSlayLib(libName)
                 end
             end)
             
-            -- Initial setup based on minvalue
             task.spawn(function()
                 updateSlider(sliderTrack.AbsolutePosition.X)
             end)
         end
         
-        -- 6. KeyBind
+        -- 6. KeyBind (Square button look)
         function ElementHandler:KeyBind(keInfo, defaultKey, callback)
-            local currentKey = defaultKey and defaultKey.Name or "None"
+            local currentKey = defaultKey and defaultKey.Name or "NONE"
             local isBinding = false
             callback = callback or function() end
             
@@ -894,25 +934,26 @@ function SlayLibExtra:CreateSlayLib(libName)
             end)
         end 
         
-        -- 8. Dropdown
+        -- 8. Dropdown (Square Toggle Style)
         function ElementHandler:Dropdown(dInfo, list, callback)
             list = list or {}
             callback = callback or function() end
             local selectedText = dInfo or "Select Option"
             
             local isDropped = false
-            local DropdownItemHeight = 30
+            local DropdownItemHeight = 35
             local DropYSize = Palette.ELEMENT_HEIGHT + (#list * DropdownItemHeight) + 5
             
             local dropDownFrame = Instance.new("Frame")
             dropDownFrame.Name = "dropDownFrame"
             dropDownFrame.Parent = newPage
             dropDownFrame.BackgroundColor3 = Palette.BG_CARD
+            dropDownFrame.BackgroundTransparency = 0.5
             dropDownFrame.ClipsDescendants = true
             dropDownFrame.Size = UDim2.new(1, 0, 0, Palette.ELEMENT_HEIGHT) -- Initial size
             
             local mainCorner = Instance.new("UICorner")
-            mainCorner.CornerRadius = UDim.new(0, 6)
+            mainCorner.CornerRadius = UDim.new(0, 5)
             mainCorner.Parent = dropDownFrame
 
             local UIListLayout = Instance.new("UIListLayout")
@@ -926,25 +967,22 @@ function SlayLibExtra:CreateSlayLib(libName)
             dropdownMain.Name = "DropdownMain"
             dropdownMain.Parent = dropDownFrame
             dropdownMain.BackgroundColor3 = Palette.BG_CARD
+            dropdownMain.BackgroundTransparency = 1
             dropdownMain.Size = UDim2.new(1, 0, 0, Palette.ELEMENT_HEIGHT)
             dropdownMain.Font = Enum.Font.GothamSemibold
-            dropdownMain.TextColor3 = Palette.TEXT_MAIN
+            dropdownMain.TextColor3 = Palette.ACCENT
             dropdownMain.TextSize = 14
             dropdownMain.TextXAlignment = Enum.TextXAlignment.Left
             dropdownMain.Text = "  "..selectedText
             
-            local dropCorner = Instance.new("UICorner")
-            dropCorner.CornerRadius = UDim.new(0, 6)
-            dropCorner.Parent = dropdownMain
-
-            -- Arrow Icon
+            -- Arrow Icon (Rotates)
             local ImageButton = Instance.new("ImageButton")
             ImageButton.Parent = dropdownMain
             ImageButton.BackgroundTransparency = 1.000
             ImageButton.Position = UDim2.new(1, -15, 0.5, 0)
             ImageButton.AnchorPoint = Vector2.new(1, 0.5)
             ImageButton.Size = UDim2.new(0, 15, 0, 15)
-            ImageButton.Image = "rbxassetid://5165666242" -- Arrow pointing up
+            ImageButton.Image = "rbxassetid://5165666242" 
             ImageButton.ImageColor3 = Palette.ACCENT
 
             local DropdownTweenDuration = 0.2
@@ -954,6 +992,7 @@ function SlayLibExtra:CreateSlayLib(libName)
             OptionsFrame.Name = "OptionsFrame"
             OptionsFrame.Parent = dropDownFrame
             OptionsFrame.BackgroundColor3 = Palette.BG_CARD
+            OptionsFrame.BackgroundTransparency = 0.5
             OptionsFrame.Size = UDim2.new(1, 0, 0, DropYSize - Palette.ELEMENT_HEIGHT)
             
             local OptionsList = Instance.new("UIListLayout")
@@ -961,6 +1000,7 @@ function SlayLibExtra:CreateSlayLib(libName)
             OptionsList.FillDirection = Enum.FillDirection.Vertical
             OptionsList.HorizontalAlignment = Enum.HorizontalAlignment.Center
             OptionsList.SortOrder = Enum.SortOrder.LayoutOrder
+            OptionsList.Padding = UDim.new(0, 0)
             
             -- Options
             for i, v in next, list do
@@ -968,19 +1008,20 @@ function SlayLibExtra:CreateSlayLib(libName)
                 optionBtn.Name = "OptionBtn"..i
                 optionBtn.Parent = OptionsFrame
                 optionBtn.BackgroundColor3 = Palette.BG_CARD
+                optionBtn.BackgroundTransparency = 1
                 optionBtn.Size = UDim2.new(1, 0, 0, DropdownItemHeight)
                 optionBtn.Font = Enum.Font.Gotham
                 optionBtn.Text = "  "..v
                 optionBtn.TextColor3 = Palette.TEXT_SECONDARY
-                optionBtn.TextSize = 14.000
+                optionBtn.TextSize = 13.000
                 optionBtn.TextXAlignment = Enum.TextXAlignment.Left
                 optionBtn.AutoButtonColor = false
                 
                 optionBtn.MouseEnter:Connect(function()
-                    TweenService:Create(optionBtn, TweenInfo.new(0.1), {BackgroundColor3 = Palette.STROKE_COLOR}):Play()
+                    TweenService:Create(optionBtn, TweenInfo.new(0.1), {BackgroundTransparency = 0.5}):Play()
                 end)
                 optionBtn.MouseLeave:Connect(function()
-                    TweenService:Create(optionBtn, TweenInfo.new(0.1), {BackgroundColor3 = Palette.BG_CARD}):Play()
+                    TweenService:Create(optionBtn, TweenInfo.new(0.1), {BackgroundTransparency = 1}):Play()
                 end)
 
                 optionBtn.MouseButton1Click:Connect(function()
@@ -1040,13 +1081,13 @@ function SlayLibExtra:CreateSlayLib(libName)
             colorSwatchButton.AutoButtonColor = false
 
             local swatchCorner = Instance.new("UICorner")
-            swatchCorner.CornerRadius = UDim.new(0, 6)
+            swatchCorner.CornerRadius = UDim.new(0, 5)
             swatchCorner.Parent = colorSwatchButton
 
             local currentColor = defaultColor
 
             colorSwatchButton.MouseButton1Click:Connect(function()
-                -- SIMULATION: Random color selection for demonstration (as a real ColorPicker is complex)
+                -- SIMULATION: Random color selection for demonstration 
                 local simulatedNewColor = Color3.fromHSV(math.random(), 1, 1) 
                 currentColor = simulatedNewColor
                 colorSwatchButton.BackgroundColor3 = currentColor
@@ -1056,7 +1097,6 @@ function SlayLibExtra:CreateSlayLib(libName)
 
             pcall(callback, defaultColor)
 
-            -- Return a setter function
             return function(newColor)
                 currentColor = newColor
                 colorSwatchButton.BackgroundColor3 = newColor
