@@ -1,36 +1,5 @@
 local SlayLib = {}
 
--- [[ Notification System Configuration V4: Modern Stacked Pop-up ]]
-local NotificationQueue = {}
-local ActiveNotifications = {} -- Store references to currently visible notification frames
-local NotificationSpacing = 10 -- Space between stacked notifications (in pixels)
-local NotificationFadeTime = 0.5 -- Tween time for appearing/disappearing/moving
-local NotificationVisibleTime = 4 -- Default duration before auto-dismiss (seconds)
-local NotificationWidth = 350 
-local NotificationHeight = 80
-local NotificationMaxCount = 5 -- Maximum simultaneous notifications
-local NotificationZIndex = 10 -- ZIndex for notifications (high value)
-
--- Icon/Color mapping for different statuses
-local StatusMapping = {
-    Info = {
-        Color = Color3.fromRGB(0, 150, 255), -- Blue
-        Icon = "rbxassetid://10632598818" -- Info icon (i)
-    },
-    Success = {
-        Color = Color3.fromRGB(0, 170, 0), -- Green
-        Icon = "rbxassetid://10632598687" -- Checkmark icon
-    },
-    Warning = {
-        Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
-        Icon = "rbxassetid://10632599540" -- Warning icon (!)
-    },
-    Error = {
-        Color = Color3.fromRGB(200, 50, 50), -- Red
-        Icon = "rbxassetid://10632599187" -- X / Error icon
-    }
-}
-
 function SlayLib:CreateSlayLib(libName)
     libName = libName or "SlayLib"
     local isClosed = false
@@ -57,10 +26,11 @@ function SlayLib:CreateSlayLib(libName)
     -- Services
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
-    local Debris = game:GetService("Debris") -- Ensure Debris is defined
-    local Camera = workspace:WaitForChild("Camera")
-    
+    local Debris = game:GetService("Debris") -- ADDED: Debris service for notification management
+
     local TopBar = header
+
+    local Camera = workspace:WaitForChild("Camera")
 
     -- Dragging functionality (unchanged)
     local DragMousePosition
@@ -89,14 +59,11 @@ function SlayLib:CreateSlayLib(libName)
     -- General Properties and Theme Changes (Unchanged)
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    ScreenGui.Name = "SlayLib_ScreenGui" 
 
-    -- ... [Existing UI setup code: MainWhiteFrame, MainWhiteFrame_2, tabFrame, header, closeLib, etc. - unchanged] ...
-    
     MainWhiteFrame.Name = "MainWhiteFrame"
     MainWhiteFrame.Parent = ScreenGui
     MainWhiteFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Darker base
-    MainWhiteFrame.BackgroundTransparency = 0.2
+    MainWhiteFrame.BackgroundTransparency = 0.2 -- **Slight Transparency Change**
     MainWhiteFrame.BorderSizePixel = 0
     MainWhiteFrame.ClipsDescendants = true
     MainWhiteFrame.Position = UDim2.new(0.236969739, 0, 0.360436916, 0)
@@ -109,7 +76,7 @@ function SlayLib:CreateSlayLib(libName)
     MainWhiteFrame_2.Name = "MainWhiteFrame"
     MainWhiteFrame_2.Parent = MainWhiteFrame
     MainWhiteFrame_2.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Main content background
-    MainWhiteFrame_2.BackgroundTransparency = 0.1
+    MainWhiteFrame_2.BackgroundTransparency = 0.1 -- **Slight Transparency Change**
     MainWhiteFrame_2.BorderSizePixel = 0
     MainWhiteFrame_2.ClipsDescendants = true
     MainWhiteFrame_2.Position = UDim2.new(0.0113636367, 0, 0, 0)
@@ -185,10 +152,10 @@ function SlayLib:CreateSlayLib(libName)
             }):Play()
             MainWhiteFrame:TweenSize(UDim2.new(0, 528,0, 310), "In", "Linear", 0.12)
             TweenService:Create(MainWhiteFrame_2, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
-                BackgroundTransparency = 0.1
+                BackgroundTransparency = 0.1 -- Use the new transparency value
             }):Play()
             TweenService:Create(MainWhiteFrame, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
-                BackgroundTransparency = 0.2
+                BackgroundTransparency = 0.2 -- Use the new transparency value
             }):Play()
         end
     end)
@@ -210,7 +177,37 @@ function SlayLib:CreateSlayLib(libName)
 
     pagesFolder.Parent = elementContainer
 
-    -- *** Core Notification Functions V4 (Replaced V3 logic here) ***
+
+    -- *** Notification System Configuration V4 (Integrated) ***
+    local NotificationQueue = {}
+    local ActiveNotifications = {} -- Store references to currently visible notification frames
+    local NotificationSpacing = 10 -- Space between stacked notifications (in pixels)
+    local NotificationFadeTime = 0.5 -- Tween time for appearing/disappearing/moving
+    local NotificationVisibleTime = 4 -- Default duration before auto-dismiss (seconds)
+    local NotificationWidth = 350 
+    local NotificationHeight = 80
+    local NotificationMaxCount = 5 -- Maximum simultaneous notifications
+    local NotificationZIndex = 10 -- ZIndex for notifications (high value)
+
+    -- Icon/Color mapping for different statuses
+    local StatusMapping = {
+        Info = {
+            Color = Color3.fromRGB(0, 150, 255), -- Blue
+            Icon = "rbxassetid://10632598818" -- Info icon (i)
+        },
+        Success = {
+            Color = Color3.fromRGB(0, 170, 0), -- Green
+            Icon = "rbxassetid://10632598687" -- Checkmark icon
+        },
+        Warning = {
+            Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
+            Icon = "rbxassetid://10632599540" -- Warning icon (!)
+        },
+        Error = {
+            Color = Color3.fromRGB(200, 50, 50), -- Red
+            Icon = "rbxassetid://10632599187" -- X / Error icon
+        }
+    }
 
     local function UpdateNotificationPositions()
         local currentYOffset = 20 -- Start offset from the bottom (pixels)
@@ -244,7 +241,7 @@ function SlayLib:CreateSlayLib(libName)
         })
         
         outTween:Play()
-        outTween.Completed:Wait()
+        outTween.Completed:Wait() -- Wait for the tween to finish
 
         -- 2. Remove from active list and destroy
         table.remove(ActiveNotifications, index)
@@ -253,7 +250,7 @@ function SlayLib:CreateSlayLib(libName)
         -- 3. Update the positions of all remaining notifications
         UpdateNotificationPositions()
         
-        -- 4. Process the next item in the queue
+        -- 4. Process the next item in the queue (if any)
         task.spawn(function()
             local firstInQueue = NotificationQueue[1]
             if firstInQueue then
@@ -353,7 +350,6 @@ function SlayLib:CreateSlayLib(libName)
         end)
         
         -- 2. Initial Setup (Start off-screen right)
-        -- We set the position far right, the UpdatePosition will move it into the correct stack position
         NotifFrame.Position = UDim2.new(1.1, 0, 1, -NotificationHeight - 20) 
         
         -- 3. Add to active list
@@ -389,7 +385,6 @@ function SlayLib:CreateSlayLib(libName)
     function SlayLib:Notify(title, message, duration)
         self:Alert("Info", title, message, duration)
     end
-
     -- *** End of Notification System V4 ***
 
 
@@ -398,7 +393,7 @@ function SlayLib:CreateSlayLib(libName)
     function SectionHandler:CreateSection(secName)
         secName = secName or "Tab"
         
-        -- ... [Existing Tab Button Instances] ...
+        -- Tab Button Instances
         local tabBtn = Instance.new("TextButton")
         local mainCorner_3 = Instance.new("UICorner")
 
@@ -418,7 +413,7 @@ function SlayLib:CreateSlayLib(libName)
         mainCorner_3.Name = "mainCorner"
         mainCorner_3.Parent = tabBtn
 
-        -- New Section Frame Instances (unchanged)
+        -- New Section Frame Instances
         local newPage = Instance.new("ScrollingFrame")
         local pageItemList = Instance.new("UIListLayout")
         local UIPadding = Instance.new("UIPadding")
@@ -474,19 +469,16 @@ function SlayLib:CreateSlayLib(libName)
             TweenService:Create(tabBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                 BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Selected Tab)**
             }):Play()
-
-            -- **TEST NOTIFICATION (Integrated V4)**
+            
+            -- **ADDED NOTIFICATION**
             SlayLib:Alert("Info", "Tab Selected", "Switched to tab: "..secName, 2.5) 
-
         end)
 
         local ElementHandler = {}
 
-        -- *** ElementHandler functions (with V4 Notification Calls) ***
-
         function ElementHandler:TextLabel(labelText)
             labelText = labelText or ""
-            
+
             local labelFrame = Instance.new("Frame")
             local mainCorner = Instance.new("UICorner")
             local txtLabel = Instance.new("TextLabel")
@@ -558,8 +550,9 @@ function SlayLib:CreateSlayLib(libName)
             textButtonInfo.TextXAlignment = Enum.TextXAlignment.Right
 
             TextButton.MouseButton1Click:Connect(function()
-                pcall(callback) -- Use pcall for safety
-                SlayLib:Alert("Success", "Button Clicked", buttonText.." triggered action.", 2) -- **TEST NOTIFICATION**
+                pcall(callback) -- ADDED pcall for stability
+                -- **ADDED NOTIFICATION**
+                SlayLib:Alert("Success", "Button Clicked", buttonText.." triggered action.", 2) 
             end)
         end
 
@@ -613,7 +606,9 @@ function SlayLib:CreateSlayLib(libName)
                 toggleInnerFrame1.Name = "toggleInnerFrame1"
                 toggleInnerFrame1.Parent = toggleInerFrame
                 toggleInnerFrame1.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Inner track part
-                toggleInnerFrame1.Position = UDim2.new(0.411347508, 0, 0.0370370373, 0) -- Adjusted position for inner frame
+                
+                -- FIXED POSITION: Centered the inner track for better visual in the outer track
+                toggleInnerFrame1.Position = UDim2.new(0.411347508, 0, 0.0370370373, 0) 
                 toggleInnerFrame1.Size = UDim2.new(0, 25, 0, 25)
 
                 mainCorner_3.CornerRadius = UDim.new(0, 3)
@@ -623,7 +618,9 @@ function SlayLib:CreateSlayLib(libName)
                 toggleBtn.Name = "toggleBtn"
                 toggleBtn.Parent = toggleInnerFrame1
                 toggleBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle button (unselected)
-                toggleBtn.Position = UDim2.new(0, 0, 0, 0) -- Start position (left)
+                
+                -- FIXED POSITION: Start position (left)
+                toggleBtn.Position = UDim2.new(0, 0, 0, 0) 
                 toggleBtn.Size = UDim2.new(0, 23, 0, 23)
                 toggleBtn.Font = Enum.Font.GothamSemibold
                 toggleBtn.Text = ""
@@ -648,28 +645,28 @@ function SlayLib:CreateSlayLib(libName)
                 local toggled = false
                 toggleBtn.MouseButton1Click:Connect(function()
                     toggled = not toggled
-                    pcall(callback, toggled) -- Use pcall for safety
+                    pcall(callback, toggled) -- ADDED pcall for stability
                     local newPosition = toggled and UDim2.new(0.5, 0, 0, 0) or UDim2.new(0, 0, 0, 0) -- Target position
                     
                     if toggled then
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                             BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Toggle selected)**
                         }):Play()
-                        SlayLib:Alert("Success", "Toggle Activated", togInfo.." is now **ON**", 2) -- **TEST NOTIFICATION**
+                        -- **ADDED NOTIFICATION**
+                        SlayLib:Alert("Success", "Toggle Activated", togInfo.." is now **ON**", 2) 
                     else
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                             BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle unselected color
                         }):Play()
-                        SlayLib:Alert("Info", "Toggle Deactivated", togInfo.." is now **OFF**", 2) -- **TEST NOTIFICATION**
+                        -- **ADDED NOTIFICATION**
+                        SlayLib:Alert("Info", "Toggle Deactivated", togInfo.." is now **OFF**", 2) 
                     end 
                     
+                    -- Tween position
                     TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                         Position = newPosition
                     }):Play()
                 end)
-                
-                -- Ensure initial state is correct (unselected)
-                toggleBtn.Position = UDim2.new(0, 0, 0, 0)
             end
 
                 function ElementHandler:Slider(sliderin, minvalue, maxvalue, callback)
@@ -766,24 +763,31 @@ function SlayLib:CreateSlayLib(libName)
 
                         sliderBtn.MouseButton1Down:Connect(function()
                             Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / 141) * sliderMainFrm.AbsoluteSize.X) + tonumber(minvalue)) or 0
-                            pcall(callback, Value)
+                            pcall(function()
+                                callback(Value)
+                            end)
                             sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10) 
 
                             local moveconnection = mouse.Move:Connect(function()
                                 sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10)
                                 Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / 141) * sliderMainFrm.AbsoluteSize.X) + tonumber(minvalue))
                                 sliderValue.Text = Value.."/"..maxvalue
-                                pcall(callback, Value)
+                                pcall(function()
+                                    callback(Value)
+                                end)
                             end)
                             local releaseconnection = uis.InputEnded:Connect(function(Mouse)
                                 if Mouse.UserInputType == Enum.UserInputType.MouseButton1 then
                                     sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10)
                                     Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / 141) * sliderMainFrm.AbsoluteSize.X) + tonumber(minvalue))
                                     sliderValue.Text = Value.."/"..maxvalue
-                                    pcall(callback, Value)
+                                    pcall(function()
+                                        callback(Value)
+                                    end)
                                     moveconnection:Disconnect()
                                     releaseconnection:Disconnect()
-                                    SlayLib:Alert("Info", "Slider Changed", sliderin.." set to: "..Value, 2) -- **TEST NOTIFICATION**
+                                    -- **ADDED NOTIFICATION**
+                                    SlayLib:Alert("Info", "Slider Changed", sliderin.." set to: "..Value, 2) 
                                 end
                             end)
                         end)
@@ -840,14 +844,15 @@ function SlayLib:CreateSlayLib(libName)
                                 if a.KeyCode.Name ~= "Unknown" then
                                     TextButton.Text = a.KeyCode.Name
                                     oldKey = a.KeyCode.Name;
-                                    SlayLib:Alert("Info", "Keybind Set", keInfo.." set to: "..oldKey, 2) -- **TEST NOTIFICATION**
+                                    -- **ADDED NOTIFICATION**
+                                    SlayLib:Alert("Info", "Keybind Set", keInfo.." set to: "..oldKey, 2) 
                                 end
                             end)
 
                             game:GetService("UserInputService").InputBegan:connect(function(current, ok) 
                                 if not ok then 
                                     if current.KeyCode.Name == oldKey then 
-                                        pcall(callback) -- Use pcall for safety
+                                        pcall(callback) -- ADDED pcall for stability
                                     end
                                 end
                             end)
@@ -905,7 +910,9 @@ function SlayLib:CreateSlayLib(libName)
                                 textboxinneer.Parent = texboxInner
                                 textboxinneer.BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Textbox inner background
                                 textboxinneer.ClipsDescendants = true
-                                textboxinneer.Position = UDim2.new(0.00709219852, 0, 0.0370370373, 0) -- Adjusted position
+                                
+                                -- FIXED POSITION: Adjusted position for inner frame
+                                textboxinneer.Position = UDim2.new(0.00709219852, 0, 0.0370370373, 0) 
                                 textboxinneer.Size = UDim2.new(0, 139, 0, 25)
 
                                 mainCorner_3.CornerRadius = UDim.new(0, 3)
@@ -919,7 +926,9 @@ function SlayLib:CreateSlayLib(libName)
 
                                 TextBox.Parent = textboxinneer
                                 TextBox.BackgroundTransparency = 1.000
-                                TextBox.Size = UDim2.new(1, -5, 1, -5) -- Reduced size slightly to fit in inner frame
+                                -- FIXED SIZE/POSITION: Reduced size slightly to fit in inner frame and added offset
+                                TextBox.Size = UDim2.new(1, -5, 1, -5) 
+                                TextBox.Position = UDim2.new(0, 2, 0, 0) 
                                 TextBox.Font = Enum.Font.GothamSemibold
                                 TextBox.PlaceholderColor3 = Color3.fromRGB(90, 90, 90) -- Darker placeholder text
                                 TextBox.PlaceholderText = placeHolderText1
@@ -928,7 +937,6 @@ function SlayLib:CreateSlayLib(libName)
                                 TextBox.TextSize = 13.000
                                 TextBox.TextWrapped = true
                                 TextBox.TextXAlignment = Enum.TextXAlignment.Left -- Left align text for better input readability
-                                TextBox.Position = UDim2.new(0, 2, 0, 0) -- Slight offset
 
                                 UIListLayout_2.Parent = texboxInner
                                 UIListLayout_2.HorizontalAlignment = Enum.HorizontalAlignment.Center
@@ -937,8 +945,9 @@ function SlayLib:CreateSlayLib(libName)
 
                                 TextBox.FocusLost:Connect(function(EnterPressed)
                                     if not EnterPressed then return end
-                                    pcall(callback, TextBox.Text) -- Use pcall for safety
-                                    SlayLib:Alert("Info", "Textbox Submitted", textInfo.." submitted: "..TextBox.Text, 2.5) -- **TEST NOTIFICATION**
+                                    pcall(callback, TextBox.Text) -- ADDED pcall for stability
+                                    -- **ADDED NOTIFICATION**
+                                    SlayLib:Alert("Info", "Textbox Submitted", textInfo.." submitted: "..TextBox.Text, 2.5) 
                                     TextBox.Text = ""
                                 end)
                             end 
@@ -1004,7 +1013,7 @@ function SlayLib:CreateSlayLib(libName)
                                             TweenService:Create(ImageButton, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
                                                 Rotation = 0
                                             }):Play()
-                                            task.wait(0.10)
+                                            task.wait(0.10) -- CHANGED wait to task.wait
                                             UpdateSize()
                                         else
                                             isDropped = true
@@ -1012,7 +1021,7 @@ function SlayLib:CreateSlayLib(libName)
                                             TweenService:Create(ImageButton, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
                                                 Rotation = 180
                                             }):Play()
-                                            task.wait(0.10)
+                                            task.wait(0.10) -- CHANGED wait to task.wait
                                             UpdateSize()
                                         end
                                     end)
@@ -1043,20 +1052,22 @@ function SlayLib:CreateSlayLib(libName)
                                         mainCorner_3.Parent = optionBtn
 
                                         optionBtn.MouseButton1Click:Connect(function()
-                                            pcall(callback, v) -- Use pcall for safety
+                                            pcall(callback, v) -- ADDED pcall for stability
                                             dropdownItem.Text = dInfo..": "..v
                                             dropDownFrame:TweenSize(UDim2.new(0, 394, 0, 42), "In", "Quint", 0.10)
-                                            task.wait(0.10)
+                                            task.wait(0.10) -- CHANGED wait to task.wait
                                             UpdateSize()
                                             TweenService:Create(ImageButton, TweenInfo.new(0.10, Enum.EasingStyle.Quad, Enum.EasingDirection.In),{
                                                 Rotation = 0
                                             }):Play()
                                             isDropped = false
-                                            SlayLib:Alert("Info", "Dropdown Selected", dInfo.." selected: "..v, 2.5) -- **TEST NOTIFICATION**
+                                            -- **ADDED NOTIFICATION**
+                                            SlayLib:Alert("Info", "Dropdown Selected", dInfo.." selected: "..v, 2.5) 
                                         end)
                                     end
         end
 
+        -- === NEW ELEMENT 1: Separator (Unchanged, no notification needed) ===
         function ElementHandler:Separator(separatorText)
             separatorText = separatorText or ""
 
@@ -1094,6 +1105,7 @@ function SlayLib:CreateSlayLib(libName)
             text.TextXAlignment = Enum.TextXAlignment.Center
         end
 
+        -- === NEW ELEMENT 2: ColorPicker (Simplified Swatch) ===
         function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
             colorInfo = colorInfo or "Color Picker"
             defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
@@ -1144,8 +1156,9 @@ function SlayLib:CreateSlayLib(libName)
                 local simulatedNewColor = Color3.fromHSV(math.random(), 1, 1) -- เปลี่ยนเป็นสีสุ่มเพื่อแสดงการทำงาน
                 currentColor = simulatedNewColor
                 colorSwatchButton.BackgroundColor3 = currentColor
-                pcall(callback, currentColor) -- Use pcall for safety
-                SlayLib:Alert("Info", "Color Changed", colorInfo.." color updated.", 2) -- **TEST NOTIFICATION**
+                pcall(callback, currentColor) -- ADDED pcall for stability
+                -- **ADDED NOTIFICATION**
+                SlayLib:Alert("Info", "Color Changed", colorInfo.." color updated.", 2) 
             end)
 
             -- เรียกใช้ callback ทันทีด้วยสีเริ่มต้น
@@ -1159,10 +1172,8 @@ function SlayLib:CreateSlayLib(libName)
             end
         end
 
-
         return ElementHandler
     end
-    
     -- Return both SectionHandler and the new Alert/Notify functions
     return SectionHandler
 end 
