@@ -1,16 +1,37 @@
 local SlayLib = {}
 
--- [[ Notification System Configuration ]]
+-- [[ Notification System Configuration V2 ]]
 local NotificationQueue = {}
 local IsNotifying = false
-local NotificationMaxDuration = 5 -- Maximum duration for a notification
-local NotificationFadeTime = 0.2 -- Tween time for appearing/disappearing
+local NotificationMaxDuration = 8 -- Max duration (seconds)
+local NotificationFadeTime = 0.4 -- Tween time for appearing/disappearing
+
+-- Icon/Color mapping for different statuses
+local StatusMapping = {
+    Info = {
+        Color = Color3.fromRGB(139, 0, 23), -- Crimson Accent
+        Icon = "rbxassetid://10632598818" -- Info icon (i)
+    },
+    Success = {
+        Color = Color3.fromRGB(0, 170, 0), -- Green
+        Icon = "rbxassetid://10632598687" -- Checkmark icon
+    },
+    Warning = {
+        Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
+        Icon = "rbxassetid://10632599540" -- Warning icon (!)
+    },
+    Error = {
+        Color = Color3.fromRGB(170, 0, 0), -- Red
+        Icon = "rbxassetid://10632599187" -- X / Error icon
+    }
+}
 
 function SlayLib:CreateSlayLib(libName)
     libName = libName or "SlayLib"
     local isClosed = false
 
     local ScreenGui = Instance.new("ScreenGui")
+    -- ... [Existing UI instances: MainWhiteFrame, header, tabFrame, etc. - unchanged] ...
     local MainWhiteFrame = Instance.new("Frame")
     local mainCorner = Instance.new("UICorner")
     local MainWhiteFrame_2 = Instance.new("Frame")
@@ -27,12 +48,14 @@ function SlayLib:CreateSlayLib(libName)
     local mainList = Instance.new("UIListLayout")
     local pagesFolder = Instance.new("Folder")
 
-    -- [[ Notification UI Instances ]]
+
+    -- [[ Notification UI Instances V2 ]]
     local NotificationFrame = Instance.new("Frame")
     local notifCorner = Instance.new("UICorner")
     local notifTitle = Instance.new("TextLabel")
     local notifMessage = Instance.new("TextLabel")
     local notifAccentLine = Instance.new("Frame")
+    local notifIcon = Instance.new("ImageLabel")
 
     -- Services
     local UserInputService = game:GetService("UserInputService")
@@ -71,7 +94,10 @@ function SlayLib:CreateSlayLib(libName)
 
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    ScreenGui.Name = "SlayLib_ScreenGui" -- Naming for better organization
 
+    -- ... [Existing UI setup code: MainWhiteFrame, MainWhiteFrame_2, tabFrame, header, closeLib, etc. - unchanged] ...
+    
     -- MainWhiteFrame and MainWhiteFrame_2 properties (mostly unchanged, added small border)
     MainWhiteFrame.Name = "MainWhiteFrame"
     MainWhiteFrame.Parent = ScreenGui
@@ -193,53 +219,69 @@ function SlayLib:CreateSlayLib(libName)
     pagesFolder.Parent = elementContainer
 
     -- ---
-    -- **[[ Notification System Core Functions and UI Setup ]]**
+    -- **[[ Notification System Core Functions and UI Setup V2 ]]**
     -- ---
 
     NotificationFrame.Name = "NotificationFrame"
     NotificationFrame.Parent = ScreenGui -- Attach to the main ScreenGui
     NotificationFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Dark background
-    NotificationFrame.BackgroundTransparency = 0.1
+    NotificationFrame.BackgroundTransparency = 0
     NotificationFrame.BorderSizePixel = 0
-    -- Start position (off-screen right)
-    NotificationFrame.Position = UDim2.new(1.1, 0, 0.9, 0) 
-    NotificationFrame.Size = UDim2.new(0, 250, 0, 65) 
+    -- Start position (off-screen top right)
+    NotificationFrame.Position = UDim2.new(1.1, 0, 0.05, 0) 
+    NotificationFrame.Size = UDim2.new(0, 300, 0, 75) 
     NotificationFrame.ZIndex = 10 -- Ensure it's above the main UI
+    NotificationFrame.ClipsDescendants = true
 
     notifCorner.CornerRadius = UDim.new(0, 5)
     notifCorner.Parent = NotificationFrame
 
+    -- Accent line (Will be colored based on status)
     notifAccentLine.Name = "AccentLine"
     notifAccentLine.Parent = NotificationFrame
-    notifAccentLine.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
-    notifAccentLine.Position = UDim2.new(0.01, 0, 0.5, 0)
+    notifAccentLine.BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- Default Crimson
+    notifAccentLine.Position = UDim2.new(0, 0, 0.5, 0)
     notifAccentLine.AnchorPoint = Vector2.new(0, 0.5)
-    notifAccentLine.Size = UDim2.new(0, 5, 0, 55)
+    notifAccentLine.Size = UDim2.new(0, 6, 1, 0) -- Full height accent bar
 
+    -- Icon (Will be changed based on status)
+    notifIcon.Name = "StatusIcon"
+    notifIcon.Parent = NotificationFrame
+    notifIcon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    notifIcon.BackgroundTransparency = 1
+    notifIcon.Image = StatusMapping.Info.Icon
+    notifIcon.ImageColor3 = StatusMapping.Info.Color
+    notifIcon.Position = UDim2.new(0.04, 0, 0.5, 0)
+    notifIcon.AnchorPoint = Vector2.new(0, 0.5)
+    notifIcon.Size = UDim2.new(0, 35, 0, 35)
+
+    -- Title
     notifTitle.Name = "Title"
     notifTitle.Parent = NotificationFrame
     notifTitle.BackgroundTransparency = 1.000
-    notifTitle.Position = UDim2.new(0.04, 5, 0.1, 0)
-    notifTitle.Size = UDim2.new(0, 220, 0, 25)
+    notifTitle.Position = UDim2.new(0.17, 0, 0.1, 0)
+    notifTitle.Size = UDim2.new(0, 240, 0, 25)
     notifTitle.Font = Enum.Font.GothamSemibold
-    notifTitle.Text = "" -- Set by Notify function
+    notifTitle.Text = "" -- Set by Alert function
     notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
     notifTitle.TextSize = 16.000
     notifTitle.TextXAlignment = Enum.TextXAlignment.Left
     
+    -- Message
     notifMessage.Name = "Message"
     notifMessage.Parent = NotificationFrame
     notifMessage.BackgroundTransparency = 1.000
-    notifMessage.Position = UDim2.new(0.04, 5, 0.5, 0)
-    notifMessage.Size = UDim2.new(0, 220, 0, 25)
+    notifMessage.Position = UDim2.new(0.17, 0, 0.45, 0)
+    notifMessage.Size = UDim2.new(0, 240, 0, 40) -- Taller for more text
     notifMessage.Font = Enum.Font.Gotham
-    notifMessage.Text = "" -- Set by Notify function
-    notifMessage.TextColor3 = Color3.fromRGB(170, 170, 170) -- Slightly lighter gray text
+    notifMessage.Text = "" -- Set by Alert function
+    notifMessage.TextColor3 = Color3.fromRGB(170, 170, 170) 
     notifMessage.TextSize = 13.000
     notifMessage.TextXAlignment = Enum.TextXAlignment.Left
+    notifMessage.TextWrapped = true
 
     -- Initial position off-screen
-    NotificationFrame:TweenPosition(UDim2.new(1.1, 0, 0.9, 0), "Out", "Linear", 0.01, true)
+    NotificationFrame:TweenPosition(UDim2.new(1.1, 0, 0.05, 0), "Out", "Linear", 0.01, true)
 
     local function ProcessNotificationQueue()
         if #NotificationQueue == 0 or IsNotifying then
@@ -248,14 +290,19 @@ function SlayLib:CreateSlayLib(libName)
 
         IsNotifying = true
         local notif = table.remove(NotificationQueue, 1) -- Get the next notification
-
-        notifTitle.Text = notif.title
-        notifMessage.Text = notif.message
+        local statusData = StatusMapping[notif.status] or StatusMapping.Info
         local duration = math.clamp(notif.duration, 1, NotificationMaxDuration)
 
-        -- 1. Tween In (Move to visible position)
-        local inTween = TweenService:Create(NotificationFrame, TweenInfo.new(NotificationFadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Position = UDim2.new(1, -NotificationFrame.Size.X.Offset - 20, 0.9, 0) -- Visible position (Right, near bottom)
+        -- Update UI based on status
+        notifAccentLine.BackgroundColor3 = statusData.Color
+        notifIcon.ImageColor3 = statusData.Color
+        notifIcon.Image = statusData.Icon
+        notifTitle.Text = notif.title
+        notifMessage.Text = notif.message
+
+        -- 1. Tween In (Slide from right)
+        local inTween = TweenService:Create(NotificationFrame, TweenInfo.new(NotificationFadeTime, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Position = UDim2.new(1, -NotificationFrame.Size.X.Offset - 20, 0.05, 0) -- Visible position (Top Right)
         })
         
         inTween:Play()
@@ -264,9 +311,9 @@ function SlayLib:CreateSlayLib(libName)
         -- 2. Wait for duration
         wait(duration)
 
-        -- 3. Tween Out (Move off-screen)
-        local outTween = TweenService:Create(NotificationFrame, TweenInfo.new(NotificationFadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(1.1, 0, 0.9, 0) -- Off-screen right
+        -- 3. Tween Out (Slide back to right off-screen)
+        local outTween = TweenService:Create(NotificationFrame, TweenInfo.new(NotificationFadeTime, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Position = UDim2.new(1.1, 0, 0.05, 0) -- Off-screen right
         })
         
         outTween:Play()
@@ -277,12 +324,16 @@ function SlayLib:CreateSlayLib(libName)
         ProcessNotificationQueue()
     end
 
-    -- Public notification function (Added to SlayLib table)
-    function SlayLib:Notify(title, message, duration)
+    -- Public Alert function (Updated to SlayLib table)
+    function SlayLib:Alert(status, title, message, duration)
+        -- Validate status and default to 'Info'
+        local validStatus = StatusMapping[status] and status or "Info"
+
         local newNotif = {
-            title = title or "Notification",
+            status = validStatus,
+            title = title or validStatus.." Message",
             message = message or "A message from SlayLib.",
-            duration = duration or 3 -- Default duration is 3 seconds
+            duration = duration or 4 -- Default duration is 4 seconds
         }
         
         table.insert(NotificationQueue, newNotif)
@@ -291,8 +342,14 @@ function SlayLib:CreateSlayLib(libName)
             ProcessNotificationQueue()
         end
     end
+
+    -- Legacy Notify function for backward compatibility, directs to Info Alert
+    function SlayLib:Notify(title, message, duration)
+        self:Alert("Info", title, message, duration)
+    end
+
     -- ---
-    -- **[[ End of Notification System Core Functions ]]**
+    -- **[[ End of Notification System Core Functions V2 ]]**
     -- ---
 
     local SectionHandler = {}
@@ -300,7 +357,7 @@ function SlayLib:CreateSlayLib(libName)
     function SectionHandler:CreateSection(secName)
         secName = secName or "Tab"
 
-        -- Tab Button Instances (unchanged)
+        -- ... [Existing Tab Button Instances] ...
         local tabBtn = Instance.new("TextButton")
         local mainCorner_3 = Instance.new("UICorner")
 
@@ -378,20 +435,18 @@ function SlayLib:CreateSlayLib(libName)
                 BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Selected Tab)**
             }):Play()
 
-            -- Example notification on tab click
-            SlayLib:Notify("Tab Selected", "Switched to tab: "..secName, 2.5) 
+            -- Example notification on tab click (using the new Alert function)
+            SlayLib:Alert("Info", "Tab Selected", "Switched to tab: "..secName, 2.5) 
 
         end)
 
         local ElementHandler = {}
 
-        -- All existing ElementHandler functions (TextLabel, TextButton, Toggle, Slider, KeyBind, TextBox, Dropdown, Separator, ColorPicker) 
-        -- are placed here and remain largely unchanged, maintaining the Crimson/Dark theme.
-        -- *NOTE: For brevity, the rest of the element functions are not repeated in this response.*
-
+        -- ... [Existing ElementHandler functions (TextLabel, TextButton, Toggle, Slider, KeyBind, TextBox, Dropdown, Separator, ColorPicker) ] ...
+        
         function ElementHandler:TextLabel(labelText)
             labelText = labelText or ""
-
+            
             local labelFrame = Instance.new("Frame")
             local mainCorner = Instance.new("UICorner")
             local txtLabel = Instance.new("TextLabel")
@@ -466,7 +521,7 @@ function SlayLib:CreateSlayLib(libName)
 
             TextButton.MouseButton1Click:Connect(function()
                 callback()
-                SlayLib:Notify("Button Clicked", buttonText.." triggered action.", 2)
+                SlayLib:Alert("Success", "Button Clicked", buttonText.." triggered action.", 2) -- Changed to Alert
             end)
         end
 
@@ -563,12 +618,12 @@ function SlayLib:CreateSlayLib(libName)
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                             BackgroundColor3 = Color3.fromRGB(139, 0, 23) -- **Accent Color: Crimson (Toggle selected)**
                         }):Play()
-                        SlayLib:Notify("Toggle Activated", togInfo.." is now **ON**", 2)
+                        SlayLib:Alert("Success", "Toggle Activated", togInfo.." is now **ON**", 2) -- Changed to Alert
                     else
                         TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
                             BackgroundColor3 = Color3.fromRGB(20, 20, 20) -- Toggle unselected color
                         }):Play()
-                        SlayLib:Notify("Toggle Deactivated", togInfo.." is now **OFF**", 2)
+                        SlayLib:Alert("Info", "Toggle Deactivated", togInfo.." is now **OFF**", 2) -- Changed to Alert
                     end 
                     
                     TweenService:Create(toggleBtn, TweenInfo.new(0.18, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),{
@@ -699,7 +754,7 @@ function SlayLib:CreateSlayLib(libName)
                                     end)
                                     moveconnection:Disconnect()
                                     releaseconnection:Disconnect()
-                                    SlayLib:Notify("Slider Changed", sliderin.." set to: "..Value, 2)
+                                    SlayLib:Alert("Info", "Slider Changed", sliderin.." set to: "..Value, 2) -- Changed to Alert
                                 end
                             end)
                         end)
@@ -757,7 +812,7 @@ function SlayLib:CreateSlayLib(libName)
                                 if a.KeyCode.Name ~= "Unknown" then
                                     TextButton.Text = a.KeyCode.Name
                                     oldKey = a.KeyCode.Name;
-                                    SlayLib:Notify("Keybind Set", keInfo.." set to: "..oldKey, 2)
+                                    SlayLib:Alert("Info", "Keybind Set", keInfo.." set to: "..oldKey, 2) -- Changed to Alert
                                 end
                             end)
 
@@ -857,7 +912,7 @@ function SlayLib:CreateSlayLib(libName)
                                 TextBox.FocusLost:Connect(function(EnterPressed)
                                     if not EnterPressed then return end
                                     callback(TextBox.Text)
-                                    SlayLib:Notify("Textbox Submitted", textInfo.." submitted: "..TextBox.Text, 2.5)
+                                    SlayLib:Alert("Info", "Textbox Submitted", textInfo.." submitted: "..TextBox.Text, 2.5) -- Changed to Alert
                                     TextBox.Text = ""
                                 end)
                             end 
@@ -973,12 +1028,11 @@ function SlayLib:CreateSlayLib(libName)
                                                 Rotation = 0
                                             }):Play()
                                             isDropped = false
-                                            SlayLib:Notify("Dropdown Selected", dInfo.." selected: "..v, 2.5)
+                                            SlayLib:Alert("Info", "Dropdown Selected", dInfo.." selected: "..v, 2.5) -- Changed to Alert
                                         end)
                                     end
         end
 
-        -- === NEW ELEMENT 1: Separator ===
         function ElementHandler:Separator(separatorText)
             separatorText = separatorText or ""
 
@@ -1016,7 +1070,6 @@ function SlayLib:CreateSlayLib(libName)
             text.TextXAlignment = Enum.TextXAlignment.Center
         end
 
-        -- === NEW ELEMENT 2: ColorPicker (Simplified Swatch) ===
         function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
             colorInfo = colorInfo or "Color Picker"
             defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
@@ -1063,15 +1116,12 @@ function SlayLib:CreateSlayLib(libName)
             local currentColor = defaultColor
 
             colorSwatchButton.MouseButton1Click:Connect(function()
-                -- ในการใช้งานจริง โค้ดที่นี่จะเปิดหน้าต่าง ColorPicker ที่ซับซ้อนขึ้น
-                -- สำหรับตอนนี้ มันจะแสดงว่ามีการคลิกและเรียก callback
-
                 -- *SIMULATION* (จำลองการเลือกสีใหม่):
                 local simulatedNewColor = Color3.fromHSV(math.random(), 1, 1) -- เปลี่ยนเป็นสีสุ่มเพื่อแสดงการทำงาน
                 currentColor = simulatedNewColor
                 colorSwatchButton.BackgroundColor3 = currentColor
                 callback(currentColor)
-                SlayLib:Notify("Color Changed", colorInfo.." color updated.", 2)
+                SlayLib:Alert("Info", "Color Changed", colorInfo.." color updated.", 2) -- Changed to Alert
             end)
 
             -- เรียกใช้ callback ทันทีด้วยสีเริ่มต้น
@@ -1089,7 +1139,7 @@ function SlayLib:CreateSlayLib(libName)
         return ElementHandler
     end
     
-    -- Return both SectionHandler and the new Notify function (via SlayLib table)
+    -- Return both SectionHandler and the new Alert/Notify functions
     return SectionHandler
 end 
 
