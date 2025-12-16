@@ -181,16 +181,16 @@ function SlayLib:CreateSlayLib(libName)
 
     pagesFolder.Parent = elementContainer
 
-    -- *** START OF Notification System V5 (The part you were looking for) ***
+    -- *** START OF Notification System V5 (Modified for Fade Out In Place & Unlimited Stacking) ***
     local NotificationQueue = {}
     local ActiveNotifications = {} 
     local NotificationSpacing = 10 
-    local NotificationFadeTime = 0.4 
+    local NotificationFadeTime = 0.3 -- Adjusted for faster/crisper fade
     local NotificationVisibleTime = 3.5 
     local NotificationWidth = 350 
     local NotificationHeight = 65 
-    local NotificationMaxCount = 5 
     local NotificationZIndex = 10 
+    -- Removed NotificationMaxCount
 
     local StatusMapping = {
         Info = {
@@ -220,8 +220,8 @@ function SlayLib:CreateSlayLib(libName)
             local targetY = -NotifFrame.Size.Y.Offset - currentYOffset
             local targetPosition = UDim2.new(1, -NotificationWidth - 20, 1, targetY)
 
-            -- Tween the position
-            TweenService:Create(NotifFrame, TweenInfo.new(NotificationFadeTime * 0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            -- Tween the position (using Quad easing for smoother stacking)
+            TweenService:Create(NotifFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
                 Position = targetPosition
             }):Play()
 
@@ -231,7 +231,7 @@ function SlayLib:CreateSlayLib(libName)
     end
 
     local function ProcessQueue()
-        if #NotificationQueue > 0 and #ActiveNotifications < NotificationMaxCount then
+        if #NotificationQueue > 0 then
             local nextNotifData = table.remove(NotificationQueue, 1)
             ShowNotification(nextNotifData)
         end
@@ -245,13 +245,25 @@ function SlayLib:CreateSlayLib(libName)
             return 
         end
 
-        -- 1. Tween Out
-        local fadeTime = autoDismiss and NotificationFadeTime or NotificationFadeTime * 0.5
-        local outTween = TweenService:Create(NotifFrame, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
-            Position = UDim2.new(1.1, 0, NotifFrame.Position.Y.Offset, NotifFrame.Position.Y.Offset),
+        -- 1. Tween Out (Fade out in place)
+        local fadeTime = NotificationFadeTime
+        local outTween = TweenService:Create(NotifFrame, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundTransparency = 1,
+            -- Tween all children to full transparency as well
+            -- We don't change position here, just transparency
         })
         
+        -- Apply transparency to all children
+        for _, child in NotifFrame:GetChildren() do
+            if child:IsA("GuiBase2d") then
+                TweenService:Create(child, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                    BackgroundTransparency = 1,
+                    TextTransparency = 1,
+                    ImageTransparency = 1,
+                }):Play()
+            end
+        end
+
         outTween:Play()
         outTween.Completed:Wait() 
 
@@ -259,7 +271,7 @@ function SlayLib:CreateSlayLib(libName)
         table.remove(ActiveNotifications, index)
         Debris:AddItem(NotifFrame, 0.1) 
 
-        -- 3. Update the positions of all remaining notifications
+        -- 3. Update the positions of all remaining notifications (They drop down to fill the gap)
         UpdateNotificationPositions()
         
         -- 4. Process the next item in the queue
@@ -270,11 +282,15 @@ function SlayLib:CreateSlayLib(libName)
         local statusData = StatusMapping[notifData.status]
         local duration = math.clamp(notifData.duration, 1, 10)
         
-        -- If max is reached, add to queue and return
-        if #ActiveNotifications >= NotificationMaxCount then
-            table.insert(NotificationQueue, notifData)
-            return
+        -- If currently processing a lot, add to queue
+        if #NotificationQueue > 50 then -- Safety queue limit, but active list is unlimited
+             return 
         end
+        if #ActiveNotifications > 50 and #NotificationQueue < 50 then -- If active list is huge, use queue too
+             table.insert(NotificationQueue, notifData)
+             return
+        end
+
 
         -- 1. Create UI Instances
         local NotifFrame = Instance.new("Frame")
@@ -383,13 +399,18 @@ function SlayLib:CreateSlayLib(libName)
         -- 2. Initial Setup (Start off-screen right)
         NotifFrame.Position = UDim2.new(1.1, 0, 1, -NotificationHeight - 20) 
         
-        -- 3. Add to active list
+        -- 3. Add to active list (Insert at the top so new ones are on the bottom)
         table.insert(ActiveNotifications, 1, NotifFrame) 
 
-        -- 4. Update all positions (this will move all existing notifs up and this one to the bottom)
+        -- 4. Animate In
+        TweenService:Create(NotifFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Position = UDim2.new(1, -NotificationWidth - 20, 1, NotifFrame.Position.Y.Offset), -- Move to final X position
+        }):Play()
+
+        -- 5. Update all positions (this will move all existing notifs up and this one to the bottom)
         UpdateNotificationPositions()
 
-        -- 5. Auto-Dismiss timer
+        -- 6. Auto-Dismiss timer
         task.delay(duration, function()
             -- Check if it's still in the active list before dismissing
             if table.find(ActiveNotifications, NotifFrame) then
@@ -410,10 +431,11 @@ function SlayLib:CreateSlayLib(libName)
         }
         
         task.spawn(function()
-            if #ActiveNotifications >= NotificationMaxCount then
-                table.insert(NotificationQueue, newNotif)
-            else
-                ShowNotification(newNotif)
+            -- No Max Count check here, just process the notification
+            ShowNotification(newNotif)
+            -- Process any pending items in the queue if the stack is getting tall
+            if #NotificationQueue > 0 then
+                task.spawn(ProcessQueue)
             end
         end)
     end
