@@ -1,34 +1,34 @@
 --[[
-    SlayLib V6 - Ultimate Copycat
-    - Fully replicates the two-column structure and element parenting of the original SlayLib.
-    - Implements a functional ColorPicker (HSV model) to replace the original's simulation.
-    - Includes GroupBox, Toggle, Slider, Dropdown, TextBox, and Keybind.
-]]
+    SlayLib V9: The Immaculate Copy
+    - Full, integrated script based on SlayLib.lua structure.
+    - Implements a perfected, working HSV/Hex ColorPicker (replacing the simulation).
+    - Adds GroupBox element for structured organization.
+    - Uses Crimson Red (139, 0, 23) as the core accent color.
+--]]
 
 local SlayLib = {}
 
 -- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
+local Debris = game:GetService("Debris") 
 local Players = game:GetService("Players")
-local task = task
+local task = task 
 
--- CONFIGURATION (Based on Zenith/Original blend for better visibility)
-local ACCENT_COLOR = Color3.fromRGB(0, 255, 255) -- Cyan
-local BASE_COLOR = Color3.fromRGB(15, 15, 15)   -- Deep Black (Main Background)
-local ELEMENT_COLOR = Color3.fromRGB(30, 30, 30) -- Dark Element Background
-local TAB_COLOR = Color3.fromRGB(25, 25, 25)     -- Tab Bar Background
-local TEXT_COLOR = Color3.fromRGB(220, 220, 220)
-local MAIN_CORNER_RADIUS = 8
-local ELEMENT_HEIGHT = 40
-local HEADER_HEIGHT = 45
-local MAIN_WIDTH = 650
-local TAB_BAR_WIDTH = 150
+-- CONFIGURATION (Based on SlayLib original style)
+local ACCENT_COLOR = Color3.fromRGB(139, 0, 23) -- Crimson Red
+local BASE_COLOR = Color3.fromRGB(15, 15, 15)   -- Main Background
+local ELEMENT_COLOR = Color3.fromRGB(25, 25, 25) -- Element Background
+local TAB_COLOR = Color3.fromRGB(20, 20, 20)     -- Tab Bar Background
+local TEXT_COLOR = Color3.fromRGB(170, 170, 170)
+local TEXT_COLOR_DARK = Color3.fromRGB(40, 40, 40)
+local TWEEN_INFO = TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+local MAIN_CORNER_RADIUS = 3
+local ELEMENT_HEIGHT = 42
+local LIB_WIDTH = 400 -- Width of the ElementContainer in the original snippet context
 
 -- =========================================================================================
--- UTILITY FUNCTIONS (HSV/RGB Conversion for ColorPicker)
--- (Same functions as V5 for color conversion)
+-- UTILITY FUNCTIONS: HSV/RGB Conversion (REQUIRED FOR COLOR PICKER)
 -- =========================================================================================
 
 local function RGBToHSV(r, g, b)
@@ -62,92 +62,92 @@ local function HSVToRGB(h, s, v)
     return r, g, b
 end
 
-local function GetColorFromMouse(frame, mouse, currentH)
-    local x, y = mouse.X, mouse.Y
-    local ax, ay = frame.AbsolutePosition.X, frame.AbsolutePosition.Y
-    local width, height = frame.AbsoluteSize.X, frame.AbsoluteSize.Y
-
-    local relativeX = math.clamp(x - ax, 0, width)
-    local relativeY = math.clamp(y - ay, 0, height)
-    
-    local s = relativeX / width
-    local v = 1 - (relativeY / height)
-    
-    local newColor = Color3.fromHSV(currentH, s, v)
-
-    return s, v, newColor
+local function Color3ToHex(color)
+    local r = math.floor(color.R * 255)
+    local g = math.floor(color.G * 255)
+    local b = math.floor(color.B * 255)
+    return string.format("#%02X%02X%02X", r, g, b)
 end
 
--- Placeholder for real notification system
-function SlayLib:Notify(title, message)
-    print(string.format("[SlayLib Notify] %s: %s", title, message))
+-- Placeholder for original Alert/Notify functions
+function SlayLib:Alert(title, message, duration)
+    -- This would be the logic for your custom alert system
+    print(string.format("[SlayLib ALERT] %s - %s", title, message))
+end
+function SlayLib:Notify(title, message, duration)
+    print(string.format("[SlayLib NOTIFY] %s: %s", title, message))
 end
 
 -- =========================================================================================
--- CORE GUI CREATION (V6)
+-- CORE GUI CREATION
 -- =========================================================================================
 
 function SlayLib:CreateSlayLib(libName)
-    libName = libName or "SlayLib V6"
-    
-    -- Main Instances setup (as defined in the original SlayLib)
+    libName = libName or "SlayLib V9"
+    local isClosed = false
+
+    -- Main Instances setup (matching the user's original structure)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Parent = game.CoreGui
+    ScreenGui.Name = libName
 
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Parent = ScreenGui
-    MainFrame.BackgroundColor3 = BASE_COLOR
-    MainFrame.Size = UDim2.new(0, MAIN_WIDTH, 0.9, 0)
-    MainFrame.Position = UDim2.new(0.5, -MAIN_WIDTH/2, 0.5, 0)
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, MAIN_CORNER_RADIUS)
+    local MainWhiteFrame = Instance.new("Frame")
+    MainWhiteFrame.Parent = ScreenGui
+    MainWhiteFrame.Size = UDim2.new(0, 580, 0, 480) -- Two column default size
+    MainWhiteFrame.Position = UDim2.new(0.5, -290, 0.5, -240)
+    MainWhiteFrame.BackgroundColor3 = BASE_COLOR
     
-    Instance.new("UIStroke", MainFrame).Color = ACCENT_COLOR
+    local mainCorner = Instance.new("UICorner", MainWhiteFrame)
+    mainCorner.CornerRadius = UDim.new(0, MAIN_CORNER_RADIUS)
 
-    -- Header (Top Bar)
-    local Header = Instance.new("Frame", MainFrame)
-    Header.Name = "Header"
-    Header.BackgroundColor3 = ELEMENT_COLOR
-    Header.Size = UDim2.new(1, 0, 0, HEADER_HEIGHT)
+    local mainStroke = Instance.new("UIStroke", MainWhiteFrame)
+    mainStroke.Color = ACCENT_COLOR
+    mainStroke.Thickness = 1
     
-    local libTitle = Instance.new("TextLabel", Header)
+    local header = Instance.new("Frame", MainWhiteFrame)
+    header.Size = UDim2.new(1, 0, 0, 30)
+    header.BackgroundColor3 = ELEMENT_COLOR
+    
+    local libTitle = Instance.new("TextLabel", header)
     libTitle.BackgroundTransparency = 1
-    libTitle.Position = UDim2.new(0.02, 0, 0, 0)
+    libTitle.Position = UDim2.new(0.02, 0, 0.5, 0)
+    libTitle.AnchorPoint = Vector2.new(0, 0.5)
     libTitle.Size = UDim2.new(0.5, 0, 1, 0)
     libTitle.Font = Enum.Font.GothamSemibold
     libTitle.Text = libName
     libTitle.TextColor3 = ACCENT_COLOR
-    libTitle.TextSize = 18
+    libTitle.TextSize = 15
     libTitle.TextXAlignment = Enum.TextXAlignment.Left
 
-    -- Close Button (ImageButton as in original)
-    local closeLib = Instance.new("ImageButton", Header)
-    closeLib.BackgroundColor3 = Color3.fromRGB(200, 30, 30)
-    closeLib.Size = UDim2.new(0, 30, 0, 30)
+    local closeLib = Instance.new("ImageButton", header)
+    closeLib.BackgroundColor3 = ACCENT_COLOR
+    closeLib.Size = UDim2.new(0, 20, 0, 20)
     closeLib.Position = UDim2.new(1, -10, 0.5, 0)
     closeLib.AnchorPoint = Vector2.new(1, 0.5)
     closeLib.Image = "rbxassetid://6034179375" -- Generic X icon
     Instance.new("UICorner", closeLib).CornerRadius = UDim.new(0, 3)
-    
+    closeLib.ImageColor3 = BASE_COLOR
+
     closeLib.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible
+        MainWhiteFrame.Visible = not MainWhiteFrame.Visible
+        isClosed = not MainWhiteFrame.Visible
     end)
     
-    -- Dragging (on Header)
+    -- Dragging functionality (based on user's original snippet)
     local DragMousePosition
     local FramePosition
     local Draggable = false
-    Header.InputBegan:Connect(function(input)
+    header.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             Draggable = true
             DragMousePosition = Vector2.new(input.Position.X, input.Position.Y)
-            FramePosition = Vector2.new(MainFrame.Position.X.Scale, MainFrame.Position.Y.Scale)
+            FramePosition = Vector2.new(MainWhiteFrame.Position.X.Scale, MainWhiteFrame.Position.Y.Scale)
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if Draggable == true then
             local NewPosition = FramePosition + ((Vector2.new(input.Position.X, input.Position.Y) - DragMousePosition) / game.Workspace.CurrentCamera.ViewportSize)
-            MainFrame.Position = UDim2.new(NewPosition.X, 0, NewPosition.Y, 0)
+            MainWhiteFrame.Position = UDim2.new(NewPosition.X, 0, NewPosition.Y, 0)
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
@@ -157,50 +157,50 @@ function SlayLib:CreateSlayLib(libName)
     end)
 
     -- Tab Frame (Left Column)
-    local TabFrame = Instance.new("Frame", MainFrame)
-    TabFrame.Name = "TabBar"
-    TabFrame.BackgroundColor3 = TAB_COLOR
-    TabFrame.Size = UDim2.new(0, TAB_BAR_WIDTH, 1, -HEADER_HEIGHT)
-    TabFrame.Position = UDim2.new(0, 0, 0, HEADER_HEIGHT)
+    local tabFrame = Instance.new("Frame", MainWhiteFrame)
+    tabFrame.Size = UDim2.new(0, 150, 1, -30)
+    tabFrame.Position = UDim2.new(0, 0, 0, 30)
+    tabFrame.BackgroundColor3 = TAB_COLOR
     
-    local tabListLayout = Instance.new("UIListLayout", TabFrame)
-    tabListLayout.Padding = UDim.new(0, 5)
-    tabListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    tabListLayout.FillDirection = Enum.FillDirection.Vertical
-    Instance.new("UIPadding", TabFrame).PaddingTop = UDim.new(0, 10)
+    local tabList = Instance.new("UIListLayout", tabFrame)
+    tabList.Padding = UDim.new(0, 5)
+    tabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    tabList.FillDirection = Enum.FillDirection.Vertical
+    Instance.new("UIPadding", tabFrame).PaddingTop = UDim.new(0, 10)
 
     -- Content Frame (Right Column) - ScrollingFrame used for content list
-    local ContentContainer = Instance.new("ScrollingFrame", MainFrame)
-    ContentContainer.Name = "ContentContainer"
-    ContentContainer.BackgroundColor3 = BASE_COLOR
-    ContentContainer.BackgroundTransparency = 1
-    ContentContainer.Position = UDim2.new(0, TAB_BAR_WIDTH, 0, HEADER_HEIGHT)
-    ContentContainer.Size = UDim2.new(1, -TAB_BAR_WIDTH, 1, -HEADER_HEIGHT)
-    ContentContainer.ScrollBarThickness = 5
-    ContentContainer.ScrollBarImageColor3 = ACCENT_COLOR 
+    local elementContainer = Instance.new("ScrollingFrame", MainWhiteFrame)
+    elementContainer.Size = UDim2.new(1, -150, 1, -30)
+    elementContainer.Position = UDim2.new(0, 150, 0, 30)
+    elementContainer.BackgroundColor3 = BASE_COLOR
+    elementContainer.BackgroundTransparency = 1
+    elementContainer.ScrollBarThickness = 5
+    elementContainer.ScrollBarImageColor3 = ACCENT_COLOR 
+    elementContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 
-    local contentList = Instance.new("UIListLayout", ContentContainer)
-    contentList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    contentList.Padding = UDim.new(0, 5)
-    Instance.new("UIPadding", ContentContainer).PaddingTop = UDim.new(0, 10)
+    local mainList = Instance.new("UIListLayout", elementContainer)
+    mainList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    mainList.Padding = UDim.new(0, 5)
+    Instance.new("UIPadding", elementContainer).PaddingTop = UDim.new(0, 10)
 
-    local pagesFolder = Instance.new("Folder", MainFrame)
+    local pagesFolder = Instance.new("Folder", MainWhiteFrame)
     local allTabs = {}
     local currentTab = nil
     
-    local function updateContentCanvasSize()
+    -- Function to adjust the ElementContainer's CanvasSize
+    local function UpdateSize()
         task.wait()
-        local cS = contentList.AbsoluteContentSize
-        ContentContainer.CanvasSize = UDim2.new(0, 0, 0, cS.Y + 20)
+        local cS = mainList.AbsoluteContentSize
+        elementContainer.CanvasSize = UDim2.new(0, 0, 0, cS.Y + 20)
     end
     
     local function selectTab(pageFrame, tabButton)
         if currentTab then
             -- Move old content back to the unselected page frame
-            for _, child in ContentContainer:GetChildren() do
+            for _, child in elementContainer:GetChildren() do
                 -- Only move elements that are not the UIListLayout or UIPadding
                 if child:IsA("Frame") or child:IsA("TextButton") or child:IsA("TextLabel") or child:IsA("TextBox") then
-                    if child.Parent == ContentContainer then
+                    if child.Parent == elementContainer then
                         child.Parent = currentTab 
                     end
                 end
@@ -209,21 +209,21 @@ function SlayLib:CreateSlayLib(libName)
         
         -- Reset all tab button styles
         for _, tab in pairs(allTabs) do
-            TweenService:Create(tab.Button, TweenInfo.new(0.1), {BackgroundColor3 = TAB_COLOR, TextColor3 = TEXT_COLOR}):Play()
+            TweenService:Create(tab.Button, TWEEN_INFO, {BackgroundColor3 = TAB_COLOR, TextColor3 = TEXT_COLOR}):Play()
         end
         
         -- Highlight the selected button
-        TweenService:Create(tabButton, TweenInfo.new(0.1), {BackgroundColor3 = ACCENT_COLOR, TextColor3 = BASE_COLOR}):Play()
+        TweenService:Create(tabButton, TWEEN_INFO, {BackgroundColor3 = ACCENT_COLOR, TextColor3 = BASE_COLOR}):Play()
 
         pageFrame.Visible = true
         currentTab = pageFrame
         
         -- Move all content from the selected page to the main content container
         for _, child in currentTab:GetChildren() do
-            child.Parent = ContentContainer
+            child.Parent = elementContainer
         end
 
-        updateContentCanvasSize()
+        UpdateSize()
     end
 
     -- Section Handler (Tab Management)
@@ -238,14 +238,14 @@ function SlayLib:CreateSlayLib(libName)
         newPage.Size = UDim2.new(1, 0, 1, 0)
         newPage.Visible = false
         
-        local tabButton = Instance.new("TextButton", TabFrame)
+        local tabButton = Instance.new("TextButton", tabFrame)
         tabButton.BackgroundColor3 = TAB_COLOR
-        tabButton.Size = UDim2.new(0, TAB_BAR_WIDTH - 20, 0, 35)
+        tabButton.Size = UDim2.new(0, 130, 0, 30)
         tabButton.Font = Enum.Font.GothamSemibold
         tabButton.Text = secName
         tabButton.TextColor3 = TEXT_COLOR
         tabButton.TextSize = 14
-        Instance.new("UICorner", tabButton).CornerRadius = UDim.new(0, 5)
+        Instance.new("UICorner", tabButton).CornerRadius = UDim.new(0, 3)
         
         tabButton.MouseEnter:Connect(function() 
             if tabButton.BackgroundColor3 ~= ACCENT_COLOR then
@@ -271,37 +271,27 @@ function SlayLib:CreateSlayLib(libName)
         local ElementHandler = {}
         local currentParent = newPage -- Tracks the current parent (Page or GroupBox)
 
-        local function createWrapper(height, customWidth)
+        local function createWrapper(height)
             local frame = Instance.new("Frame", currentParent) 
             frame.BackgroundColor3 = ELEMENT_COLOR
-            frame.Size = UDim2.new(0, customWidth or (MAIN_WIDTH - TAB_BAR_WIDTH - 20), 0, height or ELEMENT_HEIGHT)
-            Instance.new("UICorner", frame).CornerRadius = UDim.new(0, MAIN_CORNER_RADIUS/2)
-            
-            local stroke = Instance.new("UIStroke", frame)
-            stroke.Color = ACCENT_COLOR
-            stroke.Thickness = 0.5
-            stroke.Transparency = 0.95
+            frame.Size = UDim2.new(1, 0, 0, height or ELEMENT_HEIGHT)
+            Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 3)
             
             return frame
         end
         
         -- =======================================================
-        -- ELEMENT DEFINITIONS (FULL SET V6)
+        -- ELEMENT DEFINITIONS (FULL SET V9)
         -- =======================================================
         
-        -- GroupBox (New Feature based on user request for grouping)
+        -- NEW: GroupBox
         function ElementHandler:GroupBox(boxLabel)
             local wrapper = Instance.new("Frame", newPage) 
             wrapper.Name = "GroupBox_" .. boxLabel:gsub(" ", "")
-            wrapper.BackgroundColor3 = ELEMENT_COLOR
+            wrapper.BackgroundColor3 = BASE_COLOR
             wrapper.BackgroundTransparency = 0.8
-            wrapper.Size = UDim2.new(0, MAIN_WIDTH - TAB_BAR_WIDTH - 20, 0, 50) 
+            wrapper.Size = UDim2.new(1, 0, 0, 50) 
             Instance.new("UICorner", wrapper).CornerRadius = UDim.new(0, MAIN_CORNER_RADIUS)
-            
-            local boxStroke = Instance.new("UIStroke", wrapper)
-            boxStroke.Color = ACCENT_COLOR
-            boxStroke.Thickness = 1
-            boxStroke.Transparency = 0.9
             
             local label = Instance.new("TextLabel", wrapper)
             label.BackgroundTransparency = 1
@@ -327,17 +317,18 @@ function SlayLib:CreateSlayLib(libName)
             local function updateSize()
                 task.wait()
                 local contentHeight = list.AbsoluteContentSize.Y + 35 
-                wrapper.Size = UDim2.new(0, MAIN_WIDTH - TAB_BAR_WIDTH - 20, 0, contentHeight)
-                updateContentCanvasSize()
+                wrapper.Size = UDim2.new(1, 0, 0, contentHeight)
+                UpdateSize() -- Call the page's UpdateSize
             end
             list:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateSize)
             
+            local previousParent = currentParent
             currentParent = contentHolder
             
             return {
                 Frame = wrapper,
                 End = function()
-                    currentParent = newPage 
+                    currentParent = previousParent 
                     updateSize()
                 end
             }
@@ -358,15 +349,15 @@ function SlayLib:CreateSlayLib(libName)
             infoLabel.TextXAlignment = Enum.TextXAlignment.Left
 
             local switchBase = Instance.new("Frame", wrapper)
-            switchBase.BackgroundColor3 = Color3.fromRGB(80, 80, 80) 
-            switchBase.Position = UDim2.new(1, -55, 0.5, 0)
+            switchBase.BackgroundColor3 = TEXT_COLOR_DARK 
+            switchBase.Position = UDim2.new(1, -50, 0.5, 0)
             switchBase.AnchorPoint = Vector2.new(1, 0.5)
-            switchBase.Size = UDim2.new(0, 45, 0, 25)
+            switchBase.Size = UDim2.new(0, 40, 0, 20)
             Instance.new("UICorner", switchBase).CornerRadius = UDim.new(1, 0)
             
             local thumb = Instance.new("Frame", switchBase)
-            thumb.BackgroundColor3 = BASE_COLOR 
-            thumb.Size = UDim2.new(0, 21, 0, 21)
+            thumb.BackgroundColor3 = BASE_COLOR
+            thumb.Size = UDim2.new(0, 16, 0, 16)
             thumb.Position = UDim2.new(0.05, 0, 0.5, 0) 
             thumb.AnchorPoint = Vector2.new(0, 0.5)
             Instance.new("UICorner", thumb).CornerRadius = UDim.new(1, 0)
@@ -375,8 +366,8 @@ function SlayLib:CreateSlayLib(libName)
                 toggled = state
                 pcall(callback, toggled)
 
-                local targetPos = toggled and UDim2.new(1, -21, 0.5, 0) or UDim2.new(0.05, 0, 0.5, 0)
-                local targetColor = toggled and ACCENT_COLOR or Color3.fromRGB(80, 80, 80)
+                local targetPos = toggled and UDim2.new(1, -16, 0.5, 0) or UDim2.new(0.05, 0, 0.5, 0)
+                local targetColor = toggled and ACCENT_COLOR or TEXT_COLOR_DARK
 
                 TweenService:Create(thumb, TWEEN_INFO, {Position = targetPos}):Play()
                 TweenService:Create(switchBase, TWEEN_INFO, {BackgroundColor3 = targetColor}):Play()
@@ -428,7 +419,7 @@ function SlayLib:CreateSlayLib(libName)
             fillFrame.Size = UDim2.new(0, 0, 1, 0)
             Instance.new("UICorner", fillFrame).CornerRadius = UDim.new(0, 4)
 
-            local sliderWidth = (MAIN_WIDTH - TAB_BAR_WIDTH - 20) * 0.96 
+            local sliderWidth = wrapper.AbsoluteSize.X * 0.96 
             local range = maxvalue - minvalue
             
             local function updateSlider(xOffset)
@@ -477,7 +468,6 @@ function SlayLib:CreateSlayLib(libName)
             local selectedOption = options[1] or "None"
             local isDropOpen = false
             
-            -- Label
             local label = Instance.new("TextLabel", wrapper)
             label.BackgroundTransparency = 1
             label.Position = UDim2.new(0.02, 0, 0, 0)
@@ -488,11 +478,10 @@ function SlayLib:CreateSlayLib(libName)
             label.TextSize = 14
             label.TextXAlignment = Enum.TextXAlignment.Left
             
-            -- Selector Button
             local selectorButton = Instance.new("TextButton", wrapper)
             selectorButton.BackgroundColor3 = BASE_COLOR
-            selectorButton.Size = UDim2.new(0.4, -10, 0, 30)
-            selectorButton.Position = UDim2.new(0.98, 0, 0.5, 0)
+            selectorButton.Size = UDim2.new(0.4, 0, 0, 30)
+            selectorButton.Position = UDim2.new(0.98, -5, 0.5, 0)
             selectorButton.AnchorPoint = Vector2.new(1, 0.5)
             selectorButton.Font = Enum.Font.Gotham
             selectorButton.Text = selectedOption .. " ▼"
@@ -500,21 +489,15 @@ function SlayLib:CreateSlayLib(libName)
             selectorButton.TextSize = 13
             Instance.new("UICorner", selectorButton).CornerRadius = UDim.new(0, 3)
 
-            -- Dropdown Options Frame (Must be parented outside the wrapper to draw over other elements)
-            -- Position needs calculation relative to MainFrame/ContentContainer
-            local optionsFrame = Instance.new("Frame", MainFrame) 
-            optionsFrame.BackgroundColor3 = BASE_COLOR
-            optionsFrame.Size = UDim2.new(0.4, -10, 0, 0)
-            
-            -- Calculate position relative to MainFrame (ContentContainer X + Wrapper X + Selector Pos X)
-            local contentX = TAB_BAR_WIDTH / MAIN_WIDTH
-            local relX = (selectorButton.Position.X.Scale * wrapper.Size.X.Scale) + contentX + (selectorButton.Position.X.Offset / MAIN_WIDTH)
-            optionsFrame.Position = UDim2.new(relX, -10, 0, HEADER_HEIGHT) 
-            
+            -- Options Frame (Parented to ScreenGui to render over everything)
+            local optionsFrame = Instance.new("Frame", ScreenGui) 
+            optionsFrame.BackgroundColor3 = ELEMENT_COLOR
+            optionsFrame.Size = UDim2.new(0.4, 0, 0, 0)
             optionsFrame.AnchorPoint = Vector2.new(1, 0)
             optionsFrame.ClipsDescendants = true
             optionsFrame.ZIndex = 5
             Instance.new("UICorner", optionsFrame).CornerRadius = UDim.new(0, 3)
+            optionsFrame.Visible = false
             
             local optionsListLayout = Instance.new("UIListLayout", optionsFrame)
             optionsListLayout.FillDirection = Enum.FillDirection.Vertical
@@ -524,21 +507,26 @@ function SlayLib:CreateSlayLib(libName)
                 isDropOpen = false
                 selectorButton.Text = selectedOption .. " ▼"
                 TweenService:Create(optionsFrame, TWEEN_INFO, {Size = UDim2.new(optionsFrame.Size.X.Scale, optionsFrame.Size.X.Offset, 0, 0)}):Play()
+                task.wait(TWEEN_INFO.Time)
+                optionsFrame.Visible = false
             end
             
             selectorButton.MouseButton1Click:Connect(function()
-                -- Adjust Y position dynamically based on wrapper's absolute position
-                local absY = wrapper.AbsolutePosition.Y - MainFrame.AbsolutePosition.Y
-                local targetY = absY + wrapper.Size.Y.Offset
-                optionsFrame.Position = UDim2.new(relX, -10, 0, HEADER_HEIGHT + targetY)
-
                 if isDropOpen then
                     closeDropdown()
                 else
+                    local absPos = selectorButton.AbsolutePosition
+                    local absSize = selectorButton.AbsoluteSize
+                    
+                    optionsFrame.Position = UDim2.new(0, absPos.X + absSize.X, 0, absPos.Y + absSize.Y + 1)
+                    optionsFrame.Size = UDim2.new(0, absSize.X, 0, 0)
+                    optionsFrame.AnchorPoint = Vector2.new(1, 0)
+
                     isDropOpen = true
+                    optionsFrame.Visible = true
                     selectorButton.Text = selectedOption .. " ▲"
                     local targetSize = math.min(#options * 25, 200) -- Cap dropdown height
-                    TweenService:Create(optionsFrame, TWEEN_INFO, {Size = UDim2.new(optionsFrame.Size.X.Scale, optionsFrame.Size.X.Offset, 0, targetSize)}):Play()
+                    TweenService:Create(optionsFrame, TWEEN_INFO, {Size = UDim2.new(0, absSize.X, 0, targetSize)}):Play()
                 end
             end)
 
@@ -553,7 +541,6 @@ function SlayLib:CreateSlayLib(libName)
                 
                 optionBtn.MouseButton1Click:Connect(function()
                     selectedOption = opt
-                    selectorButton.Text = selectedOption .. " ▼"
                     pcall(callback, selectedOption)
                     closeDropdown()
                 end)
@@ -579,8 +566,8 @@ function SlayLib:CreateSlayLib(libName)
 
             local textBox = Instance.new("TextBox", wrapper)
             textBox.BackgroundColor3 = BASE_COLOR
-            textBox.Size = UDim2.new(0.4, -10, 0, 30)
-            textBox.Position = UDim2.new(0.98, 0, 0.5, 0)
+            textBox.Size = UDim2.new(0.4, 0, 0, 30)
+            textBox.Position = UDim2.new(0.98, -5, 0.5, 0)
             textBox.AnchorPoint = Vector2.new(1, 0.5)
             textBox.Font = Enum.Font.Gotham
             textBox.Text = ""
@@ -593,7 +580,6 @@ function SlayLib:CreateSlayLib(libName)
 
             textBox.FocusLost:Connect(function()
                 pcall(callback, textBox.Text)
-                SlayLib:Notify("Input Locked", boxLabel .. " set to: " .. textBox.Text)
             end)
             
             return {Frame = wrapper, GetValue = function() return textBox.Text end}
@@ -616,7 +602,7 @@ function SlayLib:CreateSlayLib(libName)
             local keyButton = Instance.new("TextButton", wrapper)
             keyButton.BackgroundColor3 = BASE_COLOR
             keyButton.Size = UDim2.new(0.25, 0, 0, 30)
-            keyButton.Position = UDim2.new(0.98, 0, 0.5, 0)
+            keyButton.Position = UDim2.new(0.98, -5, 0.5, 0)
             keyButton.AnchorPoint = Vector2.new(1, 0.5)
             keyButton.Font = Enum.Font.GothamSemibold
             keyButton.Text = currentKey.Name 
@@ -655,35 +641,63 @@ function SlayLib:CreateSlayLib(libName)
             return {Frame = wrapper, GetValue = function() return currentKey end}
         end
 
-        function ElementHandler:ColorPicker(pickerLabel, defaultColor, callback)
-            local initialColor = defaultColor or ACCENT_COLOR
-            local currentH, currentS, currentV = RGBToHSV(initialColor.R, initialColor.G, initialColor.B)
-            
-            local wrapper = createWrapper(230)
-            
-            local label = Instance.new("TextLabel", wrapper)
-            label.BackgroundTransparency = 1
-            label.Position = UDim2.new(0.02, 0, 0, 0)
-            label.Size = UDim2.new(0.5, 0, 0, 20)
-            label.Font = Enum.Font.GothamSemibold
-            label.Text = pickerLabel or "Color Select"
-            label.TextColor3 = TEXT_COLOR
-            label.TextSize = 14
-            label.TextXAlignment = Enum.TextXAlignment.Left
+        -- PERFECTED: ColorPicker (Full HSV & Hex)
+        function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
+            colorInfo = colorInfo or "Color Picker"
+            defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
+            callback = callback or function() end
 
-            local swatchPreview = Instance.new("Frame", wrapper)
-            swatchPreview.BackgroundColor3 = initialColor
-            swatchPreview.Size = UDim2.new(0, 30, 0, 30)
-            swatchPreview.Position = UDim2.new(1, -10, 0, 0)
-            swatchPreview.AnchorPoint = Vector2.new(1, 0)
-            Instance.new("UICorner", swatchPreview).CornerRadius = UDim.new(0, 3)
+            local BASE_HEIGHT = 42 
+            local EXPANDED_HEIGHT = 250 
 
-            local colorSquare = Instance.new("TextButton", wrapper)
+            local colorFrame = Instance.new("Frame", currentParent) 
+            local mainCorner = Instance.new("UICorner", colorFrame)
+            local colorInfoLabel = Instance.new("TextLabel", colorFrame)
+            local colorSwatchButton = Instance.new("TextButton", colorFrame)
+            local swatchCorner = Instance.new("UICorner", colorSwatchButton)
+            
+            -- Base Frame Setup
+            colorFrame.Name = "colorFrame"
+            colorFrame.BackgroundColor3 = ELEMENT_COLOR
+            colorFrame.ClipsDescendants = true 
+            colorFrame.Size = UDim2.new(1, 0, 0, BASE_HEIGHT)
+            mainCorner.CornerRadius = UDim.new(0, 3)
+
+            -- Info Label
+            colorInfoLabel.BackgroundTransparency = 1.000
+            colorInfoLabel.Position = UDim2.new(0.02, 0, 0, 0)
+            colorInfoLabel.Size = UDim2.new(0, 200, 0, BASE_HEIGHT)
+            colorInfoLabel.Font = Enum.Font.GothamSemibold
+            colorInfoLabel.Text = colorInfo
+            colorInfoLabel.TextColor3 = TEXT_COLOR
+            colorInfoLabel.TextSize = 14.000
+            colorInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- Color Swatch Button (Acts as a display and a click trigger)
+            colorSwatchButton.Name = "ColorSwatch"
+            colorSwatchButton.BackgroundColor3 = defaultColor
+            colorSwatchButton.Position = UDim2.new(0.98, -5, 0.5, 0)
+            colorSwatchButton.AnchorPoint = Vector2.new(1, 0.5)
+            colorSwatchButton.Size = UDim2.new(0, 30, 0, 30)
+            colorSwatchButton.Text = ""
+            colorSwatchButton.AutoButtonColor = false
+            swatchCorner.CornerRadius = UDim.new(0, 3)
+
+            -- Functional Color Picker Logic
+            local isExpanded = false
+            local currentColor = defaultColor
+            local currentH, currentS, currentV = RGBToHSV(defaultColor.R, defaultColor.G, defaultColor.B)
+            
+            -- Color Square (Saturation/Value)
+            local colorSquare = Instance.new("TextButton", colorFrame)
             colorSquare.Name = "ColorSquare"
             colorSquare.BackgroundColor3 = Color3.fromHSV(currentH, 1, 1) 
-            colorSquare.Size = UDim2.new(0, 150, 0, 150)
-            colorSquare.Position = UDim2.new(0.02, 0, 0, 25)
+            colorSquare.Size = UDim2.new(0, 180, 0, 180)
+            colorSquare.Position = UDim2.new(0.02, 0, 0, 45)
             colorSquare.BackgroundTransparency = 0
+            colorSquare.AutoButtonColor = false
+            colorSquare.ZIndex = 2
+            Instance.new("UICorner", colorSquare).CornerRadius = UDim.new(0, 3) 
             
             local valGradient = Instance.new("UIGradient", colorSquare)
             valGradient.Color = ColorSequence.new(Color3.fromRGB(255, 255, 255), Color3.fromRGB(0, 0, 0))
@@ -698,87 +712,145 @@ function SlayLib:CreateSlayLib(libName)
             indicator.Position = UDim2.new(currentS, -4, 1-currentV, -4)
             indicator.AnchorPoint = Vector2.new(0, 0)
             Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
-            Instance.new("UIStroke", indicator).Color = Color3.fromRGB(0, 0, 0)
-            
-            local hueSlider = Instance.new("TextButton", wrapper)
+            Instance.new("UIStroke", indicator).Color = BASE_COLOR 
+
+            -- Hue Slider
+            local hueSlider = Instance.new("TextButton", colorFrame)
             hueSlider.Name = "HueSlider"
-            hueSlider.Size = UDim2.new(0, 20, 0, 150)
-            hueSlider.Position = UDim2.new(0, 160, 0, 25)
-            
+            hueSlider.Size = UDim2.new(0, 20, 0, 180)
+            hueSlider.Position = UDim2.new(0, 200, 0, 45)
+            hueSlider.BackgroundColor3 = BASE_COLOR 
+            hueSlider.AutoButtonColor = false
+            hueSlider.ZIndex = 2
+            Instance.new("UICorner", hueSlider).CornerRadius = UDim.new(0, 3)
+
             local hueGradient = Instance.new("UIGradient", hueSlider)
             hueGradient.Color = ColorSequence.new({
                 ColorSequenceKeypoint.new(0, Color3.fromHSV(0, 1, 1)),
+                ColorSequenceKeypoint.new(0.166, Color3.fromHSV(0.166, 1, 1)),
+                ColorSequenceKeypoint.new(0.333, Color3.fromHSV(0.333, 1, 1)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromHSV(0.5, 1, 1)),
+                ColorSequenceKeypoint.new(0.666, Color3.fromHSV(0.666, 1, 1)),
+                ColorSequenceKeypoint.new(0.833, Color3.fromHSV(0.833, 1, 1)),
                 ColorSequenceKeypoint.new(1, Color3.fromHSV(1, 1, 1))
             })
             
             local hueIndicator = Instance.new("Frame", hueSlider)
-            hueIndicator.BackgroundColor3 = TEXT_COLOR
+            hueIndicator.BackgroundColor3 = Color3.fromRGB(255, 255, 255) 
             hueIndicator.Size = UDim2.new(1, 0, 0, 5)
             hueIndicator.Position = UDim2.new(0, 0, currentH, -2.5)
-            
+            Instance.new("UICorner", hueIndicator).CornerRadius = UDim.new(1, 0)
+
+            -- Hex Code Display
+            local hexLabel = Instance.new("TextLabel", colorFrame)
+            hexLabel.BackgroundTransparency = 1
+            hexLabel.Position = UDim2.new(0.02, 0, 0, 225)
+            hexLabel.Size = UDim2.new(0, 180, 0, 25)
+            hexLabel.Font = Enum.Font.Code
+            hexLabel.Text = Color3ToHex(currentColor)
+            hexLabel.TextColor3 = TEXT_COLOR
+            hexLabel.TextSize = 14
+            hexLabel.TextXAlignment = Enum.TextXAlignment.Left
+
             local function updateColor(h, s, v)
                 currentH, currentS, currentV = h, s, v
                 local r, g, b = HSVToRGB(h, s, v)
                 local newColor = Color3.new(r, g, b)
                 
-                swatchPreview.BackgroundColor3 = newColor
+                currentColor = newColor
+                colorSwatchButton.BackgroundColor3 = newColor
                 colorSquare.BackgroundColor3 = Color3.fromHSV(h, 1, 1)
                 
                 indicator.Position = UDim2.new(currentS, -4, 1-currentV, -4)
                 hueIndicator.Position = UDim2.new(0, 0, currentH, -2.5)
+                hexLabel.Text = Color3ToHex(newColor)
                 
                 pcall(callback, newColor)
             end
-
+            
             local mouse = Players.LocalPlayer:GetMouse()
             local hueDragging, svDragging = false, false
             
-            hueSlider.MouseButton1Down:Connect(function()
-                hueDragging = true
-                local conn = mouse.Move:Connect(function()
-                    if hueDragging then
-                        local relativeY = math.clamp(mouse.Y - hueSlider.AbsolutePosition.Y, 0, hueSlider.AbsoluteSize.Y)
-                        local newH = relativeY / hueSlider.AbsoluteSize.Y
-                        updateColor(newH, currentS, currentV)
-                    end
-                end)
-                UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        hueDragging = false
-                        conn:Disconnect()
-                    end
-                end)
-            end)
+            local function handleDragging(element, isHue)
+                element.MouseButton1Down:Connect(function()
+                    if not isExpanded then return end
+                    if isHue then hueDragging = true else svDragging = true end
 
-            colorSquare.MouseButton1Down:Connect(function()
-                svDragging = true
-                local conn = mouse.Move:Connect(function()
-                    if svDragging then
-                        local s, v, newColor = GetColorFromMouse(colorSquare, mouse, currentH)
+                    local conn = mouse.Move:Connect(function()
+                        if isHue and hueDragging then
+                            local relativeY = math.clamp(mouse.Y - element.AbsolutePosition.Y, 0, element.AbsoluteSize.Y)
+                            local newH = relativeY / element.AbsoluteSize.Y
+                            updateColor(newH, currentS, currentV)
+                        elseif (not isHue) and svDragging then
+                            local relativeX = math.clamp(mouse.X - element.AbsolutePosition.X, 0, element.AbsoluteSize.X)
+                            local relativeY = math.clamp(mouse.Y - element.AbsolutePosition.Y, 0, element.AbsoluteSize.Y)
+                            
+                            local s = relativeX / element.AbsoluteSize.X
+                            local v = 1 - (relativeY / element.AbsoluteSize.Y)
+                            
+                            updateColor(currentH, s, v)
+                        end
+                    end)
+                    game:GetService("UserInputService").InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                            if isHue then hueDragging = false else svDragging = false end
+                            conn:Disconnect()
+                        end
+                    end)
+                    
+                    if isHue then
+                        local relativeY = math.clamp(mouse.Y - element.AbsolutePosition.Y, 0, element.AbsoluteSize.Y)
+                        local newH = relativeY / element.AbsoluteSize.Y
+                        updateColor(newH, currentS, currentV)
+                    else
+                        local relativeX = math.clamp(mouse.X - element.AbsolutePosition.X, 0, element.AbsoluteSize.X)
+                        local relativeY = math.clamp(mouse.Y - element.AbsolutePosition.Y, 0, element.AbsoluteSize.Y)
+                        local s = relativeX / element.AbsoluteSize.X
+                        local v = 1 - (relativeY / element.AbsoluteSize.Y)
                         updateColor(currentH, s, v)
                     end
                 end)
-                UserInputService.InputEnded:Connect(function(input)
-                    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                        svDragging = false
-                        conn:Disconnect()
-                    end
-                end)
-            end)
-
-            updateColor(currentH, currentS, currentV)
+            end
             
-            return {
-                Frame = wrapper,
-                GetValue = function() return swatchPreview.BackgroundColor3 end,
-                SetColor = updateColor
-            }
+            handleDragging(hueSlider, true)
+            handleDragging(colorSquare, false)
+            
+            -- Expansion/Collapse Logic
+            colorSwatchButton.MouseButton1Click:Connect(function()
+                isExpanded = not isExpanded
+                
+                local targetSize = isExpanded and UDim2.new(1, 0, 0, EXPANDED_HEIGHT) or UDim2.new(1, 0, 0, BASE_HEIGHT)
+                
+                TweenService:Create(colorFrame, TWEEN_INFO, {Size = targetSize}):Play()
+                
+                colorSquare.Visible = isExpanded
+                hueSlider.Visible = isExpanded
+                hexLabel.Visible = isExpanded
+                
+                task.wait(TWEEN_INFO.Time/2)
+                UpdateSize()
+            end)
+            
+            -- Initial state setup
+            updateColor(currentH, currentS, currentV) 
+            colorSquare.Visible = false
+            hueSlider.Visible = false
+            hexLabel.Visible = false
+            
+            pcall(callback, defaultColor)
+
+            return function(newColor) -- Public Setter function
+                local r, g, b = newColor.R, newColor.G, newColor.B
+                local h, s, v = RGBToHSV(r, g, b)
+                updateColor(h, s, v)
+            end
         end
         
         return ElementHandler
     end
     
-    return SlayLib
+    return SectionHandler
 end 
+
 
 return SlayLib
