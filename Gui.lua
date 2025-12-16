@@ -11,7 +11,7 @@ function SlayLib:CreateSlayLib(libName)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     local Camera = workspace:WaitForChild("Camera")
-    
+
     -- Fetch Avatar Headshot URL
     local avatarType = Enum.ThumbnailType.HeadShot
     local avatarSize = Enum.ThumbnailSize.Size48x48
@@ -21,7 +21,7 @@ function SlayLib:CreateSlayLib(libName)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-    
+
     -- === 1. Loading GUI Setup ===
     local LoadingFrame = Instance.new("Frame")
     LoadingFrame.Name = "LoadingFrame"
@@ -44,7 +44,7 @@ function SlayLib:CreateSlayLib(libName)
     LoadingTitle.Text = libName
     LoadingTitle.TextColor3 = Color3.fromRGB(139, 0, 23) -- Crimson Accent
     LoadingTitle.TextSize = 30
-    
+
     local LoadingSpinner = Instance.new("ImageLabel")
     LoadingSpinner.Parent = LoadingFrame
     LoadingSpinner.BackgroundTransparency = 1
@@ -52,7 +52,7 @@ function SlayLib:CreateSlayLib(libName)
     LoadingSpinner.Size = UDim2.new(0, 50, 0, 50)
     LoadingSpinner.Position = UDim2.new(0.5, 0, 0.55, 0)
     LoadingSpinner.AnchorPoint = Vector2.new(0.5, 0.5)
-    
+
     -- Simple spin animation for the spinner
     local spinnerTween = TweenService:Create(LoadingSpinner, TweenInfo.new(1, Enum.EasingStyle.Linear, Enum.EasingDirection.In, -1), {Rotation = 360})
     spinnerTween:Play()
@@ -75,7 +75,7 @@ function SlayLib:CreateSlayLib(libName)
     local elementContainer = Instance.new("Frame")
     local mainCorner_5 = Instance.new("UICorner")
     local pagesFolder = Instance.new("Folder")
-    
+
     MainWhiteFrame.Name = "MainWhiteFrame"
     MainWhiteFrame.Parent = ScreenGui
     MainWhiteFrame.BackgroundColor3 = Color3.fromRGB(139, 0, 23)
@@ -147,7 +147,7 @@ function SlayLib:CreateSlayLib(libName)
     tabList.SortOrder = Enum.SortOrder.LayoutOrder
     tabList.Padding = UDim.new(0, 2)
     tabList.Padding = UDim.new(0, 2)
-    
+
     local TabListLayout = Instance.new("UIListLayout")
     TabListLayout.Parent = tabFrame
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -251,7 +251,7 @@ function SlayLib:CreateSlayLib(libName)
     mainCorner_5.Parent = elementContainer
 
     pagesFolder.Parent = elementContainer
-    
+
     -- Notification Container Setup
     local NotificationContainer = Instance.new("Frame")
     NotificationContainer.Name = "NotificationContainer"
@@ -260,7 +260,7 @@ function SlayLib:CreateSlayLib(libName)
     NotificationContainer.Size = UDim2.new(0, 300, 1, 0)
     NotificationContainer.Position = UDim2.new(1, -10, 0, 0)
     NotificationContainer.AnchorPoint = Vector2.new(1, 0)
-    
+
     local NotificationList = Instance.new("UIListLayout")
     NotificationList.Parent = NotificationContainer
     NotificationList.HorizontalAlignment = Enum.HorizontalAlignment.Right
@@ -270,24 +270,24 @@ function SlayLib:CreateSlayLib(libName)
 
     -- === 2. Loading Finalization (After all elements are created) ===
     task.wait(2) -- Simulate actual script/asset loading time (2 seconds)
-    
+
     local fadeOutInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
+
     TweenService:Create(LoadingFrame, fadeOutInfo, {
         BackgroundTransparency = 1,
         [LoadingTitle] = {TextTransparency = 1},
         [LoadingSpinner] = {ImageTransparency = 1}
     }):Play()
-    
+
     local fadeInInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    
+
     TweenService:Create(MainWhiteFrame, fadeInInfo, {
         BackgroundTransparency = 0
     }):Play()
     TweenService:Create(MainWhiteFrame_2, fadeInInfo, {
         BackgroundTransparency = 0
     }):Play()
-    
+
     task.delay(0.5, function() 
         LoadingFrame:Destroy() 
     end)
@@ -651,7 +651,7 @@ function SlayLib:CreateSlayLib(libName)
                                 callback(Value)
                             end)
                             sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10) 
-                            
+
                             local moveconnection = mouse.Move:Connect(function()
                                 sliderMainFrm.Size = UDim2.new(0, math.clamp(mouse.X - sliderBtn.AbsolutePosition.X, 0, 141), 0, 10)
                                 Value = math.floor((((tonumber(maxvalue) - tonumber(minvalue)) / 141) * sliderMainFrm.AbsoluteSize.X) + tonumber(minvalue))
@@ -935,10 +935,10 @@ function SlayLib:CreateSlayLib(libName)
                                         end)
                                     end
         end
-        
+
         function ElementHandler:Separator(separatorText)
             separatorText = separatorText or ""
-            
+
             local sepFrame = Instance.new("Frame")
             local mainCorner = Instance.new("UICorner")
             local line = Instance.new("Frame")
@@ -948,7 +948,7 @@ function SlayLib:CreateSlayLib(libName)
             sepFrame.Parent = newPage
             sepFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) 
             sepFrame.Size = UDim2.new(0, 394, 0, 22)
-            
+
             mainCorner.CornerRadius = UDim.new(0, 3)
             mainCorner.Parent = sepFrame
 
@@ -970,7 +970,7 @@ function SlayLib:CreateSlayLib(libName)
             text.TextSize = 12
             text.TextXAlignment = Enum.TextXAlignment.Center
         end
-        
+
         function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
             colorInfo = colorInfo or "Color Picker"
             defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
@@ -1022,17 +1022,17 @@ function SlayLib:CreateSlayLib(libName)
             end)
 
             callback(defaultColor)
-            
+
             return function(newColor)
                 currentColor = newColor
                 colorSwatchButton.BackgroundColor3 = newColor
                 callback(newColor)
             end
         end
-        
+
         return ElementHandler
     end
-    
+
     function SectionHandler:Notification(title, message, duration)
         duration = duration or 5
         local NotificationContainer = ScreenGui:FindFirstChild("NotificationContainer")
@@ -1044,8 +1044,8 @@ function SlayLib:CreateSlayLib(libName)
         NotifFrame.BorderSizePixel = 0
         NotifFrame.Size = UDim2.new(0, 250, 0, 65)
         NotifFrame.Position = UDim2.new(1, 5, 0, 0)
-        NotifFrame.BackgroundTransparency = 1 -- Start transparent
-        
+        NotifFrame.AnchorPoint = Vector2.new(1, 0)
+
         local Corner = Instance.new("UICorner")
         Corner.CornerRadius = UDim.new(0, 5)
         Corner.Parent = NotifFrame
@@ -1055,7 +1055,7 @@ function SlayLib:CreateSlayLib(libName)
         AccentBar.BackgroundColor3 = Color3.fromRGB(139, 0, 23)
         AccentBar.Size = UDim2.new(0, 5, 1, 0)
         AccentBar.Name = "AccentBar"
-        
+
         local TitleLabel = Instance.new("TextLabel")
         TitleLabel.Parent = NotifFrame
         TitleLabel.BackgroundTransparency = 1
@@ -1105,14 +1105,14 @@ function SlayLib:CreateSlayLib(libName)
             })
             TweenService:Create(TitleLabel, infoOut, {TextTransparency = 1}):Play()
             TweenService:Create(MessageLabel, infoOut, {TextTransparency = 1}):Play()
-            
+
             fadeOut:Play()
             fadeOut.Completed:Wait()
 
             NotifFrame:Destroy()
         end)
     end
-    
+
     return SectionHandler
 end 
 
