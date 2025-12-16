@@ -834,6 +834,113 @@ function SlayLib:CreateSlayLib(libName)
                                         end)
                                     end
         end
+        
+        -- === NEW ELEMENT 1: Separator ===
+        function ElementHandler:Separator(separatorText)
+            separatorText = separatorText or ""
+            
+            local sepFrame = Instance.new("Frame")
+            local mainCorner = Instance.new("UICorner")
+            local line = Instance.new("Frame")
+            local text = Instance.new("TextLabel")
+
+            sepFrame.Name = "Separator"
+            sepFrame.Parent = newPage
+            sepFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) 
+            sepFrame.Size = UDim2.new(0, 394, 0, 22)
+            
+            mainCorner.CornerRadius = UDim.new(0, 3)
+            mainCorner.Parent = sepFrame
+
+            -- Thin line
+            line.Name = "Line"
+            line.Parent = sepFrame
+            line.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            line.Position = UDim2.new(0.01, 0, 0.5, 0)
+            line.Size = UDim2.new(0, 386, 0, 1)
+            line.AnchorPoint = Vector2.new(0, 0.5)
+
+            -- Text (if provided)
+            text.Name = "Text"
+            text.Parent = sepFrame
+            text.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            text.BackgroundTransparency = 1
+            text.Size = UDim2.new(1, 0, 1, 0)
+            text.Font = Enum.Font.GothamSemibold
+            text.Text = separatorText
+            text.TextColor3 = Color3.fromRGB(170, 170, 170)
+            text.TextSize = 12
+            text.TextXAlignment = Enum.TextXAlignment.Center
+        end
+        
+        -- === NEW ELEMENT 2: ColorPicker (Simplified Swatch) ===
+        function ElementHandler:ColorPicker(colorInfo, defaultColor, callback)
+            colorInfo = colorInfo or "Color Picker"
+            defaultColor = defaultColor or Color3.fromRGB(255, 255, 255)
+            callback = callback or function() end
+
+            local colorFrame = Instance.new("Frame")
+            local mainCorner = Instance.new("UICorner")
+            local colorInfoLabel = Instance.new("TextLabel")
+            local colorSwatchButton = Instance.new("TextButton")
+            local swatchCorner = Instance.new("UICorner")
+
+            colorFrame.Name = "colorFrame"
+            colorFrame.Parent = newPage
+            colorFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            colorFrame.Size = UDim2.new(0, 394, 0, 42)
+
+            mainCorner.CornerRadius = UDim.new(0, 3)
+            mainCorner.Parent = colorFrame
+
+            -- Info Label
+            colorInfoLabel.Parent = colorFrame
+            colorInfoLabel.BackgroundTransparency = 1.000
+            colorInfoLabel.Position = UDim2.new(0.02, 0, 0, 0)
+            colorInfoLabel.Size = UDim2.new(0, 200, 0, 41)
+            colorInfoLabel.Font = Enum.Font.GothamSemibold
+            colorInfoLabel.Text = colorInfo
+            colorInfoLabel.TextColor3 = Color3.fromRGB(170, 170, 170)
+            colorInfoLabel.TextSize = 14.000
+            colorInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+            -- Color Swatch Button (Acts as a display and a click trigger)
+            colorSwatchButton.Name = "ColorSwatch"
+            colorSwatchButton.Parent = colorFrame
+            colorSwatchButton.BackgroundColor3 = defaultColor
+            colorSwatchButton.Position = UDim2.new(0.965, 0, 0.5, 0)
+            colorSwatchButton.AnchorPoint = Vector2.new(1, 0.5)
+            colorSwatchButton.Size = UDim2.new(0, 30, 0, 30)
+            colorSwatchButton.Text = ""
+            colorSwatchButton.AutoButtonColor = false
+
+            swatchCorner.CornerRadius = UDim.new(0, 3)
+            swatchCorner.Parent = colorSwatchButton
+
+            local currentColor = defaultColor
+
+            colorSwatchButton.MouseButton1Click:Connect(function()
+                -- ในการใช้งานจริง โค้ดที่นี่จะเปิดหน้าต่าง ColorPicker ที่ซับซ้อนขึ้น
+                -- สำหรับตอนนี้ มันจะแสดงว่ามีการคลิกและเรียก callback
+                
+                -- *SIMULATION* (จำลองการเลือกสีใหม่):
+                local simulatedNewColor = Color3.fromHSV(math.random(), 1, 1) -- เปลี่ยนเป็นสีสุ่มเพื่อแสดงการทำงาน
+                currentColor = simulatedNewColor
+                colorSwatchButton.BackgroundColor3 = currentColor
+                callback(currentColor)
+            end)
+
+            -- เรียกใช้ callback ทันทีด้วยสีเริ่มต้น
+            callback(defaultColor)
+            
+            -- คืนค่าฟังก์ชันเพื่อให้อนุญาตให้สคริปต์ภายนอกตั้งค่าสีได้
+            return function(newColor)
+                currentColor = newColor
+                colorSwatchButton.BackgroundColor3 = newColor
+                callback(newColor)
+            end
+        end
+        
         return ElementHandler
     end
     return SectionHandler
