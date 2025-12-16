@@ -9,6 +9,7 @@ function SlayLib:CreateSlayLib(libName)
     local mainCorner = Instance.new("UICorner")
     local MainWhiteFrame_2 = Instance.new("Frame")
     local mainCorner_2 = Instance.new("UICorner")
+    local mainStroke = Instance.new("UIStroke") -- ADDED: Subtle shadow/border
     local tabFrame = Instance.new("Frame")
     local tabList = Instance.new("UIListLayout")
     local tabPadd = Instance.new("UIPadding")
@@ -25,7 +26,7 @@ function SlayLib:CreateSlayLib(libName)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     local Debris = game:GetService("Debris") 
-    local task = task -- Added task library for proper scheduling
+    local task = task 
 
     local TopBar = header
     local Camera = workspace:WaitForChild("Camera")
@@ -54,7 +55,7 @@ function SlayLib:CreateSlayLib(libName)
         end
     end)
 
-    -- General Properties and Theme Changes (unchanged)
+    -- General Properties and Theme Changes (Aesthetic Tweaks)
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -83,6 +84,15 @@ function SlayLib:CreateSlayLib(libName)
     mainCorner_2.CornerRadius = UDim.new(0, 3)
     mainCorner_2.Name = "mainCorner"
     mainCorner_2.Parent = MainWhiteFrame_2
+    
+    -- Aesthetic Improvement: UIStroke (Outer Shadow/Border)
+    mainStroke.Name = "mainStroke"
+    mainStroke.Parent = MainWhiteFrame_2
+    mainStroke.Color = Color3.fromRGB(0, 0, 0)
+    mainStroke.Transparency = 0.7
+    mainStroke.Thickness = 1
+    mainStroke.LineJoinMode = Enum.LineJoinMode.Round 
+    mainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
     tabFrame.Name = "tabFrame"
     tabFrame.Parent = MainWhiteFrame_2
@@ -130,7 +140,7 @@ function SlayLib:CreateSlayLib(libName)
     closeLib.Size = UDim2.new(0, 25, 0, 25)
     closeLib.Image = "rbxassetid://4988112250"
     closeLib.MouseButton1Click:Connect(function()
-        local TweenDuration = 0.2 -- Improved animation time
+        local TweenDuration = 0.2 
         local RotationDuration = 0.15
         if isClosed then
             -- Open animation
@@ -180,7 +190,7 @@ function SlayLib:CreateSlayLib(libName)
 
     pagesFolder.Parent = elementContainer
 
-    -- *** START OF Notification System V6 (Fade Out In Place & Unlimited Stacking - Bug Fixed) ***
+    -- *** START OF Notification System V7 (Fade Sync Fixed & UI Aesthetic Update) ***
     local NotificationQueue = {}
     local ActiveNotifications = {} 
     local NotificationSpacing = 10 
@@ -189,6 +199,7 @@ function SlayLib:CreateSlayLib(libName)
     local NotificationWidth = 350 
     local NotificationHeight = 65 
     local NotificationZIndex = 10 
+    local NotifInnerColor = Color3.fromRGB(25, 25, 25)
 
     local StatusMapping = {
         Info = {
@@ -250,49 +261,43 @@ function SlayLib:CreateSlayLib(libName)
         })
         
         -- Apply transparency to all children, checking property existence
-        for _, child in NotifFrame:GetChildren() do
+        local tweens = {}
+        local function applyFade(instance)
             local transparencyProps = {}
-            if child:IsA("Frame") or child:IsA("TextButton") or child:IsA("ImageButton") then
-                -- Frame, TextButton, ImageButton
-                transparencyProps.BackgroundTransparency = 1
+            if instance:IsA("Frame") or instance:IsA("TextButton") or instance:IsA("ImageButton") or instance:IsA("UIStroke") then
+                -- Frame, TextButton, ImageButton, UIStroke
+                if instance:IsA("UIStroke") then
+                    transparencyProps.Transparency = 1 
+                else
+                    transparencyProps.BackgroundTransparency = 1
+                end
             end
-            if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
                 -- TextLabel, TextButton, TextBox
                 transparencyProps.TextTransparency = 1
             end
-            if child:IsA("ImageLabel") or child:IsA("ImageButton") then
+            if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
                 -- ImageLabel, ImageButton
                 transparencyProps.ImageTransparency = 1
             end
             
-            -- Recursively check children of children (e.g., ContentFrame)
-            if child:IsA("Frame") and #child:GetChildren() > 0 then
-                for _, subChild in child:GetChildren() do
-                    local subProps = {}
-                    if subChild:IsA("Frame") or subChild:IsA("TextButton") or subChild:IsA("ImageButton") then
-                        subProps.BackgroundTransparency = 1
-                    end
-                    if subChild:IsA("TextLabel") or subChild:IsA("TextButton") or subChild:IsA("TextBox") then
-                        subProps.TextTransparency = 1
-                    end
-                    if subChild:IsA("ImageLabel") or subChild:IsA("ImageButton") then
-                        subProps.ImageTransparency = 1
-                    end
-                    
-                    if next(subProps) then
-                        TweenService:Create(subChild, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), subProps):Play()
-                    end
-                end
+            if next(transparencyProps) then
+                local t = TweenService:Create(instance, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), transparencyProps)
+                table.insert(tweens, t)
+                t:Play()
             end
 
-            -- Apply tween to direct children
-            if next(transparencyProps) then
-                TweenService:Create(child, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), transparencyProps):Play()
+            for _, child in instance:GetChildren() do
+                applyFade(child)
             end
         end
 
+        -- Start the fade process for the main frame and all its descendants
+        applyFade(NotifFrame)
         outTween:Play()
-        outTween.Completed:Wait() 
+
+        -- *** FIX: Wait for the entire fade duration (since all tweens have the same time) ***
+        task.wait(fadeTime) 
 
         -- 2. Remove from active list and destroy
         table.remove(ActiveNotifications, index)
@@ -309,33 +314,41 @@ function SlayLib:CreateSlayLib(libName)
         local statusData = StatusMapping[notifData.status]
         local duration = math.clamp(notifData.duration, 1, 10)
         
-        -- If currently processing a lot, add to queue
-        if #NotificationQueue > 50 then -- Safety queue limit, but active list is unlimited
+        if #NotificationQueue > 50 then 
              return 
         end
-        -- Removed second queue check, since active list is now unlimited and queue processing is deferred.
 
         -- 1. Create UI Instances
         local NotifFrame = Instance.new("Frame")
         NotifFrame.Name = "SlayNotif_"..notifData.status
         NotifFrame.Parent = ScreenGui 
-        NotifFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25) 
+        NotifFrame.BackgroundColor3 = NotifInnerColor 
         NotifFrame.BorderSizePixel = 0
         NotifFrame.Size = UDim2.new(0, NotificationWidth, 0, NotificationHeight)
         NotifFrame.ZIndex = NotificationZIndex 
         NotifFrame.BackgroundTransparency = 0 
+        
+        -- Aesthetic Improvement: Notif Frame Stroke (Subtle border/shadow)
+        local notifStroke = Instance.new("UIStroke")
+        notifStroke.Name = "NotifStroke"
+        notifStroke.Parent = NotifFrame
+        notifStroke.Color = Color3.fromRGB(0, 0, 0)
+        notifStroke.Transparency = 0.7
+        notifStroke.Thickness = 1
+        notifStroke.LineJoinMode = Enum.LineJoinMode.Round 
+        notifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
         -- Corner
         local notifCorner = Instance.new("UICorner")
         notifCorner.CornerRadius = UDim.new(0, 5)
         notifCorner.Parent = NotifFrame
 
-        -- Accent Line (Left side)
+        -- Accent Line (Left side) - Increased thickness for visibility
         local notifAccentLine = Instance.new("Frame")
         notifAccentLine.Name = "AccentLine"
         notifAccentLine.Parent = NotifFrame
         notifAccentLine.BackgroundColor3 = statusData.Color 
-        notifAccentLine.Size = UDim2.new(0, 5, 1, 0)
+        notifAccentLine.Size = UDim2.new(0, 7, 1, 0) -- Increased thickness from 5 to 7
         notifAccentLine.Position = UDim2.new(0, 0, 0, 0)
         
         -- Content Container
@@ -442,7 +455,7 @@ function SlayLib:CreateSlayLib(libName)
         end)
     end
     
-    -- Public Alert function V6
+    -- Public Alert function V7
     function SlayLib:Alert(status, title, message, duration)
         local validStatus = StatusMapping[status] and status or "Info"
 
@@ -474,7 +487,7 @@ function SlayLib:CreateSlayLib(libName)
     function SlayLib:Notify(title, message, duration)
         self:Alert("Info", title, message, duration)
     end
-    -- *** END OF Notification System V6 ***
+    -- *** END OF Notification System V7 ***
 
     -- ... [Rest of the GUI code remains unchanged] ...
     
