@@ -25,7 +25,7 @@ function SlayLib:CreateSlayLib(libName)
     local UserInputService = game:GetService("UserInputService")
     local TweenService = game:GetService("TweenService")
     local Debris = game:GetService("Debris") 
-    local task = task
+    local task = task -- Added task library for proper scheduling
 
     local TopBar = header
     local Camera = workspace:WaitForChild("Camera")
@@ -54,8 +54,7 @@ function SlayLib:CreateSlayLib(libName)
         end
     end)
 
-    -- General Properties and Theme Changes (SlayLib Theme: Dark background with some transparency, Crimson/Red accents)
-
+    -- General Properties and Theme Changes (unchanged)
     ScreenGui.Parent = game.CoreGui
     ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -181,16 +180,15 @@ function SlayLib:CreateSlayLib(libName)
 
     pagesFolder.Parent = elementContainer
 
-    -- *** START OF Notification System V5 (Modified for Fade Out In Place & Unlimited Stacking) ***
+    -- *** START OF Notification System V6 (Fade Out In Place & Unlimited Stacking - Bug Fixed) ***
     local NotificationQueue = {}
     local ActiveNotifications = {} 
     local NotificationSpacing = 10 
-    local NotificationFadeTime = 0.3 -- Adjusted for faster/crisper fade
+    local NotificationFadeTime = 0.3 
     local NotificationVisibleTime = 3.5 
     local NotificationWidth = 350 
     local NotificationHeight = 65 
     local NotificationZIndex = 10 
-    -- Removed NotificationMaxCount
 
     local StatusMapping = {
         Info = {
@@ -249,18 +247,47 @@ function SlayLib:CreateSlayLib(libName)
         local fadeTime = NotificationFadeTime
         local outTween = TweenService:Create(NotifFrame, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
             BackgroundTransparency = 1,
-            -- Tween all children to full transparency as well
-            -- We don't change position here, just transparency
         })
         
-        -- Apply transparency to all children
+        -- Apply transparency to all children, checking property existence
         for _, child in NotifFrame:GetChildren() do
-            if child:IsA("GuiBase2d") then
-                TweenService:Create(child, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-                    BackgroundTransparency = 1,
-                    TextTransparency = 1,
-                    ImageTransparency = 1,
-                }):Play()
+            local transparencyProps = {}
+            if child:IsA("Frame") or child:IsA("TextButton") or child:IsA("ImageButton") then
+                -- Frame, TextButton, ImageButton
+                transparencyProps.BackgroundTransparency = 1
+            end
+            if child:IsA("TextLabel") or child:IsA("TextButton") or child:IsA("TextBox") then
+                -- TextLabel, TextButton, TextBox
+                transparencyProps.TextTransparency = 1
+            end
+            if child:IsA("ImageLabel") or child:IsA("ImageButton") then
+                -- ImageLabel, ImageButton
+                transparencyProps.ImageTransparency = 1
+            end
+            
+            -- Recursively check children of children (e.g., ContentFrame)
+            if child:IsA("Frame") and #child:GetChildren() > 0 then
+                for _, subChild in child:GetChildren() do
+                    local subProps = {}
+                    if subChild:IsA("Frame") or subChild:IsA("TextButton") or subChild:IsA("ImageButton") then
+                        subProps.BackgroundTransparency = 1
+                    end
+                    if subChild:IsA("TextLabel") or subChild:IsA("TextButton") or subChild:IsA("TextBox") then
+                        subProps.TextTransparency = 1
+                    end
+                    if subChild:IsA("ImageLabel") or subChild:IsA("ImageButton") then
+                        subProps.ImageTransparency = 1
+                    end
+                    
+                    if next(subProps) then
+                        TweenService:Create(subChild, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), subProps):Play()
+                    end
+                end
+            end
+
+            -- Apply tween to direct children
+            if next(transparencyProps) then
+                TweenService:Create(child, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), transparencyProps):Play()
             end
         end
 
@@ -286,11 +313,7 @@ function SlayLib:CreateSlayLib(libName)
         if #NotificationQueue > 50 then -- Safety queue limit, but active list is unlimited
              return 
         end
-        if #ActiveNotifications > 50 and #NotificationQueue < 50 then -- If active list is huge, use queue too
-             table.insert(NotificationQueue, notifData)
-             return
-        end
-
+        -- Removed second queue check, since active list is now unlimited and queue processing is deferred.
 
         -- 1. Create UI Instances
         local NotifFrame = Instance.new("Frame")
@@ -419,7 +442,7 @@ function SlayLib:CreateSlayLib(libName)
         end)
     end
     
-    -- Public Alert function V5 (The function you call externally: SlayLib:Alert("Status", "Title", "Message"))
+    -- Public Alert function V6
     function SlayLib:Alert(status, title, message, duration)
         local validStatus = StatusMapping[status] and status or "Info"
 
@@ -431,10 +454,17 @@ function SlayLib:CreateSlayLib(libName)
         }
         
         task.spawn(function()
-            -- No Max Count check here, just process the notification
-            ShowNotification(newNotif)
-            -- Process any pending items in the queue if the stack is getting tall
-            if #NotificationQueue > 0 then
+            -- Use queue logic for spamming safety, but allow stacking
+            if #ActiveNotifications >= 10 and #NotificationQueue < 50 then 
+                 -- If there are already many active notifications, queue the next one
+                 table.insert(NotificationQueue, newNotif)
+            else
+                 -- Immediately show if the active count is low or the queue is small
+                 ShowNotification(newNotif)
+            end
+            
+            -- Try to process the queue if the active list isn't too huge
+            if #NotificationQueue > 0 and #ActiveNotifications < 50 then
                 task.spawn(ProcessQueue)
             end
         end)
@@ -444,15 +474,16 @@ function SlayLib:CreateSlayLib(libName)
     function SlayLib:Notify(title, message, duration)
         self:Alert("Info", title, message, duration)
     end
-    -- *** END OF Notification System V5 ***
+    -- *** END OF Notification System V6 ***
 
-
+    -- ... [Rest of the GUI code remains unchanged] ...
+    
     local SectionHandler = {}
 
     function SectionHandler:CreateSection(secName)
         secName = secName or "Tab"
         
-        -- Tab Button Instances
+        -- Tab Button Instances (unchanged)
         local tabBtn = Instance.new("TextButton")
         local mainCorner_3 = Instance.new("UICorner")
 
@@ -472,7 +503,7 @@ function SlayLib:CreateSlayLib(libName)
         mainCorner_3.Name = "mainCorner"
         mainCorner_3.Parent = tabBtn
 
-        -- New Section Frame Instances
+        -- New Section Frame Instances (unchanged)
         local newPage = Instance.new("ScrollingFrame")
         local pageItemList = Instance.new("UIListLayout")
         local UIPadding = Instance.new("UIPadding")
@@ -517,7 +548,7 @@ function SlayLib:CreateSlayLib(libName)
             end
             newPage.Visible = true
 
-            local TabTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out) -- Smoother tab animation
+            local TabTweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quint, Enum.EasingDirection.Out) 
 
             for i,v in next, tabFrame:GetChildren() do
                 if v:IsA("TextButton") then
