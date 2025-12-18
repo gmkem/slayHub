@@ -204,19 +204,19 @@ function SlayLib:CreateSlayLib(libName)
     local StatusMapping = {
         Info = {
             Color = Color3.fromRGB(0, 150, 255), -- Blue
-            Icon = "rbxassetid://72205534802895" -- Info icon (i)
+            Icon = "rbxassetid://101905493360406" -- Info icon (i)
         },
         Success = {
             Color = Color3.fromRGB(0, 170, 0), -- Green
-            Icon = "rbxassetid://119043837040518" -- Checkmark icon
+            Icon = "rbxassetid://115131203891494" -- Checkmark icon
         },
         Warning = {
             Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
-            Icon = "rbxassetid://111931045616539" -- Warning icon (!)
+            Icon = "rbxassetid://113836975074011" -- Warning icon (!)
         },
         Error = {
             Color = Color3.fromRGB(200, 50, 50), -- Red
-            Icon = "rbxassetid://127461522720846" -- X / Error icon
+            Icon = "rbxassetid://97475328202147" -- X / Error icon
         }
     }
 
