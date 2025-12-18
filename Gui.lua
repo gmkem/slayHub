@@ -190,209 +190,267 @@ function SlayLib:CreateSlayLib(libName)
 
     pagesFolder.Parent = elementContainer
 
--- *** SLAYLIB NOTIFICATION SYSTEM V8 (ULTIMATE EDITION) ***
-local TweenService = game:GetService("TweenService")
-local Debris = game:GetService("Debris")
+-- *** START OF Notification System V7 (Modified Icons & Sharpness) ***
+    local NotificationQueue = {}
+    local ActiveNotifications = {} 
+    local NotificationSpacing = 10 
+    local NotificationFadeTime = 0.3 
+    local NotificationVisibleTime = 3.5 
+    local NotificationWidth = 350 
+    local NotificationHeight = 65 
+    local NotificationZIndex = 10 
+    local NotifInnerColor = Color3.fromRGB(25, 25, 25)
 
-local NotificationQueue = {}
-local ActiveNotifications = {} 
-
--- Configuration
-local Config = {
-    Spacing = 12,
-    FadeTime = 0.4,
-    VisibleTime = 4,
-    Width = 340,
-    InnerColor = Color3.fromRGB(20, 20, 20),
-    AccentTransparency = 0.1,
-}
-
--- New Modern Icon Set (Minimalist & HD)
-local StatusMapping = {
-    Info = {
-        Color = Color3.fromRGB(50, 150, 255),
-        Icon = "rbxassetid://10888251211" -- Modern Info
-    },
-    Success = {
-        Color = Color3.fromRGB(75, 220, 110),
-        Icon = "rbxassetid://10888319623" -- Modern Check
-    },
-    Warning = {
-        Color = Color3.fromRGB(255, 180, 50),
-        Icon = "rbxassetid://10888253138" -- Modern Warning
-    },
-    Error = {
-        Color = Color3.fromRGB(255, 70, 70),
-        Icon = "rbxassetid://10888317926" -- Modern Error
+    -- [NEW ICON SET] ปรับเปลี่ยนไอคอนใหม่ที่คมชัดขึ้น
+    local StatusMapping = {
+        Info = {
+            Color = Color3.fromRGB(0, 150, 255), -- Blue
+            Icon = "rbxassetid://10888251211" -- New Info Icon
+        },
+        Success = {
+            Color = Color3.fromRGB(0, 170, 0), -- Green
+            Icon = "rbxassetid://10888319623" -- New Success Icon
+        },
+        Warning = {
+            Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
+            Icon = "rbxassetid://10888253138" -- New Warning Icon
+        },
+        Error = {
+            Color = Color3.fromRGB(200, 50, 50), -- Red
+            Icon = "rbxassetid://10888317926" -- New Error Icon
+        }
     }
-}
 
-local function UpdatePositions()
-    local currentY = 25
-    for i, frame in ipairs(ActiveNotifications) do
-        local targetPos = UDim2.new(1, -Config.Width - 25, 1, -frame.Size.Y.Offset - currentY)
-        TweenService:Create(frame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-            Position = targetPos
-        }):Play()
-        currentY = currentY + frame.Size.Y.Offset + Config.Spacing
-    end
-end
+    local function UpdateNotificationPositions()
+        local currentYOffset = 20 
 
-local function Dismiss(frame)
-    local index = table.find(ActiveNotifications, frame)
-    if not index then return end
-    table.remove(ActiveNotifications, index)
+        for i = 1, #ActiveNotifications do
+            local NotifFrame = ActiveNotifications[i]
+            local targetY = -NotifFrame.Size.Y.Offset - currentYOffset
+            local targetPosition = UDim2.new(1, -NotificationWidth - 20, 1, targetY)
 
-    local tween = TweenService:Create(frame, TweenInfo.new(Config.FadeTime, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        GroupTransparency = 1,
-        Position = frame.Position + UDim2.new(0, 50, 0, 0) -- Slide out right
-    })
-    tween:Play()
-    tween.Completed:Connect(function()
-        frame:Destroy()
-        UpdatePositions()
-        -- Process Queue
-        if #NotificationQueue > 0 then
-            local nextData = table.remove(NotificationQueue, 1)
-            SlayLib:Alert(nextData.status, nextData.title, nextData.message, nextData.duration)
+            TweenService:Create(NotifFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+                Position = targetPosition
+            }):Play()
+
+            currentYOffset = currentYOffset + NotifFrame.Size.Y.Offset + NotificationSpacing
         end
-    end)
-end
-
-function ShowNotification(data)
-    local theme = StatusMapping[data.status]
-    
-    -- Main Container (CanvasGroup for flawless fading)
-    local Main = Instance.new("CanvasGroup")
-    Main.Name = "SlayNotif"
-    Main.Size = UDim2.new(0, Config.Width, 0, 65)
-    Main.BackgroundColor3 = Config.InnerColor
-    Main.BackgroundTransparency = 0.05
-    Main.AutomaticSize = Enum.AutomaticSize.Y
-    Main.GroupTransparency = 1
-    Main.Parent = ScreenGui -- Ensure ScreenGui is defined in your main script
-
-    -- Rounded Corners
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = Main
-
-    -- Subtle Border
-    local stroke = Instance.new("UIStroke")
-    stroke.Thickness = 1.2
-    stroke.Color = Color3.new(1, 1, 1)
-    stroke.Transparency = 0.92
-    stroke.Parent = Main
-
-    -- Left Accent Bar (Glow effect)
-    local accent = Instance.new("Frame")
-    accent.Size = UDim2.new(0, 4, 1, 0)
-    accent.BackgroundColor3 = theme.Color
-    accent.BorderSizePixel = 0
-    accent.Parent = Main
-    
-    local accentCorner = Instance.new("UICorner")
-    accentCorner.CornerRadius = UDim.new(0, 8)
-    accentCorner.Parent = accent
-
-    -- Content Wrapper
-    local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -45, 1, 0)
-    content.Position = UDim2.new(0, 15, 0, 0)
-    content.BackgroundTransparency = 1
-    content.Parent = Main
-
-    local layout = Instance.new("UIListLayout")
-    layout.Padding = UDim.new(0, 2)
-    layout.VerticalAlignment = Enum.VerticalAlignment.Center
-    layout.Parent = content
-
-    local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 12)
-    padding.PaddingBottom = UDim.new(0, 12)
-    padding.Parent = content
-
-    -- Header Row
-    local header = Instance.new("Frame")
-    header.Size = UDim2.new(1, 0, 0, 22)
-    header.BackgroundTransparency = 1
-    header.Parent = content
-
-    -- ICON (High Contrast)
-    local icon = Instance.new("ImageLabel")
-    icon.Size = UDim2.new(0, 20, 0, 20)
-    icon.Image = theme.Icon
-    icon.ImageColor3 = theme.Color
-    icon.BackgroundTransparency = 1
-    icon.ScaleType = Enum.ScaleType.Fit
-    icon.Parent = header
-
-    -- TITLE
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, -28, 1, 0)
-    title.Position = UDim2.new(0, 28, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = data.title:upper() -- Modern look
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 13
-    title.TextColor3 = Color3.new(1, 1, 1)
-    title.TextXAlignment = Enum.TextXAlignment.Left
-    title.Parent = header
-
-    -- MESSAGE
-    local msg = Instance.new("TextLabel")
-    msg.Size = UDim2.new(1, 0, 0, 0)
-    msg.AutomaticSize = Enum.AutomaticSize.Y
-    msg.BackgroundTransparency = 1
-    msg.Text = data.message
-    msg.Font = Enum.Font.Gotham
-    msg.TextSize = 13
-    msg.TextColor3 = Color3.fromRGB(180, 180, 180)
-    msg.TextWrapped = true
-    msg.TextXAlignment = Enum.TextXAlignment.Left
-    msg.Parent = content
-
-    -- Close Button
-    local close = Instance.new("TextButton")
-    close.Size = UDim2.new(0, 20, 0, 20)
-    close.Position = UDim2.new(1, -25, 0, 10)
-    close.BackgroundTransparency = 1
-    close.Text = "×"
-    close.TextColor3 = Color3.new(0.5, 0.5, 0.5)
-    close.TextSize = 22
-    close.Font = Enum.Font.GothamBold
-    close.Parent = Main
-    close.MouseButton1Click:Connect(function() Dismiss(Main) end)
-
-    -- Animation Logic
-    Main.Position = UDim2.new(1, 20, 1, -NotificationHeight - 25)
-    table.insert(ActiveNotifications, 1, Main)
-    UpdatePositions()
-
-    TweenService:Create(Main, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
-        GroupTransparency = 0
-    }):Play()
-
-    task.delay(data.duration, function()
-        Dismiss(Main)
-    end)
-end
-
--- API
-function SlayLib:Alert(status, title, message, duration)
-    local data = {
-        status = status or "Info",
-        title = title or "System",
-        message = message or "",
-        duration = duration or Config.VisibleTime
-    }
-    
-    if #ActiveNotifications >= 8 then
-        table.insert(NotificationQueue, data)
-    else
-        ShowNotification(data)
     end
-end
+
+    local function ProcessQueue()
+        if #NotificationQueue > 0 then
+            local nextNotifData = table.remove(NotificationQueue, 1)
+            ShowNotification(nextNotifData)
+        end
+    end
+
+    local function DismissNotification(NotifFrame, autoDismiss)
+        local index = table.find(ActiveNotifications, NotifFrame)
+        if not index then 
+            if NotifFrame then NotifFrame:Destroy() end
+            return 
+        end
+
+        local fadeTime = NotificationFadeTime
+        local outTween = TweenService:Create(NotifFrame, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+            BackgroundTransparency = 1,
+        })
+
+        local function applyFade(instance)
+            local transparencyProps = {}
+            if instance:IsA("Frame") or instance:IsA("TextButton") or instance:IsA("ImageButton") or instance:IsA("UIStroke") then
+                if instance:IsA("UIStroke") then
+                    transparencyProps.Transparency = 1 
+                else
+                    transparencyProps.BackgroundTransparency = 1
+                end
+            end
+            if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+                transparencyProps.TextTransparency = 1
+            end
+            if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
+                transparencyProps.ImageTransparency = 1
+            end
+
+            if next(transparencyProps) then
+                local t = TweenService:Create(instance, TweenInfo.new(fadeTime, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), transparencyProps)
+                t:Play()
+            end
+
+            for _, child in instance:GetChildren() do
+                applyFade(child)
+            end
+        end
+
+        applyFade(NotifFrame)
+        outTween:Play()
+
+        task.wait(fadeTime) 
+
+        table.remove(ActiveNotifications, index)
+        Debris:AddItem(NotifFrame, 0.1) 
+
+        UpdateNotificationPositions()
+        task.spawn(ProcessQueue)
+    end
+
+    local function ShowNotification(notifData)
+        local statusData = StatusMapping[notifData.status]
+        local duration = math.clamp(notifData.duration, 1, 10)
+
+        if #NotificationQueue > 50 then 
+             return 
+        end
+
+        local NotifFrame = Instance.new("Frame")
+        NotifFrame.Name = "SlayNotif_"..notifData.status
+        NotifFrame.Parent = ScreenGui 
+        NotifFrame.BackgroundColor3 = NotifInnerColor 
+        NotifFrame.BorderSizePixel = 0
+        NotifFrame.Size = UDim2.new(0, NotificationWidth, 0, NotificationHeight)
+        NotifFrame.ZIndex = NotificationZIndex 
+        NotifFrame.BackgroundTransparency = 0 
+
+        local notifStroke = Instance.new("UIStroke")
+        notifStroke.Name = "NotifStroke"
+        notifStroke.Parent = NotifFrame
+        notifStroke.Color = Color3.fromRGB(0, 0, 0)
+        notifStroke.Transparency = 0.7
+        notifStroke.Thickness = 1
+        notifStroke.LineJoinMode = Enum.LineJoinMode.Round 
+        notifStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+
+        local notifCorner = Instance.new("UICorner")
+        notifCorner.CornerRadius = UDim.new(0, 5)
+        notifCorner.Parent = NotifFrame
+
+        local notifAccentLine = Instance.new("Frame")
+        notifAccentLine.Name = "AccentLine"
+        notifAccentLine.Parent = NotifFrame
+        notifAccentLine.BackgroundColor3 = statusData.Color 
+        notifAccentLine.Size = UDim2.new(0, 7, 1, 0) 
+        notifAccentLine.Position = UDim2.new(0, 0, 0, 0)
+
+        local ContentFrame = Instance.new("Frame")
+        ContentFrame.Name = "Content"
+        ContentFrame.Parent = NotifFrame
+        ContentFrame.BackgroundTransparency = 1
+        ContentFrame.Position = UDim2.new(0, 15, 0, 0)
+        ContentFrame.Size = UDim2.new(1, -30, 1, 0)
+
+        local ContentList = Instance.new("UIListLayout")
+        ContentList.Parent = ContentFrame
+        ContentList.SortOrder = Enum.SortOrder.LayoutOrder
+        ContentList.Padding = UDim.new(0, 2)
+
+        local ContentPadd = Instance.new("UIPadding")
+        ContentPadd.Parent = ContentFrame
+        ContentPadd.PaddingTop = UDim.new(0, 5)
+        ContentPadd.PaddingBottom = UDim.new(0, 5)
+
+        local TopRow = Instance.new("Frame")
+        TopRow.Name = "TopRow"
+        TopRow.Parent = ContentFrame
+        TopRow.BackgroundTransparency = 1
+        TopRow.Size = UDim2.new(1, 0, 0, 25)
+
+        -- [FIXED] แก้ไขส่วนไอคอนให้ชัดเจนที่สุด
+        local notifIcon = Instance.new("ImageLabel")
+        notifIcon.Name = "StatusIcon"
+        notifIcon.Parent = TopRow
+        notifIcon.BackgroundTransparency = 1
+        notifIcon.Image = statusData.Icon
+        notifIcon.ImageColor3 = statusData.Color
+        notifIcon.ScaleType = Enum.ScaleType.Fit -- แก้ปัญหารูปเบลอ
+        notifIcon.Position = UDim2.new(0, 0, 0.5, 0)
+        notifIcon.AnchorPoint = Vector2.new(0, 0.5)
+        notifIcon.Size = UDim2.new(0, 22, 0, 22) -- ปรับขนาดให้คมชัดพอดี
+
+        local notifTitle = Instance.new("TextLabel")
+        notifTitle.Name = "Title"
+        notifTitle.Parent = TopRow
+        notifTitle.BackgroundTransparency = 1.000
+        notifTitle.Position = UDim2.new(0, 28, 0, 0) -- ขยับ Title หลบไอคอนเล็กน้อย
+        notifTitle.Size = UDim2.new(1, -28, 1, 0)
+        notifTitle.Font = Enum.Font.GothamSemibold
+        notifTitle.Text = notifData.title
+        notifTitle.TextColor3 = Color3.fromRGB(255, 255, 255)
+        notifTitle.TextSize = 15.000
+        notifTitle.TextXAlignment = Enum.TextXAlignment.Left
+        notifTitle.TextYAlignment = Enum.TextYAlignment.Center
+
+        local notifMessage = Instance.new("TextLabel")
+        notifMessage.Name = "Message"
+        notifMessage.Parent = ContentFrame
+        notifMessage.BackgroundTransparency = 1.000
+        notifMessage.Size = UDim2.new(1, -25, 0, 20) 
+        notifMessage.Font = Enum.Font.Gotham
+        notifMessage.Text = notifData.message
+        notifMessage.TextColor3 = Color3.fromRGB(170, 170, 170) 
+        notifMessage.TextSize = 13.000
+        notifMessage.TextXAlignment = Enum.TextXAlignment.Left
+        notifMessage.TextYAlignment = Enum.TextYAlignment.Top
+        notifMessage.TextWrapped = true
+
+        local DismissButton = Instance.new("TextButton")
+        DismissButton.Name = "Dismiss"
+        DismissButton.Parent = NotifFrame
+        DismissButton.BackgroundTransparency = 1
+        DismissButton.Position = UDim2.new(1, -15, 0, 0)
+        DismissButton.Size = UDim2.new(0, 15, 0, 15)
+        DismissButton.Text = "X"
+        DismissButton.TextColor3 = Color3.fromRGB(100, 100, 100)
+        DismissButton.TextSize = 18
+        DismissButton.Font = Enum.Font.GothamSemibold
+        DismissButton.TextYAlignment = Enum.TextYAlignment.Top
+
+        DismissButton.MouseButton1Click:Connect(function()
+            DismissNotification(NotifFrame, false)
+        end)
+
+        NotifFrame.Position = UDim2.new(1.1, 0, 1, -NotificationHeight - 20) 
+
+        table.insert(ActiveNotifications, 1, NotifFrame) 
+
+        TweenService:Create(NotifFrame, TweenInfo.new(0.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+            Position = UDim2.new(1, -NotificationWidth - 20, 1, NotifFrame.Position.Y.Offset),
+        }):Play()
+
+        UpdateNotificationPositions()
+
+        task.delay(duration, function()
+            if table.find(ActiveNotifications, NotifFrame) then
+                DismissNotification(NotifFrame, true)
+            end
+        end)
+    end
+
+    function SlayLib:Alert(status, title, message, duration)
+        local validStatus = StatusMapping[status] and status or "Info"
+        local newNotif = {
+            status = validStatus,
+            title = title or validStatus.." Message",
+            message = message or "A message from SlayLib.",
+            duration = duration or NotificationVisibleTime
+        }
+
+        task.spawn(function()
+            if #ActiveNotifications >= 10 and #NotificationQueue < 50 then 
+                 table.insert(NotificationQueue, newNotif)
+            else
+                 ShowNotification(newNotif)
+            end
+
+            if #NotificationQueue > 0 and #ActiveNotifications < 50 then
+                task.spawn(ProcessQueue)
+            end
+        end)
+    end
+
+    function SlayLib:Notify(title, message, duration)
+        self:Alert("Info", title, message, duration)
+    end
+-- *** END OF Notification System V7 ***
 
     -- ... [Rest of the GUI code remains unchanged] ...
     
