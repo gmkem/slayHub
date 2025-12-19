@@ -204,19 +204,19 @@ local NotifInnerColor = Color3.fromRGB(25, 25, 25)
 local StatusMapping = {
     Info = {
         Color = Color3.fromRGB(0, 150, 255), -- Blue
-        Icon = "rbxassetid://7734068321" 
+        Icon = "rbxassetid://17829948098" 
     },
     Success = {
         Color = Color3.fromRGB(0, 170, 0), -- Green
-        Icon = "rbxassetid://7733989828" 
+        Icon = "rbxassetid://17829956139" 
     },
     Warning = {
         Color = Color3.fromRGB(255, 170, 0), -- Orange/Yellow
-        Icon = "rbxassetid://7733778378" 
+        Icon = "rbxassetid://140125363545663" 
     },
     Error = {
         Color = Color3.fromRGB(200, 50, 50), -- Red
-        Icon = "rbxassetid://7733658503" 
+        Icon = "rbxassetid://17829927081" 
     }
 }
 
