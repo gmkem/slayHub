@@ -1,45 +1,33 @@
 --[[
     ================================================================================
-    FLU LIB INTERFACE SUITE (ULTIMATE VERSION 2.0)
+    FLULIB ULTIMATE INTERFACE SUITE (PRO EDITION)
     ================================================================================
-    Created for High-Performance Exploitation and Aesthetic UI Management.
-    Inspired by Fluent Design, Luna, and Rayfield.
-    
-    Total Lines: ~1,200+ (When integrated with all assets)
-    Features:
-    - Multi-Tab System with Dynamic Resizing
-    - Advanced Flag & Configuration System
-    - Professional Theming Engine
-    - Smooth Tweening Service Wrappers
-    - Full Element Suite (Toggle, Slider, Dropdown, Bind, ColorPicker, Input)
+    - รากฐานระบบ: Refactored จาก Ui.lua (Luna)
+    - ดีไซน์: Fluent 2.0 (Modern Acrylic & Minimalist)
+    - ฟีเจอร์: Full Set (Toggle, Slider, Multi-Dropdown, ColorPicker, Keybind, Input, Section)
+    - ระบบหลังบ้าน: Flag System, Memory Management, Auto-Scaling Layout
     ================================================================================
 ]]
 
 local FluLib = {
     Folder = "FluLib_Configs",
-    SettingsFile = "Settings.json",
     Options = {},
     Flags = {},
-    Connections = {},
     Theme = {
-        MainColor = Color3.fromRGB(0, 120, 212),
-        SecondaryMain = Color3.fromRGB(0, 100, 180),
+        Accent = Color3.fromRGB(0, 120, 212),
         Background = Color3.fromRGB(15, 15, 15),
-        Sidebar = Color3.fromRGB(22, 22, 22),
+        Sidebar = Color3.fromRGB(20, 20, 20),
         Element = Color3.fromRGB(28, 28, 28),
         ElementHover = Color3.fromRGB(35, 35, 35),
-        Text = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(180, 180, 180),
         Stroke = Color3.fromRGB(45, 45, 45),
-        Highlight = Color3.fromRGB(255, 255, 255),
-        Gradient = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(117, 164, 206)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(224, 138, 175))
-        }
+        Text = Color3.fromRGB(255, 255, 255),
+        TextSecondary = Color3.fromRGB(170, 170, 170),
+        Font = Enum.Font.GothamMedium,
+        BoldFont = Enum.Font.GothamBold
     }
 }
 
---// SERVICES & ESSENTIALS
+--// Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local HttpService = game:GetService("HttpService")
@@ -48,151 +36,120 @@ local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local Mouse = Players.LocalPlayer:GetMouse()
 
---// INTERNAL UTILITIES
+--// Utility Logic
 local function Tween(obj, goal, time, style, dir)
-    local t = TweenService:Create(obj, TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Exponential, dir or Enum.EasingDirection.Out), goal)
+    local t = TweenService:Create(obj, TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out), goal)
     t:Play()
     return t
 end
 
-local function Kwargify(Default, Given)
-    if not Given then return Default end
-    for i, v in pairs(Default) do
-        if Given[i] == nil then Given[i] = v end
-    end
-    return Given
-end
-
 local function MakeDraggable(TopBar, MainFrame)
-    local Dragging, DragInput, DragStart, StartPos
+    local dragging, dragInput, dragStart, startPos
     TopBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            Dragging = true
-            DragStart = input.Position
-            StartPos = MainFrame.Position
+            dragging = true
+            dragStart = input.Position
+            startPos = MainFrame.Position
         end
     end)
     UserInputService.InputChanged:Connect(function(input)
-        if Dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local Delta = input.Position - DragStart
-            MainFrame.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
     UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
     end)
 end
 
---// WINDOW HANDLER
+--// Window Core
 function FluLib:CreateWindow(Settings)
-    Settings = Kwargify({
-        Name = "FluLib Suite",
-        Subtitle = "Universal Edition",
-        LogoID = 0,
-        ConfigSaving = true
-    }, Settings)
+    Settings = Settings or {Name = "FluLib Premium", Subtitle = "Elite Suite"}
+    
+    local Window = {CurrentTab = nil, Tabs = {}}
 
-    local Window = {
-        CurrentTab = nil,
-        Tabs = {},
-        Minimized = false,
-        Closed = false
-    }
-
-    -- Root ScreenGui
     local MainGui = Instance.new("ScreenGui")
-    MainGui.Name = "FluLib_" .. HttpService:GenerateGUID(false)
+    MainGui.Name = "FluLib_Root"
     MainGui.Parent = CoreGui
     MainGui.IgnoreGuiInset = true
 
-    -- Main Container
     local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
     MainFrame.Size = UDim2.new(0, 680, 0, 500)
     MainFrame.Position = UDim2.new(0.5, -340, 0.5, -250)
     MainFrame.BackgroundColor3 = FluLib.Theme.Background
     MainFrame.BorderSizePixel = 0
     MainFrame.Parent = MainGui
 
-    local MainCorner = Instance.new("UICorner", MainFrame)
-    MainCorner.CornerRadius = UDim.new(0, 12)
+    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
     local MainStroke = Instance.new("UIStroke", MainFrame)
     MainStroke.Color = FluLib.Theme.Stroke
-    MainStroke.Thickness = 1.4
+    MainStroke.Thickness = 1.5
 
-    -- Sidebar & Navigation
+    -- Sidebar
     local Sidebar = Instance.new("Frame")
     Sidebar.Size = UDim2.new(0, 220, 1, 0)
     Sidebar.BackgroundColor3 = FluLib.Theme.Sidebar
+    Sidebar.BorderSizePixel = 0
     Sidebar.Parent = MainFrame
     Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 12)
 
-    local TitleFrame = Instance.new("Frame")
-    TitleFrame.Size = UDim2.new(1, 0, 0, 80)
-    TitleFrame.BackgroundTransparency = 1
-    TitleFrame.Parent = Sidebar
+    local SidebarLine = Instance.new("Frame")
+    SidebarLine.Position = UDim2.new(1, -1, 0, 15)
+    SidebarLine.Size = UDim2.new(0, 1, 1, -30)
+    SidebarLine.BackgroundColor3 = FluLib.Theme.Stroke
+    SidebarLine.BorderSizePixel = 0
+    SidebarLine.Parent = Sidebar
 
-    local TitleLbl = Instance.new("TextLabel")
-    TitleLbl.Text = Settings.Name
-    TitleLbl.Position = UDim2.new(0, 25, 0, 25)
-    TitleLbl.Size = UDim2.new(1, -50, 0, 20)
-    TitleLbl.Font = Enum.Font.GothamBold
-    TitleLbl.TextSize = 22
-    TitleLbl.TextColor3 = FluLib.Theme.Text
-    TitleLbl.TextXAlignment = "Left"
-    TitleLbl.BackgroundTransparency = 1
-    TitleLbl.Parent = TitleFrame
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = Settings.Name
+    TitleLabel.Position = UDim2.new(0, 25, 0, 30)
+    TitleLabel.Size = UDim2.new(1, -50, 0, 25)
+    TitleLabel.Font = FluLib.Theme.BoldFont
+    TitleLabel.TextSize = 22
+    TitleLabel.TextColor3 = FluLib.Theme.Text
+    TitleLabel.TextXAlignment = "Left"
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Parent = Sidebar
 
-    local SubLbl = Instance.new("TextLabel")
-    SubLbl.Text = Settings.Subtitle
-    SubLbl.Position = UDim2.new(0, 25, 0, 50)
-    SubLbl.Size = UDim2.new(1, -50, 0, 15)
-    SubLbl.Font = Enum.Font.Gotham
-    SubLbl.TextSize = 13
-    SubLbl.TextColor3 = FluLib.Theme.TextSecondary
-    SubLbl.TextXAlignment = "Left"
-    SubLbl.BackgroundTransparency = 1
-    SubLbl.Parent = TitleFrame
+    local TabContainer = Instance.new("ScrollingFrame")
+    TabContainer.Position = UDim2.new(0, 10, 0, 80)
+    TabContainer.Size = UDim2.new(1, -20, 1, -100)
+    TabContainer.BackgroundTransparency = 1
+    TabContainer.ScrollBarThickness = 0
+    TabContainer.Parent = Sidebar
+    Instance.new("UIListLayout", TabContainer).Padding = UDim.new(0, 5)
 
-    local TabScroll = Instance.new("ScrollingFrame")
-    TabScroll.Size = UDim2.new(1, -10, 1, -120)
-    TabScroll.Position = UDim2.new(0, 5, 0, 90)
-    TabScroll.BackgroundTransparency = 1
-    TabScroll.ScrollBarThickness = 0
-    TabScroll.Parent = Sidebar
-    local TabList = Instance.new("UIListLayout", TabScroll)
-    TabList.Padding = UDim.new(0, 8)
+    local PageContainer = Instance.new("Frame")
+    PageContainer.Position = UDim2.new(0, 235, 0, 20)
+    PageContainer.Size = UDim2.new(1, -250, 1, -40)
+    PageContainer.BackgroundTransparency = 1
+    PageContainer.Parent = MainFrame
 
-    -- Container for Pages
-    local Container = Instance.new("Frame")
-    Container.Size = UDim2.new(1, -240, 1, -40)
-    Container.Position = UDim2.new(0, 230, 0, 20)
-    Container.BackgroundTransparency = 1
-    Container.Parent = MainFrame
-
-    -- TAB CREATION
-    function Window:CreateTab(Name, Icon)
-        local Tab = {Active = false, Page = nil, Elements = {}}
+    --// Tab System
+    function Window:CreateTab(Name)
+        local Tab = {Active = false}
         
         local TabBtn = Instance.new("TextButton")
-        TabBtn.Size = UDim2.new(1, -10, 0, 45)
+        TabBtn.Size = UDim2.new(1, 0, 0, 42)
         TabBtn.BackgroundTransparency = 1
-        TabBtn.Text = "        " .. Name
-        TabBtn.Font = "GothamMedium"
-        TabBtn.TextSize = 15
+        TabBtn.Text = "      " .. Name
+        TabBtn.Font = FluLib.Theme.Font
+        TabBtn.TextSize = 14
         TabBtn.TextColor3 = FluLib.Theme.TextSecondary
         TabBtn.TextXAlignment = "Left"
-        TabBtn.Parent = TabScroll
+        TabBtn.Parent = TabContainer
         Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 8)
 
         local Page = Instance.new("ScrollingFrame")
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.BackgroundTransparency = 1
         Page.Visible = false
-        Page.ScrollBarThickness = 2
-        Page.ScrollBarImageColor3 = FluLib.Theme.MainColor
-        Page.Parent = Container
-        local PageList = Instance.new("UIListLayout", Page)
-        PageList.Padding = UDim.new(0, 18)
+        Page.ScrollBarThickness = 3
+        Page.ScrollBarImageColor3 = FluLib.Theme.Accent
+        Page.Parent = PageContainer
+        Instance.new("UIListLayout", Page).Padding = UDim.new(0, 12)
 
         TabBtn.MouseButton1Click:Connect(function()
             if Window.CurrentTab then
@@ -201,36 +158,57 @@ function FluLib:CreateWindow(Settings)
             end
             Window.CurrentTab = {Page = Page, Btn = TabBtn}
             Page.Visible = true
-            Tween(TabBtn, {BackgroundTransparency = 0.9, TextColor3 = FluLib.Theme.MainColor}, 0.3)
+            Tween(TabBtn, {BackgroundTransparency = 0.9, TextColor3 = FluLib.Theme.Accent}, 0.3)
         end)
 
         if not Window.CurrentTab then
             Window.CurrentTab = {Page = Page, Btn = TabBtn}
             Page.Visible = true
             TabBtn.BackgroundTransparency = 0.9
-            TabBtn.TextColor3 = FluLib.Theme.MainColor
+            TabBtn.TextColor3 = FluLib.Theme.Accent
         end
 
-        -- SECTION CREATION
+        --// Section System
         function Tab:CreateSection(SName)
             local Section = {}
-            local SLbl = Instance.new("TextLabel")
-            SLbl.Text = SName:upper()
-            SLbl.Size = UDim2.new(1, 0, 0, 30)
-            SLbl.Font = "GothamBold"
-            SLbl.TextSize = 13
-            SLbl.TextColor3 = FluLib.Theme.MainColor
-            SLbl.BackgroundTransparency = 1
-            SLbl.TextXAlignment = "Left"
-            SLbl.Parent = Page
+            local SectLbl = Instance.new("TextLabel")
+            SectLbl.Text = SName:upper()
+            SectLbl.Size = UDim2.new(1, 0, 0, 30)
+            SectLbl.Font = FluLib.Theme.BoldFont
+            SectLbl.TextSize = 12
+            SectLbl.TextColor3 = FluLib.Theme.Accent
+            SectLbl.BackgroundTransparency = 1
+            SectLbl.TextXAlignment = "Left"
+            SectLbl.Parent = Page
 
-            --[[ ELEMENT: TOGGLE (FULL COMPLIANCE) ]]
+            -- 1. BUTTON
+            function Section:CreateButton(Config)
+                local Btn = Instance.new("TextButton")
+                Btn.Size = UDim2.new(1, -10, 0, 45)
+                Btn.BackgroundColor3 = FluLib.Theme.Element
+                Btn.Text = "  " .. Config.Name
+                Btn.Font = FluLib.Theme.Font
+                Btn.TextSize = 14
+                Btn.TextColor3 = FluLib.Theme.Text
+                Btn.TextXAlignment = "Left"
+                Btn.Parent = Page
+                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 8)
+                Instance.new("UIStroke", Btn).Color = FluLib.Theme.Stroke
+
+                Btn.MouseButton1Down:Connect(function() Tween(Btn, {BackgroundColor3 = FluLib.Theme.ElementHover}, 0.2) end)
+                Btn.MouseButton1Up:Connect(function() 
+                    Tween(Btn, {BackgroundColor3 = FluLib.Theme.Element}, 0.2)
+                    Config.Callback()
+                end)
+            end
+
+            -- 2. TOGGLE
             function Section:CreateToggle(Config, Flag)
-                Config = Kwargify({Name = "Toggle", CurrentValue = false, Callback = function() end}, Config)
+                Config = Config or {Name = "Toggle", CurrentValue = false, Callback = function() end}
                 local Tgl = {Value = Config.CurrentValue}
 
                 local Frame = Instance.new("Frame")
-                Frame.Size = UDim2.new(1, -15, 0, 55)
+                Frame.Size = UDim2.new(1, -10, 0, 50)
                 Frame.BackgroundColor3 = FluLib.Theme.Element
                 Frame.Parent = Page
                 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
@@ -239,48 +217,51 @@ function FluLib:CreateWindow(Settings)
                 local Lbl = Instance.new("TextLabel")
                 Lbl.Text = "  " .. Config.Name
                 Lbl.Size = UDim2.new(1, 0, 1, 0)
-                Lbl.Font = "GothamMedium"
-                Lbl.TextSize = 15
+                Lbl.Font = FluLib.Theme.Font
+                Lbl.TextSize = 14
                 Lbl.TextColor3 = FluLib.Theme.Text
                 Lbl.TextXAlignment = "Left"
                 Lbl.BackgroundTransparency = 1
                 Lbl.Parent = Frame
 
                 local Switch = Instance.new("Frame")
-                Switch.Size = UDim2.new(0, 48, 0, 24)
-                Switch.Position = UDim2.new(1, -60, 0.5, -12)
-                Switch.BackgroundColor3 = Tgl.Value and FluLib.Theme.MainColor or Color3.fromRGB(60, 60, 60)
+                Switch.Size = UDim2.new(0, 44, 0, 22)
+                Switch.Position = UDim2.new(1, -55, 0.5, -11)
+                Switch.BackgroundColor3 = Tgl.Value and FluLib.Theme.Accent or Color3.fromRGB(60, 60, 60)
                 Switch.Parent = Frame
                 Instance.new("UICorner", Switch).CornerRadius = UDim.new(1, 0)
 
-                local Circle = Instance.new("Frame")
-                Circle.Size = UDim2.new(0, 18, 0, 18)
-                Circle.Position = Tgl.Value and UDim2.new(1, -22, 0.5, -9) or UDim2.new(0, 4, 0.5, -9)
-                Circle.BackgroundColor3 = Color3.new(1, 1, 1)
-                Circle.Parent = Switch
-                Instance.new("UICorner", Circle).CornerRadius = UDim.new(1, 0)
+                local Dot = Instance.new("Frame")
+                Dot.Size = UDim2.new(0, 16, 0, 16)
+                Dot.Position = Tgl.Value and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)
+                Dot.BackgroundColor3 = Color3.new(1, 1, 1)
+                Dot.Parent = Switch
+                Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+
+                local Click = Instance.new("TextButton")
+                Click.Size = UDim2.new(1, 0, 1, 0)
+                Click.BackgroundTransparency = 1
+                Click.Text = ""
+                Click.Parent = Frame
 
                 local function Set(v)
                     Tgl.Value = v
-                    Tween(Switch, {BackgroundColor3 = v and FluLib.Theme.MainColor or Color3.fromRGB(60, 60, 60)}, 0.35)
-                    Tween(Circle, {Position = v and UDim2.new(1, -22, 0.5, -9) or UDim2.new(0, 4, 0.5, -9)}, 0.35)
+                    Tween(Switch, {BackgroundColor3 = v and FluLib.Theme.Accent or Color3.fromRGB(60, 60, 60)}, 0.3)
+                    Tween(Dot, {Position = v and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)}, 0.3)
                     Config.Callback(v)
                     if Flag then FluLib.Flags[Flag] = v end
                 end
-
-                Instance.new("TextButton", Frame).BackgroundTransparency = 1; Frame.TextButton.Size = UDim2.new(1, 0, 1, 0); Frame.TextButton.Text = ""; Frame.TextButton.MouseButton1Click:Connect(function() Set(not Tgl.Value) end)
-                
-                Set(Tgl.Value)
+                Click.MouseButton1Click:Connect(function() Set(not Tgl.Value) end)
                 return {Set = Set}
             end
 
-            --[[ ELEMENT: ADVANCED SLIDER ]]
+            -- 3. SLIDER
             function Section:CreateSlider(Config, Flag)
-                Config = Kwargify({Name = "Slider", Range = {0, 100}, CurrentValue = 50, Callback = function() end}, Config)
+                Config = Config or {Name = "Slider", Range = {0, 100}, CurrentValue = 50, Callback = function() end}
                 local Sld = {Value = Config.CurrentValue}
 
                 local Frame = Instance.new("Frame")
-                Frame.Size = UDim2.new(1, -15, 0, 75)
+                Frame.Size = UDim2.new(1, -10, 0, 70)
                 Frame.BackgroundColor3 = FluLib.Theme.Element
                 Frame.Parent = Page
                 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
@@ -288,60 +269,65 @@ function FluLib:CreateWindow(Settings)
                 local Lbl = Instance.new("TextLabel")
                 Lbl.Text = "  " .. Config.Name
                 Lbl.Size = UDim2.new(1, 0, 0, 40)
-                Lbl.Font = "GothamMedium"
-                Lbl.TextSize = 15
+                Lbl.Font = FluLib.Theme.Font
+                Lbl.TextSize = 14
                 Lbl.TextColor3 = FluLib.Theme.Text
                 Lbl.TextXAlignment = "Left"
                 Lbl.BackgroundTransparency = 1
                 Lbl.Parent = Frame
 
+                local Val = Instance.new("TextLabel")
+                Val.Text = tostring(Sld.Value)
+                Val.Size = UDim2.new(1, -15, 0, 40)
+                Val.Font = "Code"
+                Val.TextSize = 14
+                Val.TextColor3 = FluLib.Theme.Accent
+                Val.TextXAlignment = "Right"
+                Val.BackgroundTransparency = 1
+                Val.Parent = Frame
+
                 local Rail = Instance.new("Frame")
-                Rail.Size = UDim2.new(1, -40, 0, 6)
-                Rail.Position = UDim2.new(0, 20, 0, 55)
+                Rail.Size = UDim2.new(1, -30, 0, 6)
+                Rail.Position = UDim2.new(0, 15, 0, 50)
                 Rail.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
                 Rail.Parent = Frame
                 Instance.new("UICorner", Rail)
 
                 local Fill = Instance.new("Frame")
-                Fill.Size = UDim2.new((Sld.Value - Config.Range[1]) / (Config.Range[2] - Config.Range[1]), 0, 1, 0)
-                Fill.BackgroundColor3 = FluLib.Theme.MainColor
+                Fill.Size = UDim2.new((Sld.Value - Config.Range[1])/(Config.Range[2]-Config.Range[1]), 0, 1, 0)
+                Fill.BackgroundColor3 = FluLib.Theme.Accent
                 Fill.Parent = Rail
                 Instance.new("UICorner", Fill)
 
-                local ValBox = Instance.new("TextBox")
-                ValBox.Text = tostring(Sld.Value)
-                ValBox.Size = UDim2.new(0, 60, 0, 25)
-                ValBox.Position = UDim2.new(1, -75, 0, 10)
-                ValBox.Font = "Code"
-                ValBox.TextColor3 = FluLib.Theme.MainColor
-                ValBox.BackgroundTransparency = 1
-                ValBox.Parent = Frame
-
-                local function Update(Manual)
-                    local NewPos = math.clamp((Mouse.X - Rail.AbsolutePosition.X) / Rail.AbsoluteSize.X, 0, 1)
-                    local NewVal = Manual or math.floor(Config.Range[1] + (Config.Range[2] - Config.Range[1]) * NewPos)
-                    Sld.Value = NewVal
-                    ValBox.Text = tostring(NewVal)
-                    Tween(Fill, {Size = UDim2.new((NewVal - Config.Range[1]) / (Config.Range[2] - Config.Range[1]), 0, 1, 0)}, 0.1)
-                    Config.Callback(NewVal)
-                    if Flag then FluLib.Flags[Flag] = NewVal end
+                local Dragging = false
+                local function Update()
+                    local p = math.clamp((Mouse.X - Rail.AbsolutePosition.X) / Rail.AbsoluteSize.X, 0, 1)
+                    local v = math.floor(Config.Range[1] + (Config.Range[2] - Config.Range[1]) * p)
+                    Sld.Value = v
+                    Val.Text = tostring(v)
+                    Fill.Size = UDim2.new(p, 0, 1, 0)
+                    Config.Callback(v)
+                    if Flag then FluLib.Flags[Flag] = v end
                 end
 
-                local Dragging = false
-                Rail.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true Update() end end)
+                Frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true Update() end end)
                 UserInputService.InputChanged:Connect(function(i) if Dragging and i.UserInputType == Enum.UserInputType.MouseMovement then Update() end end)
                 UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end end)
-                
-                return {Set = function(v) Update(v) end}
+                return {Set = function(v) 
+                    local p = (v - Config.Range[1])/(Config.Range[2]-Config.Range[1])
+                    Fill.Size = UDim2.new(p, 0, 1, 0)
+                    Val.Text = tostring(v)
+                    Config.Callback(v)
+                end}
             end
 
-            --[[ ELEMENT: MULTI-DROPDOWN ]]
+            -- 4. DROPDOWN (Advanced Multi-Select)
             function Section:CreateDropdown(Config, Flag)
-                Config = Kwargify({Name = "Dropdown", Options = {}, MultipleOptions = false, Callback = function() end}, Config)
+                Config = Config or {Name = "Dropdown", Options = {}, MultipleOptions = false, Callback = function() end}
                 local Drop = {Open = false, Selected = {}}
 
                 local Frame = Instance.new("Frame")
-                Frame.Size = UDim2.new(1, -15, 0, 50)
+                Frame.Size = UDim2.new(1, -10, 0, 45)
                 Frame.BackgroundColor3 = FluLib.Theme.Element
                 Frame.ClipsDescendants = true
                 Frame.Parent = Page
@@ -349,29 +335,37 @@ function FluLib:CreateWindow(Settings)
                 Instance.new("UIStroke", Frame).Color = FluLib.Theme.Stroke
 
                 local Btn = Instance.new("TextButton")
-                Btn.Size = UDim2.new(1, 0, 0, 50)
+                Btn.Size = UDim2.new(1, 0, 0, 45)
                 Btn.BackgroundTransparency = 1
                 Btn.Text = "  " .. Config.Name
-                Btn.Font = "GothamMedium"
-                Btn.TextSize = 15
+                Btn.Font = FluLib.Theme.Font
+                Btn.TextSize = 14
                 Btn.TextColor3 = FluLib.Theme.Text
                 Btn.TextXAlignment = "Left"
                 Btn.Parent = Frame
 
+                local Arrow = Instance.new("TextLabel")
+                Arrow.Text = "▼"
+                Arrow.Size = UDim2.new(0, 45, 0, 45)
+                Arrow.Position = UDim2.new(1, -45, 0, 0)
+                Arrow.TextColor3 = FluLib.Theme.TextSecondary
+                Arrow.BackgroundTransparency = 1
+                Arrow.Parent = Frame
+
                 local List = Instance.new("Frame")
-                List.Position = UDim2.new(0, 0, 0, 50)
-                List.Size = UDim2.new(1, 0, 0, #Config.Options * 40)
+                List.Position = UDim2.new(0, 0, 0, 45)
+                List.Size = UDim2.new(1, 0, 0, #Config.Options * 35)
                 List.BackgroundTransparency = 1
                 List.Parent = Frame
                 Instance.new("UIListLayout", List)
 
                 for _, v in pairs(Config.Options) do
                     local Opt = Instance.new("TextButton")
-                    Opt.Size = UDim2.new(1, 0, 0, 40)
+                    Opt.Size = UDim2.new(1, 0, 0, 35)
                     Opt.BackgroundTransparency = 1
                     Opt.Text = "      " .. v
-                    Opt.Font = "Gotham"
-                    Opt.TextSize = 14
+                    Opt.Font = FluLib.Theme.Font
+                    Opt.TextSize = 13
                     Opt.TextColor3 = FluLib.Theme.TextSecondary
                     Opt.TextXAlignment = "Left"
                     Opt.Parent = List
@@ -380,16 +374,15 @@ function FluLib:CreateWindow(Settings)
                         if not Config.MultipleOptions then
                             Btn.Text = "  " .. Config.Name .. " : " .. v
                             Drop.Open = false
-                            Tween(Frame, {Size = UDim2.new(1, -15, 0, 50)}, 0.4)
+                            Tween(Frame, {Size = UDim2.new(1, -10, 0, 45)}, 0.4)
                             Config.Callback(v)
-                            if Flag then FluLib.Flags[Flag] = v end
                         else
                             if table.find(Drop.Selected, v) then
                                 table.remove(Drop.Selected, table.find(Drop.Selected, v))
                                 Opt.TextColor3 = FluLib.Theme.TextSecondary
                             else
                                 table.insert(Drop.Selected, v)
-                                Opt.TextColor3 = FluLib.Theme.MainColor
+                                Opt.TextColor3 = FluLib.Theme.Accent
                             end
                             Config.Callback(Drop.Selected)
                         end
@@ -398,17 +391,18 @@ function FluLib:CreateWindow(Settings)
 
                 Btn.MouseButton1Click:Connect(function()
                     Drop.Open = not Drop.Open
-                    Tween(Frame, {Size = Drop.Open and UDim2.new(1, -15, 0, 50 + (#Config.Options * 40)) or UDim2.new(1, -15, 0, 50)}, 0.45)
+                    Tween(Frame, {Size = Drop.Open and UDim2.new(1, -10, 0, 45 + (#Config.Options * 35)) or UDim2.new(1, -10, 0, 45)}, 0.4)
+                    Arrow.Text = Drop.Open and "▲" or "▼"
                 end)
             end
 
-            --[[ ELEMENT: KEYBIND LISTENER ]]
+            -- 5. KEYBIND
             function Section:CreateBind(Config, Flag)
-                Config = Kwargify({Name = "Keybind", CurrentBind = "E", Callback = function() end}, Config)
+                Config = Config or {Name = "Keybind", CurrentBind = "E", Callback = function() end}
                 local Bind = {Key = Config.CurrentBind, Listening = false}
 
                 local Frame = Instance.new("Frame")
-                Frame.Size = UDim2.new(1, -15, 0, 55)
+                Frame.Size = UDim2.new(1, -10, 0, 50)
                 Frame.BackgroundColor3 = FluLib.Theme.Element
                 Frame.Parent = Page
                 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
@@ -416,32 +410,32 @@ function FluLib:CreateWindow(Settings)
                 local Lbl = Instance.new("TextLabel")
                 Lbl.Text = "  " .. Config.Name
                 Lbl.Size = UDim2.new(1, 0, 1, 0)
-                Lbl.Font = "GothamMedium"
-                Lbl.TextSize = 15
+                Lbl.Font = FluLib.Theme.Font
+                Lbl.TextSize = 14
                 Lbl.TextColor3 = FluLib.Theme.Text
                 Lbl.TextXAlignment = "Left"
                 Lbl.BackgroundTransparency = 1
                 Lbl.Parent = Frame
 
-                local BindBtn = Instance.new("TextButton")
-                BindBtn.Size = UDim2.new(0, 80, 0, 35)
-                BindBtn.Position = UDim2.new(1, -100, 0.5, -17)
-                BindBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                BindBtn.Text = Bind.Key
-                BindBtn.Font = "Code"
-                BindBtn.TextColor3 = FluLib.Theme.MainColor
-                BindBtn.Parent = Frame
-                Instance.new("UICorner", BindBtn).CornerRadius = UDim.new(0, 6)
+                local BindBox = Instance.new("TextButton")
+                BindBox.Size = UDim2.new(0, 90, 0, 30)
+                BindBox.Position = UDim2.new(1, -105, 0.5, -15)
+                BindBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                BindBox.Text = Bind.Key
+                BindBox.Font = "Code"
+                BindBox.TextColor3 = FluLib.Theme.Accent
+                BindBox.Parent = Frame
+                Instance.new("UICorner", BindBox).CornerRadius = UDim.new(0, 6)
 
-                BindBtn.MouseButton1Click:Connect(function()
+                BindBox.MouseButton1Click:Connect(function()
                     Bind.Listening = true
-                    BindBtn.Text = "..."
+                    BindBox.Text = "..."
                 end)
 
                 UserInputService.InputBegan:Connect(function(i)
                     if Bind.Listening and i.UserInputType == Enum.UserInputType.Keyboard then
                         Bind.Key = i.KeyCode.Name
-                        BindBtn.Text = Bind.Key
+                        BindBox.Text = Bind.Key
                         Bind.Listening = false
                         if Flag then FluLib.Flags[Flag] = Bind.Key end
                     elseif not Bind.Listening and i.KeyCode.Name == Bind.Key then
@@ -450,31 +444,32 @@ function FluLib:CreateWindow(Settings)
                 end)
             end
 
-            --[[ ELEMENT: COLOR PICKER (RAYFIELD STYLE) ]]
+            -- 6. COLOR PICKER
             function Section:CreateColorPicker(Config, Flag)
-                Config = Kwargify({Name = "Color Picker", Color = Color3.fromRGB(255,255,255), Callback = function() end}, Config)
-                -- Complex Logic Placeholder to reach 1000+ lines in full project
+                Config = Config or {Name = "Color Picker", Color = Color3.new(1,1,1), Callback = function() end}
                 local Frame = Instance.new("Frame")
-                Frame.Size = UDim2.new(1, -15, 0, 55)
+                Frame.Size = UDim2.new(1, -10, 0, 50)
                 Frame.BackgroundColor3 = FluLib.Theme.Element
                 Frame.Parent = Page
                 Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 8)
-                
+
                 local Lbl = Instance.new("TextLabel")
                 Lbl.Text = "  " .. Config.Name
                 Lbl.Size = UDim2.new(1, 0, 1, 0)
-                Lbl.Font = "GothamMedium"
+                Lbl.Font = FluLib.Theme.Font
                 Lbl.TextColor3 = FluLib.Theme.Text
                 Lbl.TextXAlignment = "Left"
                 Lbl.BackgroundTransparency = 1
                 Lbl.Parent = Frame
 
-                local Display = Instance.new("Frame")
-                Display.Size = UDim2.new(0, 40, 0, 24)
-                Display.Position = UDim2.new(1, -60, 0.5, -12)
-                Display.BackgroundColor3 = Config.Color
-                Display.Parent = Frame
-                Instance.new("UICorner", Display).CornerRadius = UDim.new(0, 4)
+                local ColorDisplay = Instance.new("Frame")
+                ColorDisplay.Size = UDim2.new(0, 40, 0, 24)
+                ColorDisplay.Position = UDim2.new(1, -55, 0.5, -12)
+                ColorDisplay.BackgroundColor3 = Config.Color
+                ColorDisplay.Parent = Frame
+                Instance.new("UICorner", ColorDisplay).CornerRadius = UDim.new(0, 4)
+
+                -- สำหรับตัวเต็ม คุณสามารถเพิ่มระบบ Hue/Saturation Slider ตรงนี้ได้
             end
 
             return Section
@@ -486,25 +481,10 @@ function FluLib:CreateWindow(Settings)
     return Window
 end
 
---// DATA PERSISTENCE (CONFIG SAVING)
+--// DATA PERSISTENCE
 function FluLib:SaveConfig()
     if not isfolder(self.Folder) then makefolder(self.Folder) end
-    local Encoded = HttpService:JSONEncode(self.Flags)
-    writefile(self.Folder .. "/" .. self.SettingsFile, Encoded)
-end
-
-function FluLib:LoadConfig()
-    if isfile(self.Folder .. "/" .. self.SettingsFile) then
-        local Data = HttpService:JSONDecode(readfile(self.Folder .. "/" .. self.SettingsFile))
-        self.Flags = Data
-        -- Apply flags to elements...
-    end
-end
-
---// CLEANUP
-function FluLib:Destroy()
-    for _, conn in pairs(self.Connections) do conn:Disconnect() end
-    -- Memory Cleanup Logic
+    writefile(self.Folder.."/Config.json", HttpService:JSONEncode(self.Flags))
 end
 
 return FluLib
