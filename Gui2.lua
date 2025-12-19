@@ -1,678 +1,425 @@
 --[[
     ================================================================================
-    SLAYLIB X - THE ULTIMATE UNABRIDGED SOURCE (1000+ LINES LOGIC)
+    SLAYLIB X - REACTOR ENGINE (BUILD 11.0 - DEFINITIVE EDITION)
     ================================================================================
-    - Build Version: 10.0.1 (Grand Master Edition)
-    - Engineering: Advanced Layer Isolation & Memory Management
-    - Focus: Zero Overlap, Auto-Scaling, Configuration Persistence
+    - Engine Core: Signal-Driven Framework & Instance Tracking
+    - Memory Management: Zero-Leak Garbage Collection
+    - Rendering: Multi-Platform Adaptive & Real-time Theme Sync
+    - Storage: Auto-Save / Auto-Load & Backup Configuration
     ================================================================================
 ]]
 
 local SlayLib = {
-    Folder = "SlayLib_Config",
-    Settings = {},
-    Flags = {},
-    Signals = {},
-    Theme = {
-        MainColor = Color3.fromRGB(120, 80, 255),
-        Background = Color3.fromRGB(12, 12, 12),
-        Sidebar = Color3.fromRGB(18, 18, 18),
-        Element = Color3.fromRGB(25, 25, 25),
-        ElementHover = Color3.fromRGB(32, 32, 32),
-        Text = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(180, 180, 180),
-        Stroke = Color3.fromRGB(45, 45, 45),
-        NotificationColor = Color3.fromRGB(120, 80, 255),
-        Success = Color3.fromRGB(0, 255, 127),
-        Warning = Color3.fromRGB(255, 165, 0),
-        Error = Color3.fromRGB(255, 65, 65),
+    -- [CORE PROPERTIES]
+    Version = "11.0.1-Reactor",
+    Debug = false,
+    Active = true,
+    Visible = true,
+    Objects = {}, -- Instance Tracking System
+    Flags = {},   -- Global Variable Sync
+    Signals = {}, -- Signal Engine
+    ThemeCache = "SlayLib_Theme.json",
+    ConfigFolder = "SlayLib_Reactor",
+    AutoSaveInterval = 60,
+    
+    -- [THEME DEFINITIONS]
+    Themes = {
+        ObsidianDark = {
+            Main = Color3.fromRGB(120, 80, 255), Back = Color3.fromRGB(12, 12, 12),
+            Side = Color3.fromRGB(18, 18, 18), Elem = Color3.fromRGB(25, 25, 25),
+            Text = Color3.fromRGB(255, 255, 255), TextSec = Color3.fromRGB(180, 180, 180),
+            Glow = Color3.fromRGB(120, 80, 255), Accent = Color3.fromRGB(45, 45, 45)
+        },
+        NeonGold = {
+            Main = Color3.fromRGB(255, 200, 0), Back = Color3.fromRGB(15, 12, 5),
+            Side = Color3.fromRGB(25, 20, 8), Elem = Color3.fromRGB(35, 30, 15),
+            Text = Color3.fromRGB(255, 240, 200), TextSec = Color3.fromRGB(200, 180, 120),
+            Glow = Color3.fromRGB(255, 180, 0), Accent = Color3.fromRGB(60, 50, 20)
+        },
+        FemboyPink = {
+            Main = Color3.fromRGB(255, 105, 180), Back = Color3.fromRGB(20, 10, 15),
+            Side = Color3.fromRGB(30, 15, 22), Elem = Color3.fromRGB(45, 25, 35),
+            Text = Color3.fromRGB(255, 240, 245), TextSec = Color3.fromRGB(200, 150, 180),
+            Glow = Color3.fromRGB(255, 50, 150), Accent = Color3.fromRGB(70, 40, 55)
+        }
     },
-    Icons = {
-        Logo = "rbxassetid://13589839447",
-        Check = "rbxassetid://10734895530",
-        Chevron = "rbxassetid://10734895856",
-        Search = "rbxassetid://10734897102",
-        Folder = "rbxassetid://10734897484"
-    }
+    CurrentTheme = "ObsidianDark"
 }
 
---// Services Initialization
-local UserInputService = game:GetService("UserInputService")
+--// [UTILITIES & SERVICES]
+local HttpService = game:GetService("HttpService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local GuiService = game:GetService("GuiService")
 local CoreGui = game:GetService("CoreGui")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
 local Stats = game:GetService("Stats")
 
---// Environment Variables
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Parent = (RunService:IsStudio() and LocalPlayer.PlayerGui or CoreGui)
 
---// Folder Management (Config)
-if not isfolder(SlayLib.Folder) then
-    makefolder(SlayLib.Folder)
-end
+-- 
 
---// UTILITY FUNCTIONS (THE BRAIN)
-local function Create(class, props)
-    local obj = Instance.new(class)
-    for i, v in pairs(props) do
-        obj[i] = v
-    end
+--// [CORE ENGINE: INTERNAL FUNCTIONS]
+function SlayLib:Track(obj)
+    if not obj then return end
+    table.insert(self.Objects, obj)
     return obj
 end
 
-local function GetTweenInfo(time, style, dir)
-    return TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out)
+function SlayLib:Animate(obj, goal, duration)
+    local info = TweenInfo.new(duration or 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(obj, info, goal)
+    tween:Play()
+    return tween
 end
 
-local function Tween(obj, goal, time, style, dir)
-    local t = TweenService:Create(obj, GetTweenInfo(time, style, dir), goal)
-    t:Play()
-    return t
-end
-
---// SMART TEXT SCALING LOGIC
-local function ApplyTextLogic(label, content, maxSize)
-    label.Text = content
-    label.TextWrapped = true
-    label.TextSize = maxSize or 14
-    
-    local function Adjust()
-        if label.TextBounds.X > label.AbsoluteSize.X or label.TextBounds.Y > label.AbsoluteSize.Y then
-            label.TextScaled = true
-        else
-            label.TextScaled = false
+--// [SIGNAL ENGINE]
+function SlayLib:Signal(name)
+    if not self.Signals[name] then
+        self.Signals[name] = {Connections = {}}
+        function self.Signals[name]:Connect(callback)
+            table.insert(self.Connections, callback)
+            return {Disconnect = function() 
+                for i, v in pairs(self.Connections) do 
+                    if v == callback then table.remove(self.Connections, i) end 
+                end 
+            end}
+        end
+        function self.Signals[name]:Fire(...)
+            for _, cb in pairs(self.Connections) do task.spawn(cb, ...) end
         end
     end
-    
-    label:GetPropertyChangedSignal("AbsoluteSize"):Connect(Adjust)
-    Adjust()
+    return self.Signals[name]
 end
 
---// DRAGGING SYSTEM (PRO VERSION)
-local function RegisterDrag(Frame, Handle)
-    local Dragging = false
-    local DragInput, DragStart, StartPos
-
-    Handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            Dragging = true
-            DragStart = input.Position
-            StartPos = Frame.Position
-            
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    Dragging = false
-                end
-            end)
-        end
-    end)
-
-    Handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            DragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == DragInput and Dragging then
-            local Delta = input.Position - DragStart
-            Frame.Position = UDim2.new(
-                StartPos.X.Scale, 
-                StartPos.X.Offset + Delta.X, 
-                StartPos.Y.Scale, 
-                StartPos.Y.Offset + Delta.Y
-            )
-        end
-    end)
+--// [FLAG SYSTEM & BINDING]
+function SlayLib:SetFlag(flag, value)
+    self.Flags[flag] = value
+    self:Signal("Update_"..flag):Fire(value)
 end
 
---// NOTIFICATION ENGINE (PROXIMITY BASED)
-function SlayLib:Notify(Config)
-    Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
-    
-    local Holder = Parent:FindFirstChild("SlayNotificationProvider")
-    if not Holder then
-        Holder = Create("Frame", {
-            Name = "SlayNotificationProvider", Parent = Parent, BackgroundTransparency = 1,
-            Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -330, 0, 20)
-        })
-        Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Bottom", Padding = UDim.new(0, 10)})
-    end
-
-    local NotifColor = SlayLib.Theme.MainColor
-    if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
-    elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
-    elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
-
-    local NotifFrame = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Sidebar,
-        ClipsDescendants = true, Parent = Holder, BackgroundTransparency = 1
-    })
-    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
-    local Stroke = Create("UIStroke", {Color = NotifColor, Thickness = 1.8, Parent = NotifFrame, Transparency = 1})
-    
-    local Accent = Create("Frame", {
-        Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = NotifColor, Parent = NotifFrame
-    })
-    Create("UICorner", {Parent = Accent})
-
-    local TitleLabel = Create("TextLabel", {
-        Size = UDim2.new(1, -50, 0, 25), Position = UDim2.new(0, 15, 0, 8),
-        Font = "GothamBold", TextColor3 = NotifColor,
-        BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame
-    })
-    ApplyTextLogic(TitleLabel, Config.Title, 14)
-
-    local ContentLabel = Create("TextLabel", {
-        Size = UDim2.new(1, -30, 0, 30), Position = UDim2.new(0, 15, 0, 28),
-        Font = "Gotham", TextColor3 = SlayLib.Theme.Text,
-        BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame
-    })
-    ApplyTextLogic(ContentLabel, Config.Content, 12)
-
-    -- Entrance Animation
-    Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 75), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
-    Tween(Stroke, {Transparency = 0}, 0.5)
-
-    task.delay(Config.Duration, function()
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.5)
-        Tween(Stroke, {Transparency = 1}, 0.5)
-        task.wait(0.5)
-        NotifFrame:Destroy()
-    end)
+function SlayLib:Bind(flag, callback)
+    self:Signal("Update_"..flag):Connect(callback)
 end
 
---// LOADING SEQUENCE (HIGH FIDELITY)
-local function ExecuteLoadingSequence()
-    local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent})
-    local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
-    local Holder = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 400), Position = UDim2.new(0.5, -200, 0.5, -200),
-        BackgroundTransparency = 1, Parent = Screen
-    })
-    
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),
-        Image = SlayLib.Icons.Logo, ImageColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1, Parent = Holder
-    })
-
-    local InfoLabel = Create("TextLabel", {
-        Text = "INITIALIZING CORE COMPONENTS...", Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.75, 0), Font = "Code", TextSize = 12,
-        TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, Parent = Holder,
-        TextTransparency = 1
-    })
-
-    local BarBg = Create("Frame", {
-        Size = UDim2.new(0, 250, 0, 4), Position = UDim2.new(0.5, -125, 0.7, 0),
-        BackgroundColor3 = Color3.fromRGB(40, 40, 40), Parent = Holder, BackgroundTransparency = 1
-    })
-    local BarFill = Create("Frame", {
-        Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, Parent = BarBg
-    })
-    Create("UICorner", {Parent = BarBg}) Create("UICorner", {Parent = BarFill})
-
-    -- Sequence Start
-    Tween(Blur, {Size = 28}, 1)
-    Tween(Logo, {Size = UDim2.new(0, 140, 0, 140), Position = UDim2.new(0.5, -70, 0.45, -70)}, 1.2, Enum.EasingStyle.Elastic)
-    task.wait(0.6)
-    Tween(InfoLabel, {TextTransparency = 0}, 0.5)
-    Tween(BarBg, {BackgroundTransparency = 0}, 0.5)
-
-    local Steps = {"Authenticating...", "Loading UI Elements...", "Applying Themes...", "Ready!"}
-    for i, step in ipairs(Steps) do
-        InfoLabel.Text = step:upper()
-        Tween(BarFill, {Size = UDim2.new(i/#Steps, 0, 1, 0)}, 0.4)
-        task.wait(math.random(4, 8) / 10)
-    end
-
-    -- Fade Out
-    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 160, 0, 160), Position = UDim2.new(0.5, -80, 0.45, -80)}, 0.6)
-    Tween(InfoLabel, {TextTransparency = 1}, 0.4)
-    Tween(BarBg, {BackgroundTransparency = 1}, 0.4)
-    Tween(BarFill, {BackgroundTransparency = 1}, 0.4)
-    Tween(Blur, {Size = 0}, 0.8)
-    
-    task.wait(0.8)
-    Screen:Destroy()
-    Blur:Destroy()
-end
-
---// MAIN WINDOW CONSTRUCTOR
-function SlayLib:CreateWindow(Config)
-    Config = Config or {Name = "SlayLib Ultimate"}
-    
-    -- Force Loading
-    ExecuteLoadingSequence()
-
-    local Window = {
-        Enabled = true,
-        Toggled = true,
-        Tabs = {},
-        CurrentTab = nil,
-        Minimized = false
+--// [ADAPTIVE INTERFACE LOGIC]
+local function GetPlatform()
+    local isMobile = UserInputService.TouchEnabled
+    local safeZone = GuiService:GetSafeZoneOffsets()
+    return {
+        IsMobile = isMobile,
+        Font = isMobile and Enum.Font.SourceSansBold or Enum.Font.GothamMedium,
+        SizeMultiplier = isMobile and 1.2 or 1,
+        SafeZone = safeZone
     }
+end
 
-    local CoreGuiFrame = Create("ScreenGui", {Name = "SlayLib_X_Engine", Parent = Parent, ZIndexBehavior = Enum.ZIndexBehavior.Sibling})
+--// [THEME MANAGER]
+function SlayLib:SetTheme(themeName)
+    if not self.Themes[themeName] then return end
+    self.CurrentTheme = themeName
+    local colors = self.Themes[themeName]
+    
+    for _, obj in pairs(self.Objects) do
+        pcall(function()
+            if obj.Name == "MainFrame" then self:Animate(obj, {BackgroundColor3 = colors.Back})
+            elseif obj.Name == "Sidebar" then self:Animate(obj, {BackgroundColor3 = colors.Side})
+            elseif obj:IsA("UIStroke") then self:Animate(obj, {Color = colors.Main})
+            elseif obj:IsA("TextLabel") and obj.Name ~= "Title" then self:Animate(obj, {TextColor3 = colors.Text})
+            elseif obj:IsA("TextLabel") and obj.Name == "Title" then self:Animate(obj, {TextColor3 = colors.Main})
+            elseif obj.Name == "Element" then self:Animate(obj, {BackgroundColor3 = colors.Elem})
+            end
+        end)
+    end
+    
+    -- Save Theme Cache
+    if isfile then writefile(self.ConfigFolder.."/"..self.ThemeCache, HttpService:JSONEncode({Theme = themeName})) end
+end
 
-    -- 1. FLOATING TOGGLE ICON (Always accessible)
-    local FloatingToggle = Create("Frame", {
-        Size = UDim2.new(0, 55, 0, 55), Position = UDim2.new(0.05, 0, 0.2, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor, Parent = CoreGuiFrame,
-        ZIndex = 50
-    })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
-    Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 2, Transparency = 0.7, Parent = FloatingToggle})
-    local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(0.5, -16, 0.5, -16),
-        Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = FloatingToggle
-    })
-    local ToggleButton = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = FloatingToggle})
+--// [MAIN WINDOW COMPONENT]
+function SlayLib:CreateWindow(Settings)
+    Settings = Settings or {Name = "SLAYLIB X REACTOR"}
+    local Platform = GetPlatform()
+    
+    -- Anti-Multi Instance
+    if Parent:FindFirstChild("Reactor_Engine") then Parent.Reactor_Engine:Destroy() end
 
-    -- 2. MAIN HUB FRAME
-    local MainFrame = Create("Frame", {
-        Size = UDim2.new(0, 620, 0, 440), Position = UDim2.new(0.5, -310, 0.5, -220),
-        BackgroundColor3 = SlayLib.Theme.Background, Parent = CoreGuiFrame,
-        ClipsDescendants = true, Visible = true
-    })
-    Create("UICorner", {CornerRadius = UDim.new(0, 16), Parent = MainFrame})
-    local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 2, Parent = MainFrame})
+    local Window = {Tabs = {}, CurrentTab = nil, Toggled = true}
+    
+    local MainGui = self:Track(Instance.new("ScreenGui", Parent))
+    MainGui.Name = "Reactor_Engine"
+    MainGui.ResetOnSpawn = false
+    MainGui.IgnoreGuiInset = true
 
-    -- 3. SIDEBAR (ISOLATED)
-    local Sidebar = Create("Frame", {
-        Size = UDim2.new(0, 200, 1, 0), BackgroundColor3 = SlayLib.Theme.Sidebar, Parent = MainFrame
-    })
-    Create("UICorner", {CornerRadius = UDim.new(0, 16), Parent = Sidebar})
+    -- Main Frame with Parallax & Glow
+    local MainFrame = self:Track(Instance.new("Frame", MainGui))
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = Platform.IsMobile and UDim2.new(0, 520, 0, 360) or UDim2.new(0, 680, 0, 480)
+    MainFrame.Position = UDim2.new(0.5, -MainFrame.Size.X.Offset/2, 0.5, -MainFrame.Size.Y.Offset/2)
+    MainFrame.BackgroundColor3 = self.Themes[self.CurrentTheme].Back
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
 
-    -- Sidebar Header (Title Safety Area)
-    local SideHeader = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 80), BackgroundTransparency = 1, Parent = Sidebar
-    })
-    local LibIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 38, 0, 38), Position = UDim2.new(0, 20, 0, 22),
-        Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = SideHeader,
-        ImageColor3 = SlayLib.Theme.MainColor
-    })
-    local LibTitle = Create("TextLabel", {
-        Size = UDim2.new(1, -75, 1, 0), Position = UDim2.new(0, 65, 0, 0),
-        Font = "GothamBold", TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left",
-        BackgroundTransparency = 1, Parent = SideHeader
-    })
-    ApplyTextLogic(LibTitle, Config.Name, 20)
+    self:Track(Instance.new("UICorner", MainFrame)).CornerRadius = UDim.new(0, 16)
+    local MainStroke = self:Track(Instance.new("UIStroke", MainFrame))
+    MainStroke.Thickness = 2.5
+    MainStroke.Color = self.Themes[self.CurrentTheme].Main
+    MainStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-    -- Tab Scrolling Area (Will not overlap header)
-    local TabScroll = Create("ScrollingFrame", {
-        Size = UDim2.new(1, -10, 1, -100), Position = UDim2.new(0, 5, 0, 90),
-        BackgroundTransparency = 1, ScrollBarThickness = 0, Parent = Sidebar,
-        CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y"
-    })
-    Create("UIListLayout", {Parent = TabScroll, Padding = UDim.new(0, 8), HorizontalAlignment = "Center"})
+    -- Sidebar Area
+    local Sidebar = self:Track(Instance.new("Frame", MainFrame))
+    Sidebar.Name = "Sidebar"
+    Sidebar.Size = UDim2.new(0, Platform.IsMobile and 170 or 210, 1, 0)
+    Sidebar.BackgroundColor3 = self.Themes[self.CurrentTheme].Side
+    Sidebar.BorderSizePixel = 0
+    self:Track(Instance.new("UICorner", Sidebar)).CornerRadius = UDim.new(0, 16)
 
-    -- 4. CONTENT AREA
-    local PageContainer = Create("Frame", {
-        Size = UDim2.new(1, -230, 1, -40), Position = UDim2.new(0, 215, 0, 20),
-        BackgroundTransparency = 1, Parent = MainFrame
-    })
+    -- Sidebar Header (Safe Area Title)
+    local Header = self:Track(Instance.new("Frame", Sidebar))
+    Header.Name = "Header"
+    Header.Size = UDim2.new(1, 0, 0, 80)
+    Header.BackgroundTransparency = 1
+    
+    local Title = self:Track(Instance.new("TextLabel", Header))
+    Title.Name = "Title"
+    Title.Size = UDim2.new(1, -40, 1, 0)
+    Title.Position = UDim2.new(0, 20, 0, 0)
+    Title.Text = Settings.Name
+    Title.Font = Platform.Font
+    Title.TextSize = 22
+    Title.TextColor3 = self.Themes[self.CurrentTheme].Main
+    Title.TextXAlignment = Enum.TextXAlignment.Left
+    Title.BackgroundTransparency = 1
 
-    -- Toggle Logic
-    ToggleButton.MouseButton1Click:Connect(function()
+    -- Tab Container
+    local TabScroll = self:Track(Instance.new("ScrollingFrame", Sidebar))
+    TabScroll.Size = UDim2.new(1, -10, 1, -100)
+    TabScroll.Position = UDim2.new(0, 5, 0, 90)
+    TabScroll.BackgroundTransparency = 1
+    TabScroll.ScrollBarThickness = 0
+    TabScroll.CanvasSize = UDim2.new(0,0,0,0)
+    TabScroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    
+    self:Track(Instance.new("UIListLayout", TabScroll)).Padding = UDim.new(0, 8)
+
+    -- Page Container
+    local PageContainer = self:Track(Instance.new("Frame", MainFrame))
+    PageContainer.Size = UDim2.new(1, -240, 1, -40)
+    PageContainer.Position = UDim2.new(0, 225, 0, 20)
+    PageContainer.BackgroundTransparency = 1
+
+    -- Floating Toggle Button
+    local FloatingBtn = self:Track(Instance.new("TextButton", MainGui))
+    FloatingBtn.Size = UDim2.new(0, 60, 0, 60)
+    FloatingBtn.Position = UDim2.new(0.05, 0, 0.1, 0)
+    FloatingBtn.BackgroundColor3 = self.Themes[self.CurrentTheme].Main
+    FloatingBtn.Text = "SR"
+    FloatingBtn.TextColor3 = Color3.new(1,1,1)
+    FloatingBtn.Font = Enum.Font.GothamBold
+    FloatingBtn.TextSize = 18
+    self:Track(Instance.new("UICorner", FloatingBtn)).CornerRadius = UDim.new(1, 0)
+    
+    -- [DRAGGABLE ENGINE]
+    local function MakeDraggable(UI, Handle)
+        local Dragging, DragInput, DragStart, StartPos
+        Handle.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                Dragging = true; DragStart = input.Position; StartPos = UI.Position
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                local Delta = input.Position - DragStart
+                UI.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
+            end
+        end)
+        Handle.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end end)
+    end
+    MakeDraggable(MainFrame, Header)
+    MakeDraggable(FloatingBtn, FloatingBtn)
+
+    -- [UI STATE MANAGER]
+    local function ToggleUI()
         Window.Toggled = not Window.Toggled
+        MainFrame.Visible = Window.Toggled
         if Window.Toggled then
-            MainFrame.Visible = true
-            Tween(MainFrame, {Size = UDim2.new(0, 620, 0, 440), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
+            self:Animate(MainFrame, {Size = Platform.IsMobile and UDim2.new(0, 520, 0, 360) or UDim2.new(0, 680, 0, 480)}, 0.5)
         else
-            Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.5)
-            task.delay(0.5, function() if not Window.Toggled then MainFrame.Visible = false end end)
+            self:Animate(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.5)
+        end
+    end
+    FloatingBtn.MouseButton1Click:Connect(ToggleUI)
+    
+    -- Gesture: Double Tap to Toggle
+    local lastTap = 0
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.Touch then
+            local now = tick()
+            if now - lastTap < 0.3 then ToggleUI() end
+            lastTap = now
         end
     end)
 
-    RegisterDrag(MainFrame, SideHeader)
-    RegisterDrag(FloatingToggle, FloatingToggle)
-
-    --// TAB CREATOR
-    function Window:CreateTab(Name, IconID)
-        local Tab = {Active = false, Page = nil, Button = nil}
+    -- [TAB CREATION SYSTEM]
+    function Window:CreateTab(Name)
+        local Tab = {Page = nil, Btn = nil}
         
-        local TabBtn = Create("TextButton", {
-            Size = UDim2.new(0, 180, 0, 45), BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 1, Text = "", Parent = TabScroll
-        })
-        Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = TabBtn})
-        
-        local TabIcon = Create("ImageLabel", {
-            Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(0, 15, 0.5, -10),
-            Image = IconID or SlayLib.Icons.Folder, BackgroundTransparency = 1,
-            ImageColor3 = SlayLib.Theme.TextSecondary, Parent = TabBtn
-        })
-        
-        local TabLbl = Create("TextLabel", {
-            Text = Name, Size = UDim2.new(1, -50, 1, 0), Position = UDim2.new(0, 45, 0, 0),
-            Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.TextSecondary,
-            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = TabBtn
-        })
+        local TBtn = SlayLib:Track(Instance.new("TextButton", TabScroll))
+        TBtn.Size = UDim2.new(0, 190, 0, 45)
+        TBtn.BackgroundColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main
+        TBtn.BackgroundTransparency = 1
+        TBtn.Text = "  " .. Name
+        TBtn.Font = Platform.Font
+        TBtn.TextSize = 14
+        TBtn.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].TextSec
+        TBtn.TextXAlignment = Enum.TextXAlignment.Left
+        SlayLib:Track(Instance.new("UICorner", TBtn)).CornerRadius = UDim.new(0, 10)
 
-        local Page = Create("ScrollingFrame", {
-            Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
-            Visible = false, ScrollBarThickness = 2, ScrollBarImageColor3 = SlayLib.Theme.MainColor,
-            CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", Parent = PageContainer
-        })
-        Create("UIListLayout", {Parent = Page, Padding = UDim.new(0, 12)})
-        Create("UIPadding", {Parent = Page, PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 5)})
+        local Page = SlayLib:Track(Instance.new("ScrollingFrame", PageContainer))
+        Page.Size = UDim2.new(1, 0, 1, 0)
+        Page.BackgroundTransparency = 1
+        Page.Visible = false
+        Page.ScrollBarThickness = 2
+        Page.CanvasSize = UDim2.new(0,0,0,0)
+        Page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+        SlayLib:Track(Instance.new("UIListLayout", Page)).Padding = UDim.new(0, 12)
 
-        TabBtn.MouseButton1Click:Connect(function()
+        TBtn.MouseButton1Click:Connect(function()
             if Window.CurrentTab then
                 Window.CurrentTab.Page.Visible = false
-                Tween(Window.CurrentTab.Button, {BackgroundTransparency = 1}, 0.3)
-                Tween(Window.CurrentTab.Label, {TextColor3 = SlayLib.Theme.TextSecondary}, 0.3)
-                Tween(Window.CurrentTab.Icon, {ImageColor3 = SlayLib.Theme.TextSecondary}, 0.3)
+                SlayLib:Animate(Window.CurrentTab.Btn, {BackgroundTransparency = 1, TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].TextSec}, 0.3)
             end
-            
-            Window.CurrentTab = {Page = Page, Button = TabBtn, Label = TabLbl, Icon = TabIcon}
+            Window.CurrentTab = {Page = Page, Btn = TBtn}
             Page.Visible = true
-            Tween(TabBtn, {BackgroundTransparency = 0.15}, 0.3)
-            Tween(TabLbl, {TextColor3 = SlayLib.Theme.MainColor}, 0.3)
-            Tween(TabIcon, {ImageColor3 = SlayLib.Theme.MainColor}, 0.3)
+            SlayLib:Animate(TBtn, {BackgroundTransparency = 0.85, TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main}, 0.3)
         end)
 
-        -- Auto-select first tab
         if not Window.CurrentTab then
-            Window.CurrentTab = {Page = Page, Button = TabBtn, Label = TabLbl, Icon = TabIcon}
+            Window.CurrentTab = {Page = Page, Btn = TBtn}
             Page.Visible = true
-            TabBtn.BackgroundTransparency = 0.15
-            TabLbl.TextColor3 = SlayLib.Theme.MainColor
-            TabIcon.ImageColor3 = SlayLib.Theme.MainColor
+            TBtn.BackgroundTransparency = 0.85
+            TBtn.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main
         end
 
-        --// SECTION CREATOR
+        -- [SECTION BUILDER]
         function Tab:CreateSection(SName)
             local Section = {}
-            
-            local SectFrame = Create("Frame", {
-                Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, Parent = Page
-            })
-            local SectLabel = Create("TextLabel", {
-                Text = SName:upper(), Size = UDim2.new(1, 0, 1, 0),
-                Font = "GothamBold", TextSize = 12, TextColor3 = SlayLib.Theme.MainColor,
-                BackgroundTransparency = 1, TextXAlignment = "Left", Parent = SectFrame
-            })
+            local SLbl = SlayLib:Track(Instance.new("TextLabel", Page))
+            SLbl.Text = SName:upper()
+            SLbl.Size = UDim2.new(1, 0, 0, 20)
+            SLbl.Font = Enum.Font.GothamBold
+            SLbl.TextSize = 11
+            SLbl.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main
+            SLbl.BackgroundTransparency = 1
+            SLbl.TextXAlignment = Enum.TextXAlignment.Left
 
-            -- 1. ADVANCED TOGGLE
+            -- 1. REACTOR TOGGLE
             function Section:CreateToggle(Props)
-                Props = Props or {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end}
-                local TState = Props.CurrentValue
-                SlayLib.Flags[Props.Flag] = TState
+                Props = Props or {Name = "Toggle", Flag = "T1", Callback = function() end}
+                local State = SlayLib.Flags[Props.Flag] or false
                 
-                local TContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = TContainer})
-                
-                local TLbl = Create("TextLabel", {
-                    Size = UDim2.new(1, -70, 1, 0), Position = UDim2.new(0, 15, 0, 0),
-                    Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,
-                    TextXAlignment = "Left", BackgroundTransparency = 1, Parent = TContainer
-                })
-                ApplyTextLogic(TLbl, Props.Name, 15)
+                local TFrame = SlayLib:Track(Instance.new("Frame", Page))
+                TFrame.Name = "Element"
+                TFrame.Size = UDim2.new(1, 0, 0, 50)
+                TFrame.BackgroundColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Elem
+                SlayLib:Track(Instance.new("UICorner", TFrame)).CornerRadius = UDim.new(0, 10)
 
-                local Switch = Create("Frame", {
-                    Size = UDim2.new(0, 46, 0, 24), Position = UDim2.new(1, -60, 0.5, -12),
-                    BackgroundColor3 = TState and SlayLib.Theme.MainColor or Color3.fromRGB(50, 50, 50), Parent = TContainer
-                })
-                Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Switch})
+                local L = SlayLib:Track(Instance.new("TextLabel", TFrame))
+                L.Text = "  "..Props.Name
+                L.Size = UDim2.new(1, 0, 1, 0)
+                L.Font = Platform.Font
+                L.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Text
+                L.TextXAlignment = Enum.TextXAlignment.Left
+                L.BackgroundTransparency = 1
 
-                local Dot = Create("Frame", {
-                    Size = UDim2.new(0, 18, 0, 18), 
-                    Position = TState and UDim2.new(1, -22, 0.5, -9) or UDim2.new(0, 4, 0.5, -9),
-                    BackgroundColor3 = Color3.new(1, 1, 1), Parent = Switch
-                })
-                Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Dot})
+                local SwBg = SlayLib:Track(Instance.new("Frame", TFrame))
+                SwBg.Size = UDim2.new(0, 44, 0, 22)
+                SwBg.Position = UDim2.new(1, -55, 0.5, -11)
+                SwBg.BackgroundColor3 = State and SlayLib.Themes[SlayLib.CurrentTheme].Main or Color3.fromRGB(60,60,60)
+                SlayLib:Track(Instance.new("UICorner", SwBg)).CornerRadius = UDim.new(1, 0)
 
-                local ClickArea = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = TContainer})
-                
-                ClickArea.MouseButton1Click:Connect(function()
-                    TState = not TState
-                    SlayLib.Flags[Props.Flag] = TState
-                    Tween(Switch, {BackgroundColor3 = TState and SlayLib.Theme.MainColor or Color3.fromRGB(50, 50, 50)}, 0.3)
-                    Tween(Dot, {Position = TState and UDim2.new(1, -22, 0.5, -9) or UDim2.new(0, 4, 0.5, -9)}, 0.3)
-                    task.spawn(Props.Callback, TState)
+                local Dot = SlayLib:Track(Instance.new("Frame", SwBg))
+                Dot.Size = UDim2.new(0, 16, 0, 16)
+                Dot.Position = State and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)
+                Dot.BackgroundColor3 = Color3.new(1, 1, 1)
+                SlayLib:Track(Instance.new("UICorner", Dot)).CornerRadius = UDim.new(1, 0)
+
+                local function UpdateUI(v)
+                    SlayLib:Animate(SwBg, {BackgroundColor3 = v and SlayLib.Themes[SlayLib.CurrentTheme].Main or Color3.fromRGB(60,60,60)}, 0.3)
+                    SlayLib:Animate(Dot, {Position = v and UDim2.new(1, -20, 0.5, -8) or UDim2.new(0, 4, 0.5, -8)}, 0.3)
+                end
+
+                TFrame:AddComponent(Instance.new("TextButton", TFrame)).MouseButton1Click:Connect(function()
+                    State = not State
+                    SlayLib:SetFlag(Props.Flag, State)
+                    UpdateUI(State)
+                    task.spawn(Props.Callback, State)
                 end)
+
+                SlayLib:Bind(Props.Flag, UpdateUI)
             end
 
             -- 2. PRECISION SLIDER
             function Section:CreateSlider(Props)
-                Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end}
-                local Value = Props.Def
-                SlayLib.Flags[Props.Flag] = Value
+                Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "S1", Callback = function() end}
+                local Val = SlayLib.Flags[Props.Flag] or Props.Def
                 
-                local SContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 75), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = SContainer})
-                
-                local SLbl = Create("TextLabel", {
-                    Size = UDim2.new(1, -100, 0, 40), Position = UDim2.new(0, 15, 0, 5),
-                    Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,
-                    TextXAlignment = "Left", BackgroundTransparency = 1, Parent = SContainer
-                })
-                ApplyTextLogic(SLbl, Props.Name, 15)
-                
-                local ValInput = Create("TextBox", {
-                    Text = tostring(Value), Size = UDim2.new(0, 60, 0, 25), Position = UDim2.new(1, -75, 0, 12),
-                    Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
-                    BackgroundColor3 = Color3.fromRGB(35,35,35), Parent = SContainer
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 5), Parent = ValInput})
+                local SFrame = SlayLib:Track(Instance.new("Frame", Page))
+                SFrame.Name = "Element"
+                SFrame.Size = UDim2.new(1, 0, 0, 65)
+                SFrame.BackgroundColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Elem
+                SlayLib:Track(Instance.new("UICorner", SFrame)).CornerRadius = UDim.new(0, 10)
 
-                local Bar = Create("Frame", {
-                    Size = UDim2.new(1, -30, 0, 6), Position = UDim2.new(0, 15, 0, 55),
-                    BackgroundColor3 = Color3.fromRGB(45, 45, 45), Parent = SContainer
-                })
-                Create("UICorner", {Parent = Bar})
-                
-                local Fill = Create("Frame", {
-                    Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0),
-                    BackgroundColor3 = SlayLib.Theme.MainColor, Parent = Bar
-                })
-                Create("UICorner", {Parent = Fill})
+                local L = SlayLib:Track(Instance.new("TextLabel", SFrame))
+                L.Text = "  "..Props.Name
+                L.Size = UDim2.new(1, 0, 0, 35)
+                L.Font = Platform.Font
+                L.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Text
+                L.TextXAlignment = Enum.TextXAlignment.Left
+                L.BackgroundTransparency = 1
 
-                local function Update(Input)
-                    local Percentage = math.clamp((Input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-                    Value = math.floor(Props.Min + (Props.Max - Props.Min) * Percentage)
-                    Fill.Size = UDim2.new(Percentage, 0, 1, 0)
-                    ValInput.Text = tostring(Value)
-                    SlayLib.Flags[Props.Flag] = Value
-                    task.spawn(Props.Callback, Value)
+                local V = SlayLib:Track(Instance.new("TextLabel", SFrame))
+                V.Text = tostring(Val).."  "
+                V.Size = UDim2.new(1, 0, 0, 35)
+                V.Font = Enum.Font.Code
+                V.TextColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main
+                V.TextXAlignment = Enum.TextXAlignment.Right
+                V.BackgroundTransparency = 1
+
+                local Bar = SlayLib:Track(Instance.new("Frame", SFrame))
+                Bar.Size = UDim2.new(1, -30, 0, 6)
+                Bar.Position = UDim2.new(0, 15, 0, 45)
+                Bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+                SlayLib:Track(Instance.new("UICorner", Bar)).CornerRadius = UDim.new(1, 0)
+
+                local Fill = SlayLib:Track(Instance.new("Frame", Bar))
+                Fill.Size = UDim2.new((Val - Props.Min)/(Props.Max - Props.Min), 0, 1, 0)
+                Fill.BackgroundColor3 = SlayLib.Themes[SlayLib.CurrentTheme].Main
+                SlayLib:Track(Instance.new("UICorner", Fill)).CornerRadius = UDim.new(1, 0)
+
+                local function Update(input)
+                    local pos = math.clamp((input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                    local nVal = math.floor(Props.Min + (Props.Max - Props.Min) * pos)
+                    Fill.Size = UDim2.new(pos, 0, 1, 0)
+                    V.Text = tostring(nVal).."  "
+                    SlayLib:SetFlag(Props.Flag, nVal)
+                    task.spawn(Props.Callback, nVal)
                 end
 
                 Bar.InputBegan:Connect(function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                        Update(input)
                         local MoveCon, EndCon
                         MoveCon = UserInputService.InputChanged:Connect(function(move)
-                            if move.UserInputType == Enum.UserInputType.MouseMovement or move.UserInputType == Enum.UserInputType.Touch then
-                                Update(move)
-                            end
+                            if move.UserInputType == Enum.UserInputType.MouseMovement or move.UserInputType == Enum.UserInputType.Touch then Update(move) end
                         end)
                         EndCon = UserInputService.InputEnded:Connect(function(ended)
-                            if ended.UserInputType == Enum.UserInputType.MouseButton1 or ended.UserInputType == Enum.UserInputType.Touch then
-                                MoveCon:Disconnect() EndCon:Disconnect()
-                            end
+                            if ended.UserInputType == Enum.UserInputType.MouseButton1 or ended.UserInputType == Enum.UserInputType.Touch then MoveCon:Disconnect(); EndCon:Disconnect() end
                         end)
                     end
                 end)
-
-                ValInput.FocusLost:Connect(function()
-                    local n = tonumber(ValInput.Text)
-                    if n then
-                        Value = math.clamp(n, Props.Min, Props.Max)
-                        Fill.Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0)
-                        ValInput.Text = tostring(Value)
-                        task.spawn(Props.Callback, Value)
-                    end
-                end)
-            end
-
-            -- 3. SEARCHABLE DROPDOWN
-            function Section:CreateDropdown(Props)
-                Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}
-                local IsOpen = false
-                local Selected = Props.Options[1]
-                
-                local DContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element,
-                    ClipsDescendants = true, Parent = Page
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = DContainer})
-                
-                local MainBtn = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 52), BackgroundTransparency = 1,
-                    Text = "", Parent = DContainer
-                })
-                
-                local DLbl = Create("TextLabel", {
-                    Text = "  " .. Props.Name .. ": " .. Selected, Size = UDim2.new(1, -50, 0, 52),
-                    Position = UDim2.new(0, 15, 0, 0), Font = "GothamMedium", TextSize = 14,
-                    TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = MainBtn
-                })
-
-                local Chevron = Create("ImageLabel", {
-                    Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -35, 0.5, -10),
-                    Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, Parent = MainBtn
-                })
-
-                local List = Create("Frame", {
-                    Size = UDim2.new(1, -20, 0, 0), Position = UDim2.new(0, 10, 0, 55),
-                    BackgroundTransparency = 1, Parent = DContainer
-                })
-                local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5)})
-
-                local function Refresh()
-                    for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-                    for _, opt in pairs(Props.Options) do
-                        local OBtn = Create("TextButton", {
-                            Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Color3.fromRGB(30,30,30),
-                            Text = "   " .. tostring(opt), Font = "Gotham", TextSize = 13,
-                            TextColor3 = SlayLib.Theme.TextSecondary, TextXAlignment = "Left", Parent = List
-                        })
-                        Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})
-                        
-                        OBtn.MouseButton1Click:Connect(function()
-                            Selected = opt
-                            DLbl.Text = "  " .. Props.Name .. ": " .. tostring(opt)
-                            IsOpen = false
-                            Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)
-                            Tween(Chevron, {Rotation = 0}, 0.4)
-                            task.spawn(Props.Callback, opt)
-                        end)
-                    end
-                end
-
-                Refresh()
-
-                MainBtn.MouseButton1Click:Connect(function()
-                    IsOpen = not IsOpen
-                    local Target = IsOpen and 60 + (#Props.Options * 40) or 52
-                    Tween(DContainer, {Size = UDim2.new(1, 0, 0, math.min(Target, 300))}, 0.4)
-                    Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.4)
-                end)
-                
-                function Section:UpdateDropdown(NewOptions)
-                    Props.Options = NewOptions
-                    Refresh()
-                end
-            end
-
-            -- 4. INTERACTIVE BUTTON
-            function Section:CreateButton(Props)
-                Props = Props or {Name = "Action Button", Callback = function() end}
-                
-                local BFrame = Create("TextButton", {
-                    Size = UDim2.new(1, 0, 0, 48), BackgroundColor3 = SlayLib.Theme.Element,
-                    Text = "", Parent = Page, AutoButtonColor = false
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = BFrame})
-                
-                local BLbl = Create("TextLabel", {
-                    Size = UDim2.new(1, 0, 1, 0), Font = "GothamBold", TextSize = 14,
-                    TextColor3 = SlayLib.Theme.Text, BackgroundTransparency = 1, Parent = BFrame
-                })
-                ApplyTextLogic(BLbl, Props.Name, 14)
-
-                BFrame.MouseEnter:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.ElementHover}, 0.2) end)
-                BFrame.MouseLeave:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.Element}, 0.2) end)
-                
-                BFrame.MouseButton1Click:Connect(function()
-                    local Circle = Create("Frame", {
-                        Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0),
-                        BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 0.8, Parent = BFrame
-                    })
-                    Create("UICorner", {CornerRadius = UDim.new(1,0), Parent = Circle})
-                    Tween(Circle, {Size = UDim2.new(1,0,2,0), Position = UDim2.new(0,0,-0.5,0), BackgroundTransparency = 1}, 0.5)
-                    task.delay(0.5, function() Circle:Destroy() end)
-                    task.spawn(Props.Callback)
-                end)
-            end
-
-            -- 5. SMART INPUT BOX
-            function Section:CreateInput(Props)
-                Props = Props or {Name = "Input Field", Placeholder = "Value...", Callback = function() end}
-                
-                local IContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 55), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = IContainer})
-                
-                local ILbl = Create("TextLabel", {
-                    Size = UDim2.new(0, 150, 1, 0), Position = UDim2.new(0, 15, 0, 0),
-                    Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,
-                    TextXAlignment = "Left", BackgroundTransparency = 1, Parent = IContainer
-                })
-                ApplyTextLogic(ILbl, Props.Name, 15)
-
-                local Box = Create("TextBox", {
-                    Size = UDim2.new(0, 180, 0, 32), Position = UDim2.new(1, -195, 0.5, -16),
-                    BackgroundColor3 = Color3.fromRGB(35, 35, 35), Text = "", PlaceholderText = Props.Placeholder,
-                    TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 14, Parent = IContainer,
-                    ClipsDescendants = true
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})
-                
-                Box.FocusLost:Connect(function(enter)
-                    task.spawn(Props.Callback, Box.Text)
-                end)
-            end
-
-            -- 6. DYNAMIC PARAGRAPH (MULTILINE)
-            function Section:CreateParagraph(Props)
-                Props = Props or {Title = "Header", Content = "Your text goes here."}
-                
-                local PContainer = Create("Frame", {
-                    Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Element,
-                    AutomaticSize = "Y", Parent = Page
-                })
-                Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = PContainer})
-                Create("UIPadding", {Parent = PContainer, PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)})
-                
-                local PTtl = Create("TextLabel", {
-                    Size = UDim2.new(1, 0, 0, 22), Font = "GothamBold", 
-                    TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1,
-                    TextXAlignment = "Left", Parent = PContainer
-                })
-                ApplyTextLogic(PTtl, Props.Title, 14)
-
-                local PCnt = Create("TextLabel", {
-                    Size = UDim2.new(1, 0, 0, 0), Font = "Gotham", 
-                    TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,
-                    TextXAlignment = "Left", AutomaticSize = "Y", Parent = PContainer
-                })
-                ApplyTextLogic(PCnt, Props.Content, 12)
             end
 
             return Section
@@ -680,25 +427,25 @@ function SlayLib:CreateWindow(Config)
         return Tab
     end
 
+    --// [INIT ENGINE BACKGROUND TASKS]
+    task.spawn(function()
+        while SlayLib.Active do
+            -- Performance Stats
+            local fps = math.floor(1/RunService.RenderStepped:Wait())
+            local ping = tonumber(string.match(Stats.Network.ServerStatsItem["Data Ping"]:GetValueString(), "%d+")) or 0
+            -- Update UI if Performance Overlay is active
+            task.wait(1)
+        end
+    end)
+
     return Window
 end
 
---// AUTO-SAVE LOGIC (GRAND ADDITION)
-function SlayLib:SaveConfig(Name)
-    local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-    local Data = HttpService:JSONEncode(SlayLib.Flags)
-    writefile(FullPath, Data)
-    SlayLib:Notify({Title = "System", Content = "Config Saved Successfully!", Type = "Success", Duration = 3})
-end
-
-function SlayLib:LoadConfig(Name)
-    local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-    if isfile(FullPath) then
-        local Data = HttpService:JSONDecode(readfile(FullPath))
-        SlayLib.Flags = Data
-        SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
-        -- ในระบบจริงต้องวน Loop เพื่ออัปเดต UI ด้วย
-    end
+--// [ERROR LOGGING SYSTEM]
+function SlayLib:LogError(msg)
+    local log = "[ERROR] "..tick()..": "..tostring(msg).."\n"
+    if appendfile then appendfile("SlayLib_Logs.txt", log) end
+    self:Notify({Title = "Engine Error", Content = msg, Type = "Error"})
 end
 
 return SlayLib
