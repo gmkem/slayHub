@@ -124,60 +124,107 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
+--// THE BEST NOTIFICATION ENGINE (PRO EDITION)
 function SlayLib:Notify(Config)
-Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
+    Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
 
-local Holder = Parent:FindFirstChild("SlayNotificationProvider")  
-if not Holder then  
-    Holder = Create("Frame", {  
-        Name = "SlayNotificationProvider", Parent = Parent, BackgroundTransparency = 1,  
-        Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -330, 0, 20)  
+    -- 1. Setup ScreenGui (Highest Layer)
+    local Holder = Parent:FindFirstChild("SlayNotificationProvider")  
+    if not Holder then  
+        Holder = Create("ScreenGui", {
+            Name = "SlayNotificationProvider", 
+            Parent = Parent, 
+            DisplayOrder = 9999 -- อยู่เหนือทุกอย่างในเกม
+        })
+        local Container = Create("Frame", {
+            Name = "Container",
+            Parent = Holder,
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 300, 1, -60),
+            Position = UDim2.new(1, -310, 0, 30)
+        })
+        Create("UIListLayout", {
+            Parent = Container, 
+            VerticalAlignment = "Bottom", -- แจ้งเตือนใหม่ดันตัวเก่าขึ้นบน
+            Padding = UDim.new(0, 10),
+            SortOrder = Enum.SortOrder.LayoutOrder
+        })
+    end  
+    
+    local TargetContainer = Holder:FindFirstChild("Container")
+    
+    -- 2. Theme Selection
+    local NotifColor = SlayLib.Theme.MainColor  
+    if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success  
+    elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error  
+    elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end  
+
+    -- 3. Structure
+    local NotifFrame = Create("Frame", {  
+        Size = UDim2.new(1, 0, 0, 75),
+        Position = UDim2.new(1.5, 0, 0, 0), -- เริ่มต้นจากนอกจอขวา
+        BackgroundColor3 = Color3.fromRGB(18, 18, 18), 
+        BackgroundTransparency = 0,
+        Parent = TargetContainer,
+        BorderSizePixel = 0
     })  
-    Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Bottom", Padding = UDim.new(0, 10)})  
-end  
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = NotifFrame})  
+    
+    local Glow = Create("UIStroke", {
+        Color = NotifColor, 
+        Thickness = 1.6, 
+        Transparency = 0.4,
+        Parent = NotifFrame
+    })
 
-local NotifColor = SlayLib.Theme.MainColor  
-if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success  
-elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error  
-elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end  
+    local SideBar = Create("Frame", {
+        Size = UDim2.new(0, 4, 1, 0),
+        BackgroundColor3 = NotifColor,
+        BorderSizePixel = 0,
+        Parent = NotifFrame
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SideBar})
 
-local NotifFrame = Create("Frame", {  
-    Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Sidebar,  
-    ClipsDescendants = true, Parent = Holder, BackgroundTransparency = 1  
-})  
-Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})  
-local Stroke = Create("UIStroke", {Color = NotifColor, Thickness = 1.8, Parent = NotifFrame, Transparency = 1})  
+    local Title = Create("TextLabel", {
+        Text = Config.Title:upper(),
+        Size = UDim2.new(1, -40, 0, 30),
+        Position = UDim2.new(0, 15, 0, 5),
+        Font = "GothamBold",
+        TextSize = 13,
+        TextColor3 = NotifColor,
+        BackgroundTransparency = 1,
+        TextXAlignment = "Left",
+        Parent = NotifFrame
+    })
 
-local Accent = Create("Frame", {  
-    Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = NotifColor, Parent = NotifFrame  
-})  
-Create("UICorner", {Parent = Accent})  
+    local Content = Create("TextLabel", {
+        Text = Config.Content,
+        Size = UDim2.new(1, -30, 0, 35),
+        Position = UDim2.new(0, 15, 0, 28),
+        Font = "GothamMedium",
+        TextSize = 12,
+        TextColor3 = Color3.fromRGB(230, 230, 230),
+        BackgroundTransparency = 1,
+        TextXAlignment = "Left",
+        TextWrapped = true,
+        Parent = NotifFrame
+    })
 
-local TitleLabel = Create("TextLabel", {  
-    Size = UDim2.new(1, -50, 0, 25), Position = UDim2.new(0, 15, 0, 8),  
-    Font = "GothamBold", TextColor3 = NotifColor,  
-    BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame  
-})  
-ApplyTextLogic(TitleLabel, Config.Title, 14)  
-
-local ContentLabel = Create("TextLabel", {  
-    Size = UDim2.new(1, -30, 0, 30), Position = UDim2.new(0, 15, 0, 28),  
-    Font = "Gotham", TextColor3 = SlayLib.Theme.Text,  
-    BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame  
-})  
-ApplyTextLogic(ContentLabel, Config.Content, 12)  
-
--- Entrance Animation  
-Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 75), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)  
-Tween(Stroke, {Transparency = 0}, 0.5)  
-
-task.delay(Config.Duration, function()  
-    Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.5)  
-    Tween(Stroke, {Transparency = 1}, 0.5)  
-    task.wait(0.5)  
-    NotifFrame:Destroy()  
-end)
-
+    -- 4. Animations
+    -- Slide In
+    Tween(NotifFrame, {Position = UDim2.new(0, 0, 0, 0)}, 0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.Out)
+    
+    -- Auto Exit
+    task.delay(Config.Duration, function()
+        local Exit = Tween(NotifFrame, {Position = UDim2.new(1.5, 0, 0, 0), BackgroundTransparency = 1}, 0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        Exit.Completed:Connect(function()
+            NotifFrame:Destroy()
+            -- ถ้าไม่มีแจ้งเตือนเหลือแล้ว ให้ลบ Holder ทิ้งเพื่อประหยัดทรัพยากร
+            if #TargetContainer:GetChildren() <= 1 then
+                Holder:Destroy()
+            end
+        end)
+    end)
 end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
