@@ -1,14 +1,10 @@
 --[[
     ================================================================================
-    SLAYLIB X - PREMIER CROSS-PLATFORM INTERFACE
+    SLAYLIB X - ULTIMATE CROSS-PLATFORM EDITION
     ================================================================================
-    - รองรับ: PC / Mobile (Scaling & Touch Friendly)
-    - ฟีเจอร์: 
-        * Circular Toggle Button (ลากได้ + มีโลโก้)
-        * SlayLib Notification System (แบ่งประเภท Success, Info, Warning, Error)
-        * Theme Switching Engine
-        * Drag System (รองรับทั้งเมาส์และนิ้วสัมผัส)
-        * Mobile Optimization (ขนาดกะทัดรัดแต่กดง่าย)
+    - UI Name: SlayLib X
+    - Platform: PC / Mobile / Tablet (Full Support)
+    - Logic: Full Detailed Script (No Snippets)
     ================================================================================
 ]]
 
@@ -19,420 +15,369 @@ local SlayLib = {
         Background = Color3.fromRGB(10, 10, 10),
         Sidebar = Color3.fromRGB(15, 15, 15),
         Element = Color3.fromRGB(22, 22, 22),
+        ElementHover = Color3.fromRGB(30, 30, 30),
         Text = Color3.fromRGB(255, 255, 255),
-        TextSecondary = Color3.fromRGB(180, 180, 180),
-        Stroke = Color3.fromRGB(40, 40, 40),
-        Success = Color3.fromRGB(80, 255, 120),
-        Warning = Color3.fromRGB(255, 200, 80),
-        Error = Color3.fromRGB(255, 80, 80),
-        Info = Color3.fromRGB(80, 180, 255)
+        TextSecondary = Color3.fromRGB(170, 170, 170),
+        Stroke = Color3.fromRGB(45, 45, 45),
+        Success = Color3.fromRGB(0, 255, 127),
+        Error = Color3.fromRGB(255, 65, 65),
+        Info = Color3.fromRGB(65, 165, 255),
+        Warning = Color3.fromRGB(255, 165, 0)
     },
     Icons = {
-        Logo = "rbxassetid://13589839447", -- ใส่ ID โโลโก้คุณตรงนี้
-        Success = "rbxassetid://10134203511",
-        Warning = "rbxassetid://10134199120",
-        Error = "rbxassetid://10134198184",
+        Logo = "rbxassetid://13589839447",
+        Check = "rbxassetid://10134203511",
+        Warn = "rbxassetid://10134199120",
+        Err = "rbxassetid://10134198184",
         Info = "rbxassetid://10134202165"
     }
 }
 
---// Services
-local UserInputService = game:GetService("UserInputService")
+--// SERVICES
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
 local Mouse = Players.LocalPlayer:GetMouse()
 
---// Utility Functions
+--// UTILITIES
+local function Create(class, props)
+    local obj = Instance.new(class)
+    for i, v in pairs(props) do obj[i] = v end
+    return obj
+end
+
 local function Tween(obj, goal, time, style, dir)
-    local info = TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out)
-    local t = TweenService:Create(obj, info, goal)
+    local t = TweenService:Create(obj, TweenInfo.new(time or 0.4, style or Enum.EasingStyle.Quart, dir or Enum.EasingDirection.Out), goal)
     t:Play()
     return t
 end
 
+--// ADVANCED DRAG SYSTEM (Stable for Mobile/PC)
 local function MakeDraggable(UIElement, DragHandle)
     local Dragging, DragInput, DragStart, StartPos
-    local function Update(input)
-        local Delta = input.Position - DragStart
-        UIElement.Position = UDim2.new(StartPos.X.Scale, StartPos.X.Offset + Delta.X, StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y)
-    end
+    
     DragHandle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             Dragging = true
             DragStart = input.Position
             StartPos = UIElement.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then Dragging = false end
+            
+            local Connection
+            Connection = input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    Dragging = false
+                    Connection:Disconnect()
+                end
             end)
         end
     end)
+
     UserInputService.InputChanged:Connect(function(input)
         if Dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            Update(input)
+            local Delta = input.Position - DragStart
+            UIElement.Position = UDim2.new(
+                StartPos.X.Scale, StartPos.X.Offset + Delta.X,
+                StartPos.Y.Scale, StartPos.Y.Offset + Delta.Y
+            )
         end
     end)
 end
 
---// Notification System
+--// NOTIFICATION SYSTEM
 function SlayLib:Notify(Config)
-    Config = Config or {Title = "Notification", Content = "Message", Type = "Info", Duration = 5}
+    Config = Config or {Title = "SlayLib X", Content = "Notification Test", Type = "Info", Duration = 4}
     
-    local NotifyHolder = CoreGui:FindFirstChild("SlayNotifyHolder")
-    if not NotifyHolder then
-        NotifyHolder = Instance.new("Frame")
-        NotifyHolder.Name = "SlayNotifyHolder"
-        NotifyHolder.Size = UDim2.new(0, 300, 1, 0)
-        NotifyHolder.Position = UDim2.new(1, -310, 0, 20)
-        NotifyHolder.BackgroundTransparency = 1
-        NotifyHolder.Parent = CoreGui
-        local List = Instance.new("UIListLayout", NotifyHolder)
-        List.VerticalAlignment = "Top"
-        List.Padding = UDim.new(0, 10)
+    local Holder = CoreGui:FindFirstChild("SlayNotifications") or Create("Frame", {
+        Name = "SlayNotifications", Parent = CoreGui, BackgroundTransparency = 1,
+        Size = UDim2.new(0, 300, 1, 0), Position = UDim2.new(1, -310, 0, 20)
+    })
+    if not Holder:FindFirstChild("UIListLayout") then
+        Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Top", Padding = UDim.new(0, 10)})
     end
 
-    local Notif = Instance.new("Frame")
-    Notif.Size = UDim2.new(1, 0, 0, 0) -- Start small for animation
-    Notif.BackgroundColor3 = SlayLib.Theme.Sidebar
-    Notif.BorderSizePixel = 0
-    Notif.ClipsDescendants = true
-    Notif.Parent = NotifyHolder
-    Instance.new("UICorner", Notif).CornerRadius = UDim.new(0, 8)
-    local Stroke = Instance.new("UIStroke", Notif)
-    Stroke.Color = SlayLib.Theme[Config.Type] or SlayLib.Theme.MainColor
-    Stroke.Thickness = 1.2
+    local Notif = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Sidebar,
+        ClipsDescendants = true, Parent = Holder
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Notif})
+    local Stroke = Create("UIStroke", {Color = SlayLib.Theme[Config.Type] or SlayLib.Theme.MainColor, Thickness = 1.4, Parent = Notif})
 
-    local Icon = Instance.new("ImageLabel")
-    Icon.Size = UDim2.new(0, 24, 0, 24)
-    Icon.Position = UDim2.new(0, 10, 0, 13)
-    Icon.Image = SlayLib.Icons[Config.Type] or SlayLib.Icons.Info
-    Icon.ImageColor3 = SlayLib.Theme[Config.Type] or SlayLib.Theme.MainColor
-    Icon.BackgroundTransparency = 1
-    Icon.Parent = Notif
+    local Icon = Create("ImageLabel", {
+        Size = UDim2.new(0, 22, 0, 22), Position = UDim2.new(0, 10, 0, 14),
+        Image = SlayLib.Icons[Config.Type] or SlayLib.Icons.Info, ImageColor3 = SlayLib.Theme[Config.Type],
+        BackgroundTransparency = 1, Parent = Notif
+    })
 
-    local Title = Instance.new("TextLabel")
-    Title.Text = Config.Title
-    Title.Size = UDim2.new(1, -50, 0, 20)
-    Title.Position = UDim2.new(0, 40, 0, 5)
-    Title.Font = "GothamBold"
-    Title.TextSize = 14
-    Title.TextColor3 = SlayLib.Theme.Text
-    Title.TextXAlignment = "Left"
-    Title.BackgroundTransparency = 1
-    Title.Parent = Notif
+    local T = Create("TextLabel", {
+        Text = Config.Title, Size = UDim2.new(1, -50, 0, 20), Position = UDim2.new(0, 40, 0, 6),
+        Font = "GothamBold", TextSize = 14, TextColor3 = SlayLib.Theme.Text,
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Notif
+    })
 
-    local Content = Instance.new("TextLabel")
-    Content.Text = Config.Content
-    Content.Size = UDim2.new(1, -50, 0, 20)
-    Content.Position = UDim2.new(0, 40, 0, 22)
-    Content.Font = "Gotham"
-    Content.TextSize = 12
-    Content.TextColor3 = SlayLib.Theme.TextSecondary
-    Content.TextXAlignment = "Left"
-    Content.BackgroundTransparency = 1
-    Content.Parent = Notif
+    local C = Create("TextLabel", {
+        Text = Config.Content, Size = UDim2.new(1, -50, 0, 20), Position = UDim2.new(0, 40, 0, 23),
+        Font = "Gotham", TextSize = 12, TextColor3 = SlayLib.Theme.TextSecondary,
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Notif
+    })
 
     Tween(Notif, {Size = UDim2.new(1, 0, 0, 50)}, 0.4)
-    
     task.delay(Config.Duration, function()
-        Tween(Notif, {Size = UDim2.new(1, 0, 0, 0), GroupTransparency = 1}, 0.4)
-        task.wait(0.4)
-        Notif:Destroy()
+        Tween(Notif, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.4)
+        task.wait(0.4) Notif:Destroy()
     end)
 end
 
---// Window Core
+--// WINDOW CORE
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib X"}
     
-    local Window = {Enabled = true, CurrentTab = nil}
+    local Window = {Visible = true, CurrentTab = nil}
 
-    local MainGui = Instance.new("ScreenGui")
-    MainGui.Name = "SlayLib_X"
-    MainGui.Parent = CoreGui
-    MainGui.IgnoreGuiInset = true
+    local MainGui = Create("ScreenGui", {Name = "SlayLib_X", Parent = CoreGui, IgnoreGuiInset = true})
 
-    -- Circular Toggle Button (Mobile Friendly)
-    local ToggleBtn = Instance.new("Frame")
-    ToggleBtn.Name = "SlayToggle"
-    ToggleBtn.Size = UDim2.new(0, 55, 0, 55)
-    ToggleBtn.Position = UDim2.new(0, 20, 0, 20)
-    ToggleBtn.BackgroundColor3 = SlayLib.Theme.MainColor
-    ToggleBtn.Parent = MainGui
-    Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(1, 0)
-    local ToggleIcon = Instance.new("ImageLabel", ToggleBtn)
-    ToggleIcon.Size = UDim2.new(0, 30, 0, 30)
-    ToggleIcon.Position = UDim2.new(0.5, -15, 0.5, -15)
-    ToggleIcon.Image = SlayLib.Icons.Logo
-    ToggleIcon.BackgroundTransparency = 1
-    local ToggleClick = Instance.new("TextButton", ToggleBtn)
-    ToggleClick.Size = UDim2.new(1, 0, 1, 0)
-    ToggleClick.BackgroundTransparency = 1
-    ToggleClick.Text = ""
+    -- 1. INTRO / LOADING SCREEN
+    local LoadingFrame = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(5, 5, 5),
+        ZIndex = 10, Parent = MainGui
+    })
+    local Blur = Create("BlurEffect", {Size = 20, Parent = game:GetService("Lighting")})
+    
+    local LoadLogo = Create("ImageLabel", {
+        Size = UDim2.new(0, 100, 0, 100), Position = UDim2.new(0.5, -50, 0.5, -70),
+        Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = LoadingFrame
+    })
+    
+    local LoadTitle = Create("TextLabel", {
+        Text = "SLAYLIB X", Size = UDim2.new(0, 200, 0, 30), Position = UDim2.new(0.5, -100, 0.5, 40),
+        Font = "GothamBold", TextSize = 24, TextColor3 = SlayLib.Theme.Text,
+        BackgroundTransparency = 1, Parent = LoadingFrame
+    })
 
-    -- Main Container (Optimized for Mobile)
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.new(0, 550, 0, 380) -- ขนาดพอดีมือถือ
-    MainFrame.Position = UDim2.new(0.5, -275, 0.5, -190)
-    MainFrame.BackgroundColor3 = SlayLib.Theme.Background
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = MainGui
-    Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
-    local MainStroke = Instance.new("UIStroke", MainFrame)
-    MainStroke.Color = SlayLib.Theme.Stroke
-    MainStroke.Thickness = 1.5
+    local BarBg = Create("Frame", {
+        Size = UDim2.new(0, 250, 0, 4), Position = UDim2.new(0.5, -125, 0.5, 80),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30), Parent = LoadingFrame
+    })
+    Create("UICorner", {Parent = BarBg})
+    
+    local BarFill = Create("Frame", {
+        Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor,
+        Parent = BarBg
+    })
+    Create("UICorner", {Parent = BarFill})
+
+    -- Loading Animation
+    task.spawn(function()
+        Tween(BarFill, {Size = UDim2.new(1, 0, 1, 0)}, 2.5)
+        task.wait(2.7)
+        Tween(LoadingFrame, {BackgroundTransparency = 1}, 0.5)
+        Tween(LoadLogo, {ImageTransparency = 1}, 0.5)
+        Tween(LoadTitle, {TextTransparency = 1}, 0.5)
+        Tween(BarBg, {BackgroundTransparency = 1}, 0.5)
+        Tween(BarFill, {BackgroundTransparency = 1}, 0.5)
+        Tween(Blur, {Size = 0}, 0.5)
+        task.wait(0.5)
+        LoadingFrame:Destroy() Blur:Destroy()
+        SlayLib:Notify({Title = "Loaded Successfully", Content = "Welcome to SlayLib X!", Type = "Success"})
+    end)
+
+    -- 2. FLOATING TOGGLE BUTTON (Circular & Draggable)
+    local ToggleBtn = Create("Frame", {
+        Name = "SlayToggle", Size = UDim2.new(0, 60, 0, 60),
+        Position = UDim2.new(0.05, 0, 0.15, 0), -- ย้ายลงมาให้กดง่ายขึ้น
+        BackgroundColor3 = SlayLib.Theme.MainColor, Parent = MainGui
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = ToggleBtn})
+    Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 2, Transparency = 0.8, Parent = ToggleBtn})
+    
+    local TIcon = Create("ImageLabel", {
+        Size = UDim2.new(0, 35, 0, 35), Position = UDim2.new(0.5, -17, 0.5, -17),
+        Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = ToggleBtn
+    })
+    
+    local TClick = Create("TextButton", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = ToggleBtn
+    })
+
+    -- 3. MAIN GUI FRAME
+    local MainFrame = Create("Frame", {
+        Size = UDim2.new(0, 560, 0, 400), Position = UDim2.new(0.5, -280, 0.5, -200),
+        BackgroundColor3 = SlayLib.Theme.Background, Parent = MainGui,
+        ClipsDescendants = true, Visible = true
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
+    Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1.5, Parent = MainFrame})
 
     -- Sidebar
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Size = UDim2.new(0, 170, 1, 0)
-    Sidebar.BackgroundColor3 = SlayLib.Theme.Sidebar
-    Sidebar.Parent = MainFrame
-    Instance.new("UICorner", Sidebar).CornerRadius = UDim.new(0, 10)
+    local Sidebar = Create("Frame", {
+        Size = UDim2.new(0, 180, 1, 0), BackgroundColor3 = SlayLib.Theme.Sidebar, Parent = MainFrame
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Sidebar})
 
-    local TitleLogo = Instance.new("ImageLabel", Sidebar)
-    TitleLogo.Size = UDim2.new(0, 25, 0, 25)
-    TitleLogo.Position = UDim2.new(0, 15, 0, 15)
-    TitleLogo.Image = SlayLib.Icons.Logo
-    TitleLogo.BackgroundTransparency = 1
+    local LogoBox = Create("ImageLabel", {
+        Size = UDim2.new(0, 30, 0, 30), Position = UDim2.new(0, 15, 0, 15),
+        Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = Sidebar
+    })
+    
+    local LogoTitle = Create("TextLabel", {
+        Text = "SLAYLIB X", Size = UDim2.new(0, 100, 0, 30), Position = UDim2.new(0, 50, 0, 15),
+        Font = "GothamBold", TextSize = 18, TextColor3 = SlayLib.Theme.Text,
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Sidebar
+    })
 
-    local TitleText = Instance.new("TextLabel", Sidebar)
-    TitleText.Text = "SlayLib X"
-    TitleText.Position = UDim2.new(0, 45, 0, 15)
-    TitleText.Size = UDim2.new(0, 100, 0, 25)
-    TitleText.Font = "GothamBold"
-    TitleText.TextSize = 18
-    TitleText.TextColor3 = SlayLib.Theme.Text
-    TitleText.TextXAlignment = "Left"
-    TitleText.BackgroundTransparency = 1
+    local TabScroll = Create("ScrollingFrame", {
+        Size = UDim2.new(1, -10, 1, -70), Position = UDim2.new(0, 5, 0, 60),
+        BackgroundTransparency = 1, ScrollBarThickness = 0, Parent = Sidebar
+    })
+    Create("UIListLayout", {Padding = UDim.new(0, 6), Parent = TabScroll})
 
-    local TabScroll = Instance.new("ScrollingFrame", Sidebar)
-    TabScroll.Size = UDim2.new(1, -10, 1, -60)
-    TabScroll.Position = UDim2.new(0, 5, 0, 55)
-    TabScroll.BackgroundTransparency = 1
-    TabScroll.ScrollBarThickness = 0
-    local TabList = Instance.new("UIListLayout", TabScroll)
-    TabList.Padding = UDim.new(0, 5)
-
-    local PageContainer = Instance.new("Frame", MainFrame)
-    PageContainer.Position = UDim2.new(0, 180, 0, 15)
-    PageContainer.Size = UDim2.new(1, -195, 1, -30)
-    PageContainer.BackgroundTransparency = 1
+    local PageContainer = Create("Frame", {
+        Size = UDim2.new(1, -200, 1, -30), Position = UDim2.new(0, 190, 0, 15),
+        BackgroundTransparency = 1, Parent = MainFrame
+    })
 
     -- Toggle Logic
-    ToggleClick.MouseButton1Click:Connect(function()
-        Window.Enabled = not Window.Enabled
-        if Window.Enabled then
+    TClick.MouseButton1Click:Connect(function()
+        Window.Visible = not Window.Visible
+        if Window.Visible then
             MainFrame.Visible = true
-            Tween(MainFrame, {Size = UDim2.new(0, 550, 0, 380)}, 0.4, Enum.EasingStyle.Back)
+            Tween(MainFrame, {Size = UDim2.new(0, 560, 0, 400), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
         else
-            Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.4)
-            task.delay(0.4, function() MainFrame.Visible = false end)
+            Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.5)
+            task.delay(0.5, function() MainFrame.Visible = false end)
         end
     end)
 
+    -- Tab System
     function Window:CreateTab(Name)
         local Tab = {}
-        local TabBtn = Instance.new("TextButton", TabScroll)
-        TabBtn.Size = UDim2.new(1, 0, 0, 38)
-        TabBtn.BackgroundTransparency = 1
-        TabBtn.Text = "      " .. Name
-        TabBtn.Font = "GothamMedium"
-        TabBtn.TextSize = 14
-        TabBtn.TextColor3 = SlayLib.Theme.TextSecondary
-        TabBtn.TextXAlignment = "Left"
-        Instance.new("UICorner", TabBtn).CornerRadius = UDim.new(0, 6)
+        local TBtn = Create("TextButton", {
+            Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1,
+            Text = "      " .. Name, Font = "GothamMedium", TextSize = 14,
+            TextColor3 = SlayLib.Theme.TextSecondary, TextXAlignment = "Left", Parent = TabScroll
+        })
+        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = TBtn})
 
-        local Page = Instance.new("ScrollingFrame", PageContainer)
-        Page.Size = UDim2.new(1, 0, 1, 0)
-        Page.BackgroundTransparency = 1
-        Page.Visible = false
-        Page.ScrollBarThickness = 2
-        Page.ScrollBarImageColor3 = SlayLib.Theme.MainColor
-        local PageList = Instance.new("UIListLayout", Page)
-        PageList.Padding = UDim.new(0, 10)
+        local Page = Create("ScrollingFrame", {
+            Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1,
+            Visible = false, ScrollBarThickness = 2, Parent = PageContainer
+        })
+        Create("UIListLayout", {Padding = UDim.new(0, 12), Parent = Page})
 
-        TabBtn.MouseButton1Click:Connect(function()
+        TBtn.MouseButton1Click:Connect(function()
             if Window.CurrentTab then
                 Window.CurrentTab.Page.Visible = false
                 Tween(Window.CurrentTab.Btn, {BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.TextSecondary}, 0.3)
             end
-            Window.CurrentTab = {Page = Page, Btn = TabBtn}
+            Window.CurrentTab = {Page = Page, Btn = TBtn}
             Page.Visible = true
-            Tween(TabBtn, {BackgroundTransparency = 0.1, TextColor3 = SlayLib.Theme.MainColor}, 0.3)
+            Tween(TBtn, {BackgroundTransparency = 0.1, TextColor3 = SlayLib.Theme.MainColor}, 0.3)
         end)
 
         if not Window.CurrentTab then
-            Window.CurrentTab = {Page = Page, Btn = TabBtn}
+            Window.CurrentTab = {Page = Page, Btn = TBtn}
             Page.Visible = true
-            TabBtn.BackgroundTransparency = 0.1
-            TabBtn.TextColor3 = SlayLib.Theme.MainColor
+            TBtn.BackgroundTransparency = 0.1
+            TBtn.TextColor3 = SlayLib.Theme.MainColor
         end
 
         function Tab:CreateSection(Title)
             local Section = {}
-            local SectLbl = Instance.new("TextLabel", Page)
-            SectLbl.Text = Title:upper()
-            SectLbl.Size = UDim2.new(1, 0, 0, 20)
-            SectLbl.Font = "GothamBold"
-            SectLbl.TextSize = 11
-            SectLbl.TextColor3 = SlayLib.Theme.MainColor
-            SectLbl.BackgroundTransparency = 1
-            SectLbl.TextXAlignment = "Left"
+            Create("TextLabel", {
+                Text = Title:upper(), Size = UDim2.new(1, 0, 0, 25), Font = "GothamBold",
+                TextSize = 11, TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1,
+                TextXAlignment = "Left", Parent = Page
+            })
 
             -- TOGGLE
             function Section:CreateToggle(Props, Flag)
                 Props = Props or {Name = "Toggle", Callback = function() end}
                 local State = false
-                local TglFrame = Instance.new("Frame", Page)
-                TglFrame.Size = UDim2.new(1, -10, 0, 45)
-                TglFrame.BackgroundColor3 = SlayLib.Theme.Element
-                Instance.new("UICorner", TglFrame).CornerRadius = UDim.new(0, 7)
+                local TFrame = Create("Frame", {
+                    Size = UDim2.new(1, -10, 0, 48), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page
+                })
+                Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = TFrame})
                 
-                local Lbl = Instance.new("TextLabel", TglFrame)
-                Lbl.Text = "  " .. Props.Name
-                Lbl.Size = UDim2.new(1, 0, 1, 0)
-                Lbl.Font = "GothamMedium"
-                Lbl.TextSize = 14
-                Lbl.TextColor3 = SlayLib.Theme.Text
-                Lbl.TextXAlignment = "Left"
-                Lbl.BackgroundTransparency = 1
+                local L = Create("TextLabel", {
+                    Text = "  " .. Props.Name, Size = UDim2.new(1, 0, 1, 0), Font = "GothamMedium",
+                    TextSize = 14, TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left",
+                    BackgroundTransparency = 1, Parent = TFrame
+                })
 
-                local Switch = Instance.new("Frame", TglFrame)
-                Switch.Size = UDim2.new(0, 40, 0, 20)
-                Switch.Position = UDim2.new(1, -50, 0.5, -10)
-                Switch.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-                Instance.new("UICorner", Switch).CornerRadius = UDim.new(1, 0)
+                local Sw = Create("Frame", {
+                    Size = UDim2.new(0, 42, 0, 22), Position = UDim2.new(1, -52, 0.5, -11),
+                    BackgroundColor3 = Color3.fromRGB(50, 50, 50), Parent = TFrame
+                })
+                Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Sw})
 
-                local Dot = Instance.new("Frame", Switch)
-                Dot.Size = UDim2.new(0, 14, 0, 14)
-                Dot.Position = UDim2.new(0, 3, 0.5, -7)
-                Dot.BackgroundColor3 = Color3.new(1, 1, 1)
-                Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+                local D = Create("Frame", {
+                    Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(0, 3, 0.5, -8),
+                    BackgroundColor3 = Color3.new(1, 1, 1), Parent = Sw
+                })
+                Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = D})
 
-                local Click = Instance.new("TextButton", TglFrame)
-                Click.Size = UDim2.new(1, 0, 1, 0)
-                Click.BackgroundTransparency = 1
-                Click.Text = ""
-
+                local Click = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = TFrame})
                 Click.MouseButton1Click:Connect(function()
                     State = not State
-                    Tween(Switch, {BackgroundColor3 = State and SlayLib.Theme.MainColor or Color3.fromRGB(50, 50, 50)}, 0.3)
-                    Tween(Dot, {Position = State and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)}, 0.3)
+                    Tween(Sw, {BackgroundColor3 = State and SlayLib.Theme.MainColor or Color3.fromRGB(50, 50, 50)}, 0.3)
+                    Tween(D, {Position = State and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8)}, 0.3)
                     Props.Callback(State)
                     if Flag then SlayLib.Flags[Flag] = State end
                 end)
             end
 
-            -- BUTTON
-            function Section:CreateButton(Props)
-                local Btn = Instance.new("TextButton", Page)
-                Btn.Size = UDim2.new(1, -10, 0, 40)
-                Btn.BackgroundColor3 = SlayLib.Theme.Element
-                Btn.Text = Props.Name
-                Btn.Font = "GothamMedium"
-                Btn.TextSize = 14
-                Btn.TextColor3 = SlayLib.Theme.Text
-                Instance.new("UICorner", Btn).CornerRadius = UDim.new(0, 7)
-                Btn.MouseButton1Click:Connect(Props.Callback)
-            end
-
             -- SLIDER
             function Section:CreateSlider(Props, Flag)
                 Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Callback = function() end}
-                local Value = Props.Def
-                local Frame = Instance.new("Frame", Page)
-                Frame.Size = UDim2.new(1, -10, 0, 60)
-                Frame.BackgroundColor3 = SlayLib.Theme.Element
-                Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 7)
+                local Val = Props.Def
+                local SFrame = Create("Frame", {Size = UDim2.new(1, -10, 0, 65), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page})
+                Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SFrame})
 
-                local Lbl = Instance.new("TextLabel", Frame)
-                Lbl.Text = "  " .. Props.Name
-                Lbl.Size = UDim2.new(1, 0, 0, 30)
-                Lbl.Font = "GothamMedium"
-                Lbl.TextColor3 = SlayLib.Theme.Text
-                Lbl.BackgroundTransparency = 1
-                Lbl.TextXAlignment = "Left"
+                local L = Create("TextLabel", {
+                    Text = "  " .. Props.Name, Size = UDim2.new(1, 0, 0, 35), Font = "GothamMedium",
+                    TextColor3 = SlayLib.Theme.Text, BackgroundTransparency = 1, TextXAlignment = "Left", Parent = SFrame
+                })
 
-                local ValLbl = Instance.new("TextLabel", Frame)
-                ValLbl.Text = tostring(Value)
-                ValLbl.Size = UDim2.new(1, -15, 0, 30)
-                ValLbl.Font = "Code"
-                ValLbl.TextColor3 = SlayLib.Theme.MainColor
-                ValLbl.TextXAlignment = "Right"
-                ValLbl.BackgroundTransparency = 1
+                local VL = Create("TextLabel", {
+                    Text = tostring(Val), Size = UDim2.new(1, -15, 0, 35), Font = "Code",
+                    TextColor3 = SlayLib.Theme.MainColor, TextXAlignment = "Right", BackgroundTransparency = 1, Parent = SFrame
+                })
 
-                local Rail = Instance.new("Frame", Frame)
-                Rail.Size = UDim2.new(1, -30, 0, 5)
-                Rail.Position = UDim2.new(0, 15, 0, 45)
-                Rail.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
-                Instance.new("UICorner", Rail)
-
-                local Fill = Instance.new("Frame", Rail)
-                Fill.Size = UDim2.new((Value-Props.Min)/(Props.Max-Props.Min), 0, 1, 0)
-                Fill.BackgroundColor3 = SlayLib.Theme.MainColor
-                Instance.new("UICorner", Fill)
+                local R = Create("Frame", {
+                    Size = UDim2.new(1, -30, 0, 6), Position = UDim2.new(0, 15, 0, 48),
+                    BackgroundColor3 = Color3.fromRGB(45, 45, 45), Parent = SFrame
+                })
+                local F = Create("Frame", {
+                    Size = UDim2.new((Val-Props.Min)/(Props.Max-Props.Min), 0, 1, 0),
+                    BackgroundColor3 = SlayLib.Theme.MainColor, Parent = R
+                })
+                Create("UICorner", {Parent = R}) Create("UICorner", {Parent = F})
 
                 local Dragging = false
                 local function Update()
-                    local Pos = math.clamp((Mouse.X - Rail.AbsolutePosition.X) / Rail.AbsoluteSize.X, 0, 1)
-                    local NewVal = math.floor(Props.Min + (Props.Max - Props.Min) * Pos)
-                    Fill.Size = UDim2.new(Pos, 0, 1, 0)
-                    ValLbl.Text = tostring(NewVal)
-                    Props.Callback(NewVal)
-                    if Flag then SlayLib.Flags[Flag] = NewVal end
+                    local P = math.clamp((Mouse.X - R.AbsolutePosition.X) / R.AbsoluteSize.X, 0, 1)
+                    local NV = math.floor(Props.Min + (Props.Max - Props.Min) * P)
+                    F.Size = UDim2.new(P, 0, 1, 0)
+                    VL.Text = tostring(NV)
+                    Props.Callback(NV)
+                    if Flag then SlayLib.Flags[Flag] = NV end
                 end
 
-                Frame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end end)
+                SFrame.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = true end end)
                 UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then Dragging = false end end)
                 RunService.RenderStepped:Connect(function() if Dragging then Update() end end)
             end
 
-            -- DROPDOWN
-            function Section:CreateDropdown(Props, Flag)
-                Props = Props or {Name = "Dropdown", Options = {}, Callback = function() end}
-                local Open = false
-                local Frame = Instance.new("Frame", Page)
-                Frame.Size = UDim2.new(1, -10, 0, 40)
-                Frame.BackgroundColor3 = SlayLib.Theme.Element
-                Frame.ClipsDescendants = true
-                Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 7)
-
-                local Btn = Instance.new("TextButton", Frame)
-                Btn.Size = UDim2.new(1, 0, 0, 40)
-                Btn.BackgroundTransparency = 1
-                Btn.Text = "  " .. Props.Name
-                Btn.Font = "GothamMedium"
-                Btn.TextColor3 = SlayLib.Theme.Text
-                Btn.TextXAlignment = "Left"
-
-                local Container = Instance.new("Frame", Frame)
-                Container.Position = UDim2.new(0, 0, 0, 40)
-                Container.Size = UDim2.new(1, 0, 0, #Props.Options * 30)
-                Container.BackgroundTransparency = 1
-                Instance.new("UIListLayout", Container)
-
-                for _, v in pairs(Props.Options) do
-                    local Opt = Instance.new("TextButton", Container)
-                    Opt.Size = UDim2.new(1, 0, 0, 30)
-                    Opt.BackgroundTransparency = 1
-                    Opt.Text = "      " .. v
-                    Opt.Font = "Gotham"
-                    Opt.TextColor3 = SlayLib.Theme.TextSecondary
-                    Opt.TextXAlignment = "Left"
-                    Opt.MouseButton1Click:Connect(function()
-                        Btn.Text = "  " .. Props.Name .. " : " .. v
-                        Open = false
-                        Tween(Frame, {Size = UDim2.new(1, -10, 0, 40)}, 0.3)
-                        Props.Callback(v)
-                    end)
-                end
-
-                Btn.MouseButton1Click:Connect(function()
-                    Open = not Open
-                    Tween(Frame, {Size = Open and UDim2.new(1, -10, 0, 40 + (#Props.Options * 30)) or UDim2.new(1, -10, 0, 40)}, 0.4)
-                end)
+            -- BUTTON
+            function Section:CreateButton(Props)
+                local B = Create("TextButton", {
+                    Size = UDim2.new(1, -10, 0, 45), BackgroundColor3 = SlayLib.Theme.Element,
+                    Text = Props.Name, Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.Text, Parent = Page
+                })
+                Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = B})
+                B.MouseButton1Down:Connect(function() Tween(B, {BackgroundColor3 = SlayLib.Theme.ElementHover}, 0.2) end)
+                B.MouseButton1Up:Connect(function() Tween(B, {BackgroundColor3 = SlayLib.Theme.Element}, 0.2) Props.Callback() end)
             end
 
             return Section
@@ -440,20 +385,11 @@ function SlayLib:CreateWindow(Config)
         return Tab
     end
 
-    -- Draggable Elements
+    -- Enable Dragging for Main GUI and Toggle Button
     MakeDraggable(MainFrame, Sidebar)
     MakeDraggable(ToggleBtn, ToggleBtn)
-    
-    return Window
-end
 
--- ระบบเปลี่ยนธีม (Theme Engine)
-function SlayLib:SetTheme(NewTheme)
-    for i, v in pairs(NewTheme) do
-        if SlayLib.Theme[i] then
-            SlayLib.Theme[i] = v
-        end
-    end
+    return Window
 end
 
 return SlayLib
