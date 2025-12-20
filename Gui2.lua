@@ -428,34 +428,35 @@ function Window:CreateTab(Name, IconID)
     end  
 
     --// SECTION CREATOR  
+        --// SECTION CREATOR (FIXED STRUCTURE)
     function Tab:CreateSection(SName)
-    local Section = {}
-    
-    -- สร้าง Frame เปล่าเป็นช่องว่าง (Spacer) เพื่อความเป็นระเบียบ
-    local Spacer = Create("Frame", {
-        Name = "SectionSpacer",
-        Size = UDim2.new(1, 0, 0, 10), -- เว้นระยะห่างด้านบน 10 pixels
-        BackgroundTransparency = 1,
-        Parent = Page
-    })
+        local Section = {}
 
-    local SectLabel = Create("TextLabel", {
-        Name = "SectionLabel",
-        Text = SName:upper(), 
-        Size = UDim2.new(1, 0, 0, 25), 
-        Font = "GothamBold", 
-        TextSize = 12, 
-        TextColor3 = SlayLib.Theme.MainColor, 
-        BackgroundTransparency = 1, 
-        TextXAlignment = "Left", 
-        Parent = Page
-    })
-    SlayLib.ThemeObjects[SectLabel] = "Text"
-    
-        -- 1. ADVANCED TOGGLE  
+        -- ส่วนหัว Section และระยะห่าง
+        local Spacer = Create("Frame", {
+            Name = "SectionSpacer",
+            Size = UDim2.new(1, 0, 0, 10),
+            BackgroundTransparency = 1,
+            Parent = Page -- Page ถูกเรียกใช้ได้ถูกต้องแล้ว
+        })
+
+        local SectLabel = Create("TextLabel", {
+            Name = "SectionLabel",
+            Text = SName:upper(), 
+            Size = UDim2.new(1, 0, 0, 25), 
+            Font = "GothamBold", 
+            TextSize = 12, 
+            TextColor3 = SlayLib.Theme.MainColor, 
+            BackgroundTransparency = 1, 
+            TextXAlignment = "Left", 
+            Parent = Page
+        })
+
+        -- [1] ADVANCED TOGGLE (With Config Support)
         function Section:CreateToggle(Props)  
             Props = Props or {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end}  
-            local TState = Props.CurrentValue  
+            -- เช็คว่ามีค่าใน Config เดิมไหม ถ้าไม่มีให้ใช้ Default
+            local TState = SlayLib.Flags[Props.Flag] or Props.CurrentValue or false
             SlayLib.Flags[Props.Flag] = TState  
 
             local TContainer = Create("Frame", {  
@@ -494,43 +495,24 @@ function Window:CreateTab(Name, IconID)
             end)  
         end  
 
-        -- 2. PRECISION SLIDER  
+        -- [2] PRECISION SLIDER (With Config Support)
         function Section:CreateSlider(Props)  
             Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end}  
-            local Value = Props.Def  
+            local Value = SlayLib.Flags[Props.Flag] or Props.Def
             SlayLib.Flags[Props.Flag] = Value  
 
-            local SContainer = Create("Frame", {  
-                Size = UDim2.new(1, 0, 0, 75), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page  
-            })  
+            local SContainer = Create("Frame", {Size = UDim2.new(1, 0, 0, 75), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page})  
             Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = SContainer})  
 
-            local SLbl = Create("TextLabel", {  
-                Size = UDim2.new(1, -100, 0, 40), Position = UDim2.new(0, 15, 0, 5),  
-                Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,  
-                TextXAlignment = "Left", BackgroundTransparency = 1, Parent = SContainer  
-            })  
+            local SLbl = Create("TextLabel", {Size = UDim2.new(1, -100, 0, 40), Position = UDim2.new(0, 15, 0, 5), Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = SContainer})  
             ApplyTextLogic(SLbl, Props.Name, 15)  
 
-            local ValInput = Create("TextBox", {  
-                Text = tostring(Value), Size = UDim2.new(0, 60, 0, 25), Position = UDim2.new(1, -75, 0, 12),  
-                Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,  
-                BackgroundColor3 = Color3.fromRGB(35,35,35), Parent = SContainer  
-            })  
+            local ValInput = Create("TextBox", {Text = tostring(Value), Size = UDim2.new(0, 60, 0, 25), Position = UDim2.new(1, -75, 0, 12), Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor, BackgroundColor3 = Color3.fromRGB(35,35,35), Parent = SContainer})  
             Create("UICorner", {CornerRadius = UDim.new(0, 5), Parent = ValInput})  
 
-            local Bar = Create("Frame", {  
-                Size = UDim2.new(1, -30, 0, 6), Position = UDim2.new(0, 15, 0, 55),  
-                BackgroundColor3 = Color3.fromRGB(45, 45, 45), Parent = SContainer  
-            })  
-            Create("UICorner", {Parent = Bar})  
-
-            local Fill = Create("Frame", {  
-                Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0),  
-                BackgroundColor3 = SlayLib.Theme.MainColor, Parent = Bar  
-            })  
-            Create("UICorner", {Parent = Fill})  
-
+            local Bar = Create("Frame", {Size = UDim2.new(1, -30, 0, 6), Position = UDim2.new(0, 15, 0, 55), BackgroundColor3 = Color3.fromRGB(45, 45, 45), Parent = SContainer})  
+            local Fill = Create("Frame", {Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, Parent = Bar})  
+            
             local function Update(Input)  
                 local Percentage = math.clamp((Input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)  
                 Value = math.floor(Props.Min + (Props.Max - Props.Min) * Percentage)  
@@ -541,38 +523,96 @@ function Window:CreateTab(Name, IconID)
             end  
 
             Bar.InputBegan:Connect(function(input)  
-                if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then  
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then  
                     Update(input)  
                     local MoveCon, EndCon  
-                    MoveCon = UserInputService.InputChanged:Connect(function(move)  
-                        if move.UserInputType == Enum.UserInputType.MouseMovement or move.UserInputType == Enum.UserInputType.Touch then  
-                            Update(move)  
-                        end  
-                    end)  
-                    EndCon = UserInputService.InputEnded:Connect(function(ended)  
-                        if ended.UserInputType == Enum.UserInputType.MouseButton1 or ended.UserInputType == Enum.UserInputType.Touch then  
-                            MoveCon:Disconnect() EndCon:Disconnect()  
-                        end  
-                    end)  
-                end  
-            end)  
-
-            ValInput.FocusLost:Connect(function()  
-                local n = tonumber(ValInput.Text)  
-                if n then  
-                    Value = math.clamp(n, Props.Min, Props.Max)  
-                    Fill.Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0)  
-                    ValInput.Text = tostring(Value)  
-                    task.spawn(Props.Callback, Value)  
+                    MoveCon = UserInputService.InputChanged:Connect(function(move) if move.UserInputType == Enum.UserInputType.MouseMovement then Update(move) end end)  
+                    EndCon = UserInputService.InputEnded:Connect(function(ended) if ended.UserInputType == Enum.UserInputType.MouseButton1 then MoveCon:Disconnect() EndCon:Disconnect() end end)  
                 end  
             end)  
         end  
 
-        -- 3. SEARCHABLE DROPDOWN  
+        -- [3] DYNAMIC PARAGRAPH (Fixed Overlap)
+        function Section:CreateParagraph(P)
+            local Box = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 0), 
+                AutomaticSize = Enum.AutomaticSize.Y, 
+                BackgroundColor3 = SlayLib.Theme.Element, 
+                Parent = Page
+            })
+            Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})
+            Create("UIListLayout", {Parent = Box, Padding = UDim.new(0, 4)})
+            Create("UIPadding", {PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), Parent = Box})
+
+            local Tl = Create("TextLabel", {Text = P.Title, Size = UDim2.new(1, 0, 0, 20), Font = "GothamBold", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, TextXAlignment = "Left", Parent = Box})
+            local Cl = Create("TextLabel", {Text = P.Content, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Font = "Gotham", TextSize = 13, TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1, TextWrapped = true, TextXAlignment = "Left", Parent = Box})
+        end
+
+                -- [4] INTERACTIVE BUTTON
+        function Section:CreateButton(Props)  
+            Props = Props or {Name = "Action Button", Callback = function() end}  
+
+            local BFrame = Create("TextButton", {  
+                Size = UDim2.new(1, 0, 0, 48), BackgroundColor3 = SlayLib.Theme.Element,  
+                Text = "", Parent = Page, AutoButtonColor = false  
+            })  
+            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = BFrame})  
+
+            local BLbl = Create("TextLabel", {  
+                Size = UDim2.new(1, 0, 1, 0), Font = "GothamBold", TextSize = 14,  
+                TextColor3 = SlayLib.Theme.Text, BackgroundTransparency = 1, Parent = BFrame  
+            })  
+            ApplyTextLogic(BLbl, Props.Name, 14)
+
+            BFrame.MouseEnter:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.ElementHover}, 0.2) end)  
+            BFrame.MouseLeave:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.Element}, 0.2) end)  
+
+            BFrame.MouseButton1Click:Connect(function()  
+                local Circle = Create("Frame", {  
+                    Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0),  
+                    BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 0.8, Parent = BFrame  
+                })  
+                Create("UICorner", {CornerRadius = UDim.new(1,0), Parent = Circle})  
+                Tween(Circle, {Size = UDim2.new(1,0,2,0), Position = UDim2.new(0,0,-0.5,0), BackgroundTransparency = 1}, 0.5)  
+                task.delay(0.5, function() Circle:Destroy() end)  
+                task.spawn(Props.Callback)  
+            end)  
+        end  
+
+        -- [5] SMART INPUT BOX
+        function Section:CreateInput(Props)  
+            Props = Props or {Name = "Input Field", Placeholder = "Value...", Callback = function() end}  
+
+            local IContainer = Create("Frame", {  
+                Size = UDim2.new(1, 0, 0, 55), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page  
+            })  
+            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = IContainer})  
+
+            local ILbl = Create("TextLabel", {  
+                Size = UDim2.new(0, 150, 1, 0), Position = UDim2.new(0, 15, 0, 0),  
+                Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,  
+                TextXAlignment = "Left", BackgroundTransparency = 1, Parent = IContainer  
+            })  
+            ApplyTextLogic(ILbl, Props.Name, 15)
+
+            local Box = Create("TextBox", {  
+                Size = UDim2.new(0, 180, 0, 32), Position = UDim2.new(1, -195, 0.5, -16),  
+                BackgroundColor3 = Color3.fromRGB(35, 35, 35), Text = "", PlaceholderText = Props.Placeholder,  
+                TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 14, Parent = IContainer,  
+                ClipsDescendants = true  
+            })  
+            Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})  
+
+            Box.FocusLost:Connect(function(enter)  
+                task.spawn(Props.Callback, Box.Text)  
+            end)  
+        end  
+
+        -- [6] SEARCHABLE DROPDOWN (พร้อมระบบ UpdateOptions)
         function Section:CreateDropdown(Props)  
             Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}  
             local IsOpen = false  
-            local Selected = Props.Options[1]  
+            local Selected = SlayLib.Flags[Props.Flag] or Props.Options[1]  
 
             local DContainer = Create("Frame", {  
                 Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element,  
@@ -600,7 +640,7 @@ function Window:CreateTab(Name, IconID)
                 Size = UDim2.new(1, -20, 0, 0), Position = UDim2.new(0, 10, 0, 55),  
                 BackgroundTransparency = 1, Parent = DContainer  
             })  
-            local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5)})  
+            Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5)})  
 
             local function Refresh()  
                 for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end  
@@ -614,6 +654,7 @@ function Window:CreateTab(Name, IconID)
 
                     OBtn.MouseButton1Click:Connect(function()  
                         Selected = opt  
+                        SlayLib.Flags[Props.Flag] = opt  
                         DLbl.Text = "  " .. Props.Name .. ": " .. tostring(opt)  
                         IsOpen = false  
                         Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
@@ -622,7 +663,6 @@ function Window:CreateTab(Name, IconID)
                     end)  
                 end  
             end  
-
             Refresh()  
 
             MainBtn.MouseButton1Click:Connect(function()  
@@ -631,134 +671,62 @@ function Window:CreateTab(Name, IconID)
                 Tween(DContainer, {Size = UDim2.new(1, 0, 0, math.min(Target, 300))}, 0.4)  
                 Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.4)  
             end)  
+        end
 
-            function Section:UpdateDropdown(NewOptions)  
-                Props.Options = NewOptions  
-                Refresh()  
-            end  
-        end  
+function Section:CreateColorPicker(Props)
+    Props = Props or {Name = "Color", Default = Color3.fromRGB(120, 80, 255), Flag = "CP_1", Callback = function() end}
+    local Color = SlayLib.Flags[Props.Flag] or Props.Default
+    local IsOpen = false
 
-        -- 4. INTERACTIVE BUTTON  
-        function Section:CreateButton(Props)  
-            Props = Props or {Name = "Action Button", Callback = function() end}  
-
-            local BFrame = Create("TextButton", {  
-                Size = UDim2.new(1, 0, 0, 48), BackgroundColor3 = SlayLib.Theme.Element,  
-                Text = "", Parent = Page, AutoButtonColor = false  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = BFrame})  
-
-            local BLbl = Create("TextLabel", {  
-                Size = UDim2.new(1, 0, 1, 0), Font = "GothamBold", TextSize = 14,  
-                TextColor3 = SlayLib.Theme.Text, BackgroundTransparency = 1, Parent = BFrame  
-            })  
-            ApplyTextLogic(BLbl, Props.Name, 14)  
-
-            BFrame.MouseEnter:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.ElementHover}, 0.2) end)  
-            BFrame.MouseLeave:Connect(function() Tween(BFrame, {BackgroundColor3 = SlayLib.Theme.Element}, 0.2) end)  
-
-            BFrame.MouseButton1Click:Connect(function()  
-                local Circle = Create("Frame", {  
-                    Size = UDim2.new(0,0,0,0), Position = UDim2.new(0.5,0,0.5,0),  
-                    BackgroundColor3 = Color3.new(1,1,1), BackgroundTransparency = 0.8, Parent = BFrame  
-                })  
-                Create("UICorner", {CornerRadius = UDim.new(1,0), Parent = Circle})  
-                Tween(Circle, {Size = UDim2.new(1,0,2,0), Position = UDim2.new(0,0,-0.5,0), BackgroundTransparency = 1}, 0.5)  
-                task.delay(0.5, function() Circle:Destroy() end)  
-                task.spawn(Props.Callback)  
-            end)  
-        end  
-
-        -- 5. SMART INPUT BOX  
-        function Section:CreateInput(Props)  
-            Props = Props or {Name = "Input Field", Placeholder = "Value...", Callback = function() end}  
-
-            local IContainer = Create("Frame", {  
-                Size = UDim2.new(1, 0, 0, 55), BackgroundColor3 = SlayLib.Theme.Element, Parent = Page  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = IContainer})  
-
-            local ILbl = Create("TextLabel", {  
-                Size = UDim2.new(0, 150, 1, 0), Position = UDim2.new(0, 15, 0, 0),  
-                Font = "GothamMedium", TextColor3 = SlayLib.Theme.Text,  
-                TextXAlignment = "Left", BackgroundTransparency = 1, Parent = IContainer  
-            })  
-            ApplyTextLogic(ILbl, Props.Name, 15)  
-
-            local Box = Create("TextBox", {  
-                Size = UDim2.new(0, 180, 0, 32), Position = UDim2.new(1, -195, 0.5, -16),  
-                BackgroundColor3 = Color3.fromRGB(35, 35, 35), Text = "", PlaceholderText = Props.Placeholder,  
-                TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 14, Parent = IContainer,  
-                ClipsDescendants = true  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})  
-
-            Box.FocusLost:Connect(function(enter)  
-                task.spawn(Props.Callback, Box.Text)  
-            end)  
-        end  
-
-        -- 6. DYNAMIC PARAGRAPH (MULTILINE)  
-        function Section:CreateParagraph(P)
-    -- ตัวกล่องหลัก (ขยายความสูงตามเนื้อหาอัตโนมัติ)
-    local Box = Create("Frame", {
-        Name = "ParagraphBox",
-        Size = UDim2.new(1, 0, 0, 0), 
-        AutomaticSize = Enum.AutomaticSize.Y, 
-        BackgroundColor3 = SlayLib.Theme.Element, 
-        Parent = Page
+    local CPContainer = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 45), BackgroundColor3 = SlayLib.Theme.Element,
+        ClipsDescendants = true, Parent = Page
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})
-    
-    -- ใช้ ListLayout จัดเรียง Title และ Content ไม่ให้ซ้อนกัน
-    local List = Create("UIListLayout", {
-        Parent = Box, 
-        Padding = UDim.new(0, 4), -- ระยะห่างระหว่างหัวข้อกับเนื้อหา
-        SortOrder = Enum.SortOrder.LayoutOrder
-    })
-    
-    -- ระยะห่างขอบใน (Padding)
-    Create("UIPadding", {
-        PaddingLeft = UDim.new(0, 15), 
-        PaddingRight = UDim.new(0, 15), 
-        PaddingTop = UDim.new(0, 12), 
-        PaddingBottom = UDim.new(0, 12), 
-        Parent = Box
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = CPContainer})
+
+    local Title = Create("TextLabel", {
+        Text = "  " .. Props.Name, Size = UDim2.new(1, 0, 0, 45),
+        Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.Text,
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = CPContainer
     })
 
-    -- หัวข้อ (Title)
-    local Tl = Create("TextLabel", {
-        Text = P.Title, 
-        Size = UDim2.new(1, 0, 0, 20), 
-        Font = "GothamBold", 
-        TextSize = 14, 
-        TextColor3 = SlayLib.Theme.MainColor, 
-        BackgroundTransparency = 1, 
-        TextXAlignment = "Left", 
-        LayoutOrder = 1,
-        Parent = Box
+    local ColorBox = Create("Frame", {
+        Size = UDim2.new(0, 35, 0, 22), Position = UDim2.new(1, -50, 0.5, -11),
+        BackgroundColor3 = Color, Parent = CPContainer
     })
-    SlayLib.ThemeObjects[Tl] = "Text"
+    Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = ColorBox})
 
-    -- เนื้อหา (Content) - ขยายบรรทัดเพิ่มตามข้อความจริง
-    local Cl = Create("TextLabel", {
-        Text = P.Content, 
-        Size = UDim2.new(1, 0, 0, 0), 
-        AutomaticSize = Enum.AutomaticSize.Y, 
-        Font = "Gotham", 
-        TextSize = 13, 
-        TextColor3 = SlayLib.Theme.TextSecondary, 
-        BackgroundTransparency = 1, 
-        TextWrapped = true, -- ขึ้นบรรทัดใหม่อัตโนมัติเมื่อยาวเกินขอบ
-        TextXAlignment = "Left", 
-        LayoutOrder = 2,
-        Parent = Box
+    -- ระบบแถบสี (Hue Bar)
+    local HueFrame = Create("ImageLabel", {
+        Size = UDim2.new(1, -30, 0, 15), Position = UDim2.new(0, 15, 0, 55),
+        Image = "rbxassetid://2320468862", Parent = CPContainer
     })
+
+    local function Update(input)
+        local p = math.clamp((input.Position.X - HueFrame.AbsolutePosition.X) / HueFrame.AbsoluteSize.X, 0, 1)
+        Color = Color3.fromHSV(p, 0.8, 1)
+        ColorBox.BackgroundColor3 = Color
+        SlayLib.Flags[Props.Flag] = Color
+        task.spawn(Props.Callback, Color)
+    end
+
+    HueFrame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            Update(input)
+            local move = UserInputService.InputChanged:Connect(function(m) if m.UserInputType == Enum.UserInputType.MouseMovement then Update(m) end end)
+            local endcon = UserInputService.InputEnded:Connect(function(e) if e.UserInputType == Enum.UserInputType.MouseButton1 then move:Disconnect() end end)
+        end
+    end)
+
+    Create("TextButton", {Size = UDim2.new(1,0,0,45), BackgroundTransparency = 1, Text = "", Parent = CPContainer}).MouseButton1Click:Connect(function()
+        IsOpen = not IsOpen
+        Tween(CPContainer, {Size = UDim2.new(1, 0, 0, IsOpen and 85 or 45)}, 0.4)
+    end)
 end
 
+        return Section -- คืนค่า Section ออกไปให้ Tab ใช้งาน
+    end -- จบ CreateSection
 
-        return Section  
-    end  
     return Tab  
 end  
 
