@@ -18,8 +18,8 @@ Warning = Color3.fromRGB(255, 165, 0),
 Error = Color3.fromRGB(255, 65, 65),
 },
 Icons = {
-Logofull = "rbxassetid://140165495984990",
-Logo = "rbxassetid://89445583330637",
+Logofull = "rbxassetid://116729461256827",
+Logo = "rbxassetid://71428791657528",
 Check = "rbxassetid://10734895530",
 Chevron = "rbxassetid://10734895856",
 Search = "rbxassetid://10734897102",
@@ -41,6 +41,17 @@ local Stats = game:GetService("Stats")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local Parent = (RunService:IsStudio() and LocalPlayer.PlayerGui or CoreGui)
+
+--// [ADDED] ANTI RE-EXECUTE SYSTEM (ระบบล้างของเก่าก่อนรันใหม่)
+for _, obj in pairs(Parent:GetChildren()) do
+    -- ตรวจสอบชื่อ ScreenGui ที่เราตั้งไว้ในโค้ด (Engine, Loading, Notification)
+    if obj.Name == "SlayLib_X_Engine" or obj.Name == "SlayLoadingEnv" or obj.Name == "SlayNotifFinal" then
+        obj:Destroy()
+    end
+end
+-- ล้างเอฟเฟกต์ Blur ที่ค้างอยู่ใน Lighting
+if Lighting:FindFirstChild("SlayBlur") then Lighting.SlayBlur:Destroy() end
+if Lighting:FindFirstChild("Blur") then Lighting.Blur:Destroy() end
 
 --// Folder Management (Config)
 if not isfolder(SlayLib.Folder) then
@@ -250,7 +261,7 @@ Create("UICorner", {Parent = BarBg}) Create("UICorner", {Parent = BarFill})
 
 -- Sequence Start  
 Tween(Blur, {Size = 28}, 1)  
-Tween(Logo, {Size = UDim2.new(0, 140, 0, 140), Position = UDim2.new(0.5, -70, 0.45, -70)}, 1.2, Enum.EasingStyle.Elastic)  
+Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.45, -110)}, 1.2, Enum.EasingStyle.Elastic)  
 task.wait(0.6)  
 Tween(InfoLabel, {TextTransparency = 0}, 0.5)  
 Tween(BarBg, {BackgroundTransparency = 0}, 0.5)  
@@ -315,9 +326,9 @@ local ToggleStroke = Create("UIStroke", {
 
 -- โลโก้แบบย่อ (SX) อยู่ตรงกลางสี่เหลี่ยม
 local ToggleIcon = Create("ImageLabel", {  
-    Size = UDim2.new(0, 30, 0, 30), 
-    Position = UDim2.new(0.5, -15, 0.5, -15),  
-    Image = SlayLib.Icons.LogoSmall, 
+    Size = UDim2.new(0, 42, 0, 42), 
+    Position = UDim2.new(0.5, -21, 0.5, -21),  
+    Image = SlayLib.Icons.Logo, 
     ImageColor3 = Color3.new(1, 1, 1), -- แสดงสีจริงของโลโก้
     BackgroundTransparency = 1, 
     Parent = FloatingToggle  
