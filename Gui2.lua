@@ -292,19 +292,47 @@ local Window = {
 
 local CoreGuiFrame = Create("ScreenGui", {Name = "SlayLib_X_Engine", Parent = Parent, ZIndexBehavior = Enum.ZIndexBehavior.Sibling})  
 
--- 1. FLOATING TOGGLE ICON (Always accessible)  
+-- 1. FLOATING TOGGLE BOX (Square Design & Draggable)
 local FloatingToggle = Create("Frame", {  
-    Size = UDim2.new(0, 55, 0, 55), Position = UDim2.new(0.05, 0, 0.2, 0),  
-    BackgroundColor3 = SlayLib.Theme.MainColor, Parent = CoreGuiFrame,  
+    Name = "SlayFloatingToggle",
+    Size = UDim2.new(0, 50, 0, 50), 
+    Position = UDim2.new(0.05, 0, 0.2, 0),  
+    BackgroundColor3 = Color3.fromRGB(20, 20, 20), -- พื้นหลังสีดำออกเทา
+    Parent = CoreGuiFrame,  
     ZIndex = 50  
 })  
-Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})  
-Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 2, Transparency = 0.7, Parent = FloatingToggle})  
-local ToggleIcon = Create("ImageLabel", {  
-    Size = UDim2.new(0, 32, 0, 32), Position = UDim2.new(0.5, -16, 0.5, -16),  
-    Image = SlayLib.Icons.Logo, BackgroundTransparency = 1, Parent = FloatingToggle  
+
+-- ปรับขอบสี่เหลี่ยมให้มนเล็กน้อย (8px) เพื่อความสวยงามแบบโปร
+Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = FloatingToggle})  
+
+-- ขอบสีฟ้าๆม่วงๆ (ใช้ MainColor จาก Theme)
+local ToggleStroke = Create("UIStroke", {
+    Color = SlayLib.Theme.MainColor, 
+    Thickness = 2, 
+    Transparency = 0.5, 
+    Parent = FloatingToggle
 })  
-local ToggleButton = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", Parent = FloatingToggle})  
+
+-- โลโก้แบบย่อ (SX) อยู่ตรงกลางสี่เหลี่ยม
+local ToggleIcon = Create("ImageLabel", {  
+    Size = UDim2.new(0, 30, 0, 30), 
+    Position = UDim2.new(0.5, -15, 0.5, -15),  
+    Image = SlayLib.Icons.LogoSmall, 
+    ImageColor3 = Color3.new(1, 1, 1), -- แสดงสีจริงของโลโก้
+    BackgroundTransparency = 1, 
+    Parent = FloatingToggle  
+})  
+
+-- ปุ่มสำหรับกด
+local ToggleButton = Create("TextButton", {
+    Size = UDim2.new(1, 0, 1, 0), 
+    BackgroundTransparency = 1, 
+    Text = "", 
+    Parent = FloatingToggle
+})
+
+-- ทำให้ลากได้ (Draggable)
+RegisterDrag(FloatingToggle, FloatingToggle)
 
 -- 2. MAIN HUB FRAME  
 local MainFrame = Create("Frame", {  
