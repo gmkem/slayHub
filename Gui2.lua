@@ -124,60 +124,103 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
+--// ส่วนที่ 3: ระบบแจ้งเตือนแบบ Stacking (รองรับข้อความยาว)
 function SlayLib:Notify(Config)
-Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
+    Config = Config or {
+        Title = "Notification", 
+        Content = "Message", 
+        Duration = 5, 
+        Type = "Neutral" -- Success, Error, Warning, Neutral
+    }
 
-local Holder = Parent:FindFirstChild("SlayNotificationProvider")  
-if not Holder then  
-    Holder = Create("Frame", {  
-        Name = "SlayNotificationProvider", Parent = Parent, BackgroundTransparency = 1,  
-        Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -330, 0, 20)  
-    })  
-    Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Bottom", Padding = UDim.new(0, 10)})  
-end  
+    -- ตรวจสอบตัวรองรับการแจ้งเตือน (ถ้าไม่มีให้สร้างใหม่)
+    local Holder = Parent:FindFirstChild("SlayNotificationProvider")  
+    if not Holder then  
+        Holder = Create("Frame", {
+            Name = "SlayNotificationProvider", 
+            Parent = Parent, 
+            BackgroundTransparency = 1, 
+            Size = UDim2.new(0, 300, 1, -40), 
+            Position = UDim2.new(1, -310, 0, 20)
+        })  
+        Create("UIListLayout", {
+            Parent = Holder, 
+            VerticalAlignment = "Bottom", -- ให้เด้งจากล่างขึ้นบน
+            Padding = UDim.new(0, 10)
+        })  
+    end  
 
-local NotifColor = SlayLib.Theme.MainColor  
-if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success  
-elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error  
-elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end  
+    -- กำหนดสีตามประเภท
+    local NotifColor = (Config.Type == "Success" and self.Theme.Success) 
+        or (Config.Type == "Error" and self.Theme.Error) 
+        or (Config.Type == "Warning" and self.Theme.Warning) 
+        or self.Theme.MainColor
+    
+    -- ตัวกล่องแจ้งเตือน
+    local Frame = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0), 
+        BackgroundColor3 = self.Theme.Sidebar, 
+        ClipsDescendants = true, 
+        Parent = Holder
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Frame})
+    local Stroke = Create("UIStroke", {Color = NotifColor, Thickness = 2, Parent = Frame})
+    
+    -- ส่วนจัดการเนื้อหาภายใน (ใช้ ListLayout เพื่อจัดระเบียบ Text)
+    local ContentFrame = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        BackgroundTransparency = 1,
+        Parent = Frame
+    })
+    Create("UIListLayout", {Parent = ContentFrame, Padding = UDim.new(0, 2)})
+    Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 15), 
+        PaddingRight = UDim.new(0, 15), 
+        PaddingTop = UDim.new(0, 12), 
+        PaddingBottom = UDim.new(0, 12), 
+        Parent = ContentFrame
+    })
 
-local NotifFrame = Create("Frame", {  
-    Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Sidebar,  
-    ClipsDescendants = true, Parent = Holder, BackgroundTransparency = 1  
-})  
-Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})  
-local Stroke = Create("UIStroke", {Color = NotifColor, Thickness = 1.8, Parent = NotifFrame, Transparency = 1})  
+    -- หัวข้อการแจ้งเตือน
+    local Tl = Create("TextLabel", {
+        Text = Config.Title,
+        Size = UDim2.new(1, 0, 0, 20), 
+        Font = "GothamBold", 
+        TextColor3 = NotifColor, 
+        TextSize = 14,
+        BackgroundTransparency = 1, 
+        TextXAlignment = "Left", 
+        Parent = ContentFrame
+    })
 
-local Accent = Create("Frame", {  
-    Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = NotifColor, Parent = NotifFrame  
-})  
-Create("UICorner", {Parent = Accent})  
+    -- เนื้อหาการแจ้งเตือน (ขยายขนาดตามข้อความจริง)
+    local Cl = Create("TextLabel", {
+        Text = Config.Content,
+        Size = UDim2.new(1, 0, 0, 0), 
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Font = "Gotham", 
+        TextColor3 = self.Theme.Text, 
+        TextSize = 12,
+        TextWrapped = true,
+        BackgroundTransparency = 1, 
+        TextXAlignment = "Left", 
+        Parent = ContentFrame
+    })
 
-local TitleLabel = Create("TextLabel", {  
-    Size = UDim2.new(1, -50, 0, 25), Position = UDim2.new(0, 15, 0, 8),  
-    Font = "GothamBold", TextColor3 = NotifColor,  
-    BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame  
-})  
-ApplyTextLogic(TitleLabel, Config.Title, 14)  
+    -- Animation ตอนเด้งเข้า
+    -- เราจะรอให้ ContentFrame คำนวณขนาดเสร็จแล้วค่อยขยาย Frame หลักตาม
+    task.spawn(function()
+        local TargetHeight = ContentFrame.AbsoluteSize.Y
+        Tween(Frame, {Size = UDim2.new(1, 0, 0, TargetHeight)}, 0.4, Enum.EasingStyle.Back)
+    end)
 
-local ContentLabel = Create("TextLabel", {  
-    Size = UDim2.new(1, -30, 0, 30), Position = UDim2.new(0, 15, 0, 28),  
-    Font = "Gotham", TextColor3 = SlayLib.Theme.Text,  
-    BackgroundTransparency = 1, TextXAlignment = "Left", Parent = NotifFrame  
-})  
-ApplyTextLogic(ContentLabel, Config.Content, 12)  
-
--- Entrance Animation  
-Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 75), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)  
-Tween(Stroke, {Transparency = 0}, 0.5)  
-
-task.delay(Config.Duration, function()  
-    Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.5)  
-    Tween(Stroke, {Transparency = 1}, 0.5)  
-    task.wait(0.5)  
-    NotifFrame:Destroy()  
-end)
-
+    -- Animation ตอนหายไป
+    task.delay(Config.Duration, function()
+        Tween(Frame, {Size = UDim2.new(1, 0, 0, 0), BackgroundTransparency = 1}, 0.4)
+        task.wait(0.4) 
+        Frame:Destroy()
+    end)
 end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
@@ -385,18 +428,30 @@ function Window:CreateTab(Name, IconID)
     end  
 
     --// SECTION CREATOR  
-    function Tab:CreateSection(SName)  
-        local Section = {}  
+    function Tab:CreateSection(SName)
+    local Section = {}
+    
+    -- สร้าง Frame เปล่าเป็นช่องว่าง (Spacer) เพื่อความเป็นระเบียบ
+    local Spacer = Create("Frame", {
+        Name = "SectionSpacer",
+        Size = UDim2.new(1, 0, 0, 10), -- เว้นระยะห่างด้านบน 10 pixels
+        BackgroundTransparency = 1,
+        Parent = Page
+    })
 
-        local SectFrame = Create("Frame", {  
-            Size = UDim2.new(1, 0, 0, 30), BackgroundTransparency = 1, Parent = Page  
-        })  
-        local SectLabel = Create("TextLabel", {  
-            Text = SName:upper(), Size = UDim2.new(1, 0, 1, 0),  
-            Font = "GothamBold", TextSize = 12, TextColor3 = SlayLib.Theme.MainColor,  
-            BackgroundTransparency = 1, TextXAlignment = "Left", Parent = SectFrame  
-        })  
-
+    local SectLabel = Create("TextLabel", {
+        Name = "SectionLabel",
+        Text = SName:upper(), 
+        Size = UDim2.new(1, 0, 0, 25), 
+        Font = "GothamBold", 
+        TextSize = 12, 
+        TextColor3 = SlayLib.Theme.MainColor, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = "Left", 
+        Parent = Page
+    })
+    SlayLib.ThemeObjects[SectLabel] = "Text"
+    
         -- 1. ADVANCED TOGGLE  
         function Section:CreateToggle(Props)  
             Props = Props or {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end}  
@@ -644,30 +699,63 @@ function Window:CreateTab(Name, IconID)
         end  
 
         -- 6. DYNAMIC PARAGRAPH (MULTILINE)  
-        function Section:CreateParagraph(Props)  
-            Props = Props or {Title = "Header", Content = "Your text goes here."}  
+        function Section:CreateParagraph(P)
+    -- ตัวกล่องหลัก (ขยายความสูงตามเนื้อหาอัตโนมัติ)
+    local Box = Create("Frame", {
+        Name = "ParagraphBox",
+        Size = UDim2.new(1, 0, 0, 0), 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        BackgroundColor3 = SlayLib.Theme.Element, 
+        Parent = Page
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Box})
+    
+    -- ใช้ ListLayout จัดเรียง Title และ Content ไม่ให้ซ้อนกัน
+    local List = Create("UIListLayout", {
+        Parent = Box, 
+        Padding = UDim.new(0, 4), -- ระยะห่างระหว่างหัวข้อกับเนื้อหา
+        SortOrder = Enum.SortOrder.LayoutOrder
+    })
+    
+    -- ระยะห่างขอบใน (Padding)
+    Create("UIPadding", {
+        PaddingLeft = UDim.new(0, 15), 
+        PaddingRight = UDim.new(0, 15), 
+        PaddingTop = UDim.new(0, 12), 
+        PaddingBottom = UDim.new(0, 12), 
+        Parent = Box
+    })
 
-            local PContainer = Create("Frame", {  
-                Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.Element,  
-                AutomaticSize = "Y", Parent = Page  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = PContainer})  
-            Create("UIPadding", {Parent = PContainer, PaddingLeft = UDim.new(0, 15), PaddingRight = UDim.new(0, 15), PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10)})  
+    -- หัวข้อ (Title)
+    local Tl = Create("TextLabel", {
+        Text = P.Title, 
+        Size = UDim2.new(1, 0, 0, 20), 
+        Font = "GothamBold", 
+        TextSize = 14, 
+        TextColor3 = SlayLib.Theme.MainColor, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = "Left", 
+        LayoutOrder = 1,
+        Parent = Box
+    })
+    SlayLib.ThemeObjects[Tl] = "Text"
 
-            local PTtl = Create("TextLabel", {  
-                Size = UDim2.new(1, 0, 0, 22), Font = "GothamBold",   
-                TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1,  
-                TextXAlignment = "Left", Parent = PContainer  
-            })  
-            ApplyTextLogic(PTtl, Props.Title, 14)  
+    -- เนื้อหา (Content) - ขยายบรรทัดเพิ่มตามข้อความจริง
+    local Cl = Create("TextLabel", {
+        Text = P.Content, 
+        Size = UDim2.new(1, 0, 0, 0), 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        Font = "Gotham", 
+        TextSize = 13, 
+        TextColor3 = SlayLib.Theme.TextSecondary, 
+        BackgroundTransparency = 1, 
+        TextWrapped = true, -- ขึ้นบรรทัดใหม่อัตโนมัติเมื่อยาวเกินขอบ
+        TextXAlignment = "Left", 
+        LayoutOrder = 2,
+        Parent = Box
+    })
+end
 
-            local PCnt = Create("TextLabel", {  
-                Size = UDim2.new(1, 0, 0, 0), Font = "Gotham",   
-                TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,  
-                TextXAlignment = "Left", AutomaticSize = "Y", Parent = PContainer  
-            })  
-            ApplyTextLogic(PCnt, Props.Content, 12)  
-        end  
 
         return Section  
     end  
@@ -679,21 +767,55 @@ return Window
 end
 
 --// AUTO-SAVE LOGIC (GRAND ADDITION)
-function SlayLib:SaveConfig(Name)
-local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-local Data = HttpService:JSONEncode(SlayLib.Flags)
-writefile(FullPath, Data)
-SlayLib:Notify({Title = "System", Content = "Config Saved Successfully!", Type = "Success", Duration = 3})
+--// ฟังก์ชันสำหรับบันทึกค่า (Save)
+function SlayLib:SaveConfig(FileName)
+    FileName = FileName or "DefaultConfig"
+    local Path = self.Folder .. "/" .. FileName .. ".json"
+    
+    -- แปลงตาราง Flags (ที่เราเก็บค่าพวก Toggle/Slider ไว้) เป็น JSON
+    local Success, Data = pcall(function()
+        return HttpService:JSONEncode(self.Flags)
+    end)
+
+    if Success then
+        writefile(Path, Data)
+        self:Notify({
+            Title = "Config System",
+            Content = "Saved configuration to: " .. FileName,
+            Type = "Success",
+            Duration = 3
+        })
+    else
+        self:Notify({Title = "Error", Content = "Failed to save config!", Type = "Error"})
+    end
 end
 
-function SlayLib:LoadConfig(Name)
-local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-if isfile(FullPath) then
-local Data = HttpService:JSONDecode(readfile(FullPath))
-SlayLib.Flags = Data
-SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
--- ในระบบจริงต้องวน Loop เพื่ออัปเดต UI ด้วย
+--// ฟังก์ชันสำหรับโหลดค่า (Load)
+function SlayLib:LoadConfig(FileName)
+    FileName = FileName or "DefaultConfig"
+    local Path = self.Folder .. "/" .. FileName .. ".json"
+
+    if not isfile(Path) then 
+        return self:Notify({Title = "Warning", Content = "Config file not found!", Type = "Warning"}) 
+    end
+
+    local Success, Data = pcall(function()
+        return HttpService:JSONDecode(readfile(Path))
+    end)
+
+    if Success then
+        self.Flags = Data
+        -- หลังจากโหลดค่าเข้า Flags แล้ว เราต้องไปอัปเดตตัว UI จริงด้วย
+        -- (ส่วนนี้จะทำงานร่วมกับ Callback ที่เราตั้งไว้ใน Element ต่างๆ)
+        self:Notify({
+            Title = "Config System",
+            Content = "Loaded: " .. FileName,
+            Type = "Success",
+            Duration = 3
+        })
+        return Data
+    end
 end
-end
+
 
 return SlayLib
