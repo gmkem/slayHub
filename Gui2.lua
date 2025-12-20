@@ -124,90 +124,116 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
---// [REWRITTEN] MODERN POP-UP NOTIFICATION (BOTTOM-RIGHT)
+--// [REWRITTEN] MODERN POP-UP SYSTEM (BOTTOM-RIGHT)
 function SlayLib:Notify(Config)
-    -- 1. Setup Defaults & Theme
-    Config = Config or {Title = "SYSTEM", Content = "Notification Message", Duration = 6, Type = "Neutral"}
+    -- 1. Configuration & Theme Setup
+    Config = Config or {Title = "SYSTEM", Content = "Message here...", Duration = 6, Type = "Neutral"}
     
     local NotifColor = SlayLib.Theme.MainColor
     if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
     elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
     elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
 
-    -- 2. จัดการ Container (ยึดมุมขวาล่าง)
+    -- 2. Container Setup (ยึดมุมขวาล่าง)
     local NotifGui = Parent:FindFirstChild("SlayNotifGui") or Create("ScreenGui", {
         Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999, ResetOnSpawn = false
     })
 
     local Holder = NotifGui:FindFirstChild("NotifHolder") or Create("Frame", {
         Name = "NotifHolder", Parent = NotifGui, BackgroundTransparency = 1,
-        Size = UDim2.new(0, 300, 1, -40), 
-        Position = UDim2.new(1, -310, 0, 20) -- ชิดขวา
+        Size = UDim2.new(0, 320, 1, -40), 
+        Position = UDim2.new(1, -340, 0, 20) -- วางตำแหน่งฝั่งขวา
     })
     
     if not Holder:FindFirstChild("UIListLayout") then
         Create("UIListLayout", {
             Parent = Holder, 
-            VerticalAlignment = Enum.VerticalAlignment.Bottom, -- ใหม่ล่าสุดเด้งจากล่างขึ้นบน
+            VerticalAlignment = Enum.VerticalAlignment.Bottom, -- ใหม่ล่าสุด: เด้งจากล่างขึ้นบน
             HorizontalAlignment = Enum.HorizontalAlignment.Right,
             Padding = UDim.new(0, 10), 
             SortOrder = Enum.SortOrder.LayoutOrder
         })
     end
 
-    -- 3. สร้าง Pop-up (CanvasGroup แก้ปัญหา Visual Sync)
+    -- 3. Notification Unit (CanvasGroup สำหรับ Perfect Fading)
     local NotifFrame = Create("CanvasGroup", {
         Name = "PopUp",
-        Size = UDim2.new(1, 0, 0, 0), -- เริ่มต้นที่ 0 เพื่อทำ Slide Up
-        BackgroundColor3 = Color3.fromRGB(12, 12, 12),
+        Size = UDim2.new(1, 0, 0, 0), -- เริ่มที่ 0 เพื่อขยาย
+        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
         BackgroundTransparency = 0.1,
-        GroupTransparency = 1, -- เริ่มต้นจางหาย
+        GroupTransparency = 1, -- เริ่มที่จางหาย
         ClipsDescendants = true,
         Parent = Holder
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
-    Create("UIStroke", {Color = NotifColor, Transparency = 0.4, Thickness = 1.5, Parent = NotifFrame})
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
+    
+    -- ขอบ Stroke บางๆ เพิ่มความหรูหรา
+    local Stroke = Create("UIStroke", {
+        Color = NotifColor, 
+        Transparency = 0.6, 
+        Thickness = 1.5, 
+        Parent = NotifFrame
+    })
 
-    -- ขีดสีด้านข้าง (Status Accent)
-    local SideBar = Create("Frame", {
-        Size = UDim2.new(0, 4, 1, 0), 
+    -- ขีดสีสถานะแบบมินิมอลด้านซ้าย
+    local Accent = Create("Frame", {
+        Size = UDim2.new(0, 4, 1, -16), 
+        Position = UDim2.new(0, 10, 0, 8),
         BackgroundColor3 = NotifColor, 
         Parent = NotifFrame
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = SideBar})
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Accent})
 
-    -- พื้นที่เนื้อหา
-    local ContentArea = Create("Frame", {
-        Size = UDim2.new(1, -25, 0, 0), Position = UDim2.new(0, 15, 0, 0),
-        BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = NotifFrame
+    -- พื้นที่ข้อความ (จัดวางให้สมดุลแบบรูปตัวอย่าง)
+    local TextHolder = Create("Frame", {
+        Size = UDim2.new(1, -30, 0, 0), 
+        Position = UDim2.new(0, 25, 0, 0),
+        BackgroundTransparency = 1, 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        Parent = NotifFrame
     })
-    Create("UIPadding", {PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), Parent = ContentArea})
-    Create("UIListLayout", {Parent = ContentArea, Padding = UDim.new(0, 2)})
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 15), 
+        PaddingBottom = UDim.new(0, 15), 
+        PaddingRight = UDim.new(0, 10),
+        Parent = TextHolder
+    })
+    Create("UIListLayout", {Parent = TextHolder, Padding = UDim.new(0, 4)})
 
-    local T = Create("TextLabel", {
-        Text = Config.Title:upper(), Font = "GothamBold", TextSize = 14,
-        TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left", Parent = ContentArea
+    local TitleLabel = Create("TextLabel", {
+        Text = Config.Title:upper(), 
+        Font = Enum.Font.GothamBold, 
+        TextSize = 14,
+        TextColor3 = NotifColor, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = Enum.TextXAlignment.Left, 
+        Parent = TextHolder
     })
 
-    local C = Create("TextLabel", {
-        Text = Config.Content, Font = "GothamMedium", TextSize = 12,
-        TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1, 
-        TextXAlignment = "Left", TextWrapped = true, AutomaticSize = "Y", Parent = ContentArea
+    local ContentLabel = Create("TextLabel", {
+        Text = Config.Content, 
+        Font = Enum.Font.GothamMedium, 
+        TextSize = 12,
+        TextColor3 = SlayLib.Theme.TextSecondary, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = Enum.TextXAlignment.Left, 
+        TextWrapped = true, 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        Parent = TextHolder
     })
 
-    -- 4. Animation Sequence
+    -- 4. Entrance & Exit Animation
     task.spawn(function()
-        -- Slide Up & Fade In
-        local FullHeight = ContentArea.AbsoluteSize.Y + 24
+        -- ขยายความสูงและจางเข้า (Slide Up)
+        local TargetHeight = TextHolder.AbsoluteSize.Y
         Tween(NotifFrame, {
-            Size = UDim2.new(1, 0, 0, FullHeight), 
+            Size = UDim2.new(1, 0, 0, TargetHeight), 
             GroupTransparency = 0
         }, 0.5, Enum.EasingStyle.Quart)
         
-        -- รอตาม Duration ที่กำหนด
         task.wait(Config.Duration)
         
-        -- Exit: Fade Out & Slide Down
+        -- จางหายและยุบตัวลงพร้อมกัน (หมดปัญหาเศษ UI ค้าง)
         local Close = Tween(NotifFrame, {
             GroupTransparency = 1, 
             Size = UDim2.new(1, 0, 0, 0)
