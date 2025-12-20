@@ -124,124 +124,94 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
---// [REWRITTEN] MODERN POP-UP SYSTEM (BOTTOM-RIGHT)
 function SlayLib:Notify(Config)
-    -- 1. Configuration & Theme Setup
-    Config = Config or {Title = "SYSTEM", Content = "Message here...", Duration = 6, Type = "Neutral"}
+    Config = Config or {Title = "SYSTEM", Content = "Message Content", Duration = 6, Type = "Neutral"}
     
     local NotifColor = SlayLib.Theme.MainColor
     if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
     elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
     elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
 
-    -- 2. Container Setup (ยึดมุมขวาล่าง)
-    local NotifGui = Parent:FindFirstChild("SlayNotifGui") or Create("ScreenGui", {
-        Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999, ResetOnSpawn = false
+    -- Container Setup
+    local NotifGui = Parent:FindFirstChild("SlayNotifFinal") or Create("ScreenGui", {Name = "SlayNotifFinal", Parent = Parent, DisplayOrder = 9999})
+    local Holder = NotifGui:FindFirstChild("Holder") or Create("Frame", {
+        Name = "Holder", Parent = NotifGui, BackgroundTransparency = 1,
+        Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -340, 0, 20)
     })
-
-    local Holder = NotifGui:FindFirstChild("NotifHolder") or Create("Frame", {
-        Name = "NotifHolder", Parent = NotifGui, BackgroundTransparency = 1,
-        Size = UDim2.new(0, 320, 1, -40), 
-        Position = UDim2.new(1, -340, 0, 20) -- วางตำแหน่งฝั่งขวา
-    })
-    
     if not Holder:FindFirstChild("UIListLayout") then
-        Create("UIListLayout", {
-            Parent = Holder, 
-            VerticalAlignment = Enum.VerticalAlignment.Bottom, -- ใหม่ล่าสุด: เด้งจากล่างขึ้นบน
-            HorizontalAlignment = Enum.HorizontalAlignment.Right,
-            Padding = UDim.new(0, 10), 
-            SortOrder = Enum.SortOrder.LayoutOrder
-        })
+        Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Bottom", HorizontalAlignment = "Right", Padding = UDim.new(0, 10), SortOrder = "LayoutOrder"})
     end
 
-    -- 3. Notification Unit (CanvasGroup สำหรับ Perfect Fading)
+    -- Main Frame
     local NotifFrame = Create("CanvasGroup", {
-        Name = "PopUp",
-        Size = UDim2.new(1, 0, 0, 0), -- เริ่มที่ 0 เพื่อขยาย
-        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-        BackgroundTransparency = 0.1,
-        GroupTransparency = 1, -- เริ่มที่จางหาย
-        ClipsDescendants = true,
-        Parent = Holder
+        Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+        BackgroundTransparency = 0.1, GroupTransparency = 1, ClipsDescendants = true, Parent = Holder
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
-    
-    -- ขอบ Stroke บางๆ เพิ่มความหรูหรา
-    local Stroke = Create("UIStroke", {
-        Color = NotifColor, 
-        Transparency = 0.6, 
-        Thickness = 1.5, 
-        Parent = NotifFrame
-    })
+    local Stroke = Create("UIStroke", {Color = NotifColor, Transparency = 0.5, Thickness = 2, Parent = NotifFrame})
 
-    -- ขีดสีสถานะแบบมินิมอลด้านซ้าย
-    local Accent = Create("Frame", {
-        Size = UDim2.new(0, 4, 1, -16), 
-        Position = UDim2.new(0, 10, 0, 8),
-        BackgroundColor3 = NotifColor, 
-        Parent = NotifFrame
+    -- Text Area (เว้นระยะด้านล่างเพิ่มขึ้นเพื่อวางหลอดแบบ Floating)
+    local TextArea = Create("Frame", {
+        Size = UDim2.new(1, -45, 0, 0), Position = UDim2.new(0, 30, 0, 0),
+        BackgroundTransparency = 1, AutomaticSize = "Y", Parent = NotifFrame
     })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Accent})
-
-    -- พื้นที่ข้อความ (จัดวางให้สมดุลแบบรูปตัวอย่าง)
-    local TextHolder = Create("Frame", {
-        Size = UDim2.new(1, -30, 0, 0), 
-        Position = UDim2.new(0, 25, 0, 0),
-        BackgroundTransparency = 1, 
-        AutomaticSize = Enum.AutomaticSize.Y, 
-        Parent = NotifFrame
-    })
+    Create("UIListLayout", {Parent = TextArea, Padding = UDim.new(0, 4), SortOrder = "LayoutOrder"})
     Create("UIPadding", {
-        PaddingTop = UDim.new(0, 15), 
-        PaddingBottom = UDim.new(0, 15), 
-        PaddingRight = UDim.new(0, 10),
-        Parent = TextHolder
+        PaddingTop = UDim.new(0, 18), 
+        PaddingBottom = UDim.new(0, 28), -- เพิ่มพื้นที่ด้านล่างให้หลอดลอยได้สวยๆ
+        PaddingRight = UDim.new(0, 15), 
+        Parent = TextArea
     })
-    Create("UIListLayout", {Parent = TextHolder, Padding = UDim.new(0, 4)})
 
     local TitleLabel = Create("TextLabel", {
-        Text = Config.Title:upper(), 
-        Font = Enum.Font.GothamBold, 
-        TextSize = 14,
-        TextColor3 = NotifColor, 
-        BackgroundTransparency = 1, 
-        TextXAlignment = Enum.TextXAlignment.Left, 
-        Parent = TextHolder
+        Text = Config.Title:upper(), Font = "GothamBold", TextSize = 14,
+        TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left",
+        Size = UDim2.new(1, 0, 0, 16), LayoutOrder = 1, Parent = TextArea
     })
 
     local ContentLabel = Create("TextLabel", {
-        Text = Config.Content, 
-        Font = Enum.Font.GothamMedium, 
-        TextSize = 12,
-        TextColor3 = SlayLib.Theme.TextSecondary, 
-        BackgroundTransparency = 1, 
-        TextXAlignment = Enum.TextXAlignment.Left, 
-        TextWrapped = true, 
-        AutomaticSize = Enum.AutomaticSize.Y, 
-        Parent = TextHolder
+        Text = Config.Content, Font = "GothamMedium", TextSize = 12,
+        TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,
+        TextXAlignment = "Left", TextWrapped = true, Size = UDim2.new(1, 0, 0, 14),
+        AutomaticSize = "Y", LayoutOrder = 2, Parent = TextArea
     })
 
-    -- 4. Entrance & Exit Animation
+    -- [แก้จุดหลอดทะลุ] Progress Bar Container (ขยับให้ลอยขึ้นและกดยุบขอบ)
+    local BarContainer = Create("Frame", {
+        Name = "BarContainer",
+        Size = UDim2.new(1, -24, 0, 4), -- สั้นลงกว่ากรอบหลักเพื่อไม่ให้ชนขอบ Stroke
+        Position = UDim2.new(0, 12, 1, -12), -- ลอยขึ้นจากขอบล่าง 12 pixel
+        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
+        BackgroundTransparency = 0.5,
+        BorderSizePixel = 0,
+        ClipsDescendants = true, -- บังคับให้หลอดข้างในไม่ทะลุ
+        Parent = NotifFrame
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarContainer})
+
+    local BarFill = Create("Frame", {
+        Name = "Fill",
+        Size = UDim2.new(1, 0, 1, 0), 
+        BackgroundColor3 = NotifColor, 
+        BorderSizePixel = 0,
+        Parent = BarContainer
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarFill})
+
+    -- Animation
     task.spawn(function()
-        -- ขยายความสูงและจางเข้า (Slide Up)
-        local TargetHeight = TextHolder.AbsoluteSize.Y
-        Tween(NotifFrame, {
-            Size = UDim2.new(1, 0, 0, TargetHeight), 
-            GroupTransparency = 0
-        }, 0.5, Enum.EasingStyle.Quart)
+        repeat task.wait() until TextArea.AbsoluteSize.Y > 30 
+        local FinalHeight = TextArea.AbsoluteSize.Y
+        
+        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, FinalHeight), GroupTransparency = 0}, 0.7, Enum.EasingStyle.Back)
+        Tween(BarFill, {Size = UDim2.new(0, 0, 1, 0)}, Config.Duration, Enum.EasingStyle.Linear)
         
         task.wait(Config.Duration)
         
-        -- จางหายและยุบตัวลงพร้อมกัน (หมดปัญหาเศษ UI ค้าง)
-        local Close = Tween(NotifFrame, {
-            GroupTransparency = 1, 
-            Size = UDim2.new(1, 0, 0, 0)
-        }, 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        local Out = Tween(NotifFrame, {GroupTransparency = 1, Position = UDim2.new(0, 60, 0, 0)}, 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.5)
         
-        Close.Completed:Connect(function()
-            NotifFrame:Destroy()
-        end)
+        Out.Completed:Connect(function() NotifFrame:Destroy() end)
     end)
 end
 
