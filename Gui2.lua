@@ -18,6 +18,7 @@ Warning = Color3.fromRGB(255, 165, 0),
 Error = Color3.fromRGB(255, 65, 65),
 },
 Icons = {
+Logofull = "rbxassetid://13589839447",
 Logo = "rbxassetid://13589839447",
 Check = "rbxassetid://10734895530",
 Chevron = "rbxassetid://10734895856",
@@ -227,7 +228,7 @@ local Holder = Create("Frame", {
 
 local Logo = Create("ImageLabel", {  
     Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),  
-    Image = SlayLib.Icons.Logo, ImageColor3 = SlayLib.Theme.MainColor,  
+    Image = SlayLib.Icons.Logofull, ImageColor3 = SlayLib.Theme.MainColor,  
     BackgroundTransparency = 1, Parent = Holder  
 })  
 
