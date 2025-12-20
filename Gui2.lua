@@ -124,75 +124,144 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
+--// [REWRITTEN] MODERN NOTIFICATION SYSTEM
 function SlayLib:Notify(Config)
+    -- กำหนดค่าเริ่มต้นถ้าไม่ได้ใส่มา
     Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
     
-    -- สร้าง ScreenGui แยกเพื่อให้อยู่บนสุดเสมอ
+    -- 1. จัดการ Container (ScreenGui & Holder)
     local NotifGui = Parent:FindFirstChild("SlayNotifGui") or Create("ScreenGui", {
-        Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999
+        Name = "SlayNotifGui", 
+        Parent = Parent, 
+        DisplayOrder = 9999,
+        ResetOnSpawn = false
     })
 
-    -- ตัวจัดระเบียบการเรียงตัว (Holder)
     local Holder = NotifGui:FindFirstChild("NotifHolder") or Create("Frame", {
-        Name = "NotifHolder", Parent = NotifGui, BackgroundTransparency = 1,
-        Size = UDim2.new(0, 280, 1, -60), Position = UDim2.new(1, -300, 0, 30)
+        Name = "NotifHolder", 
+        Parent = NotifGui, 
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 280, 1, -60), 
+        Position = UDim2.new(1, -300, 0, 30)
     })
     
     if not Holder:FindFirstChild("UIListLayout") then
         Create("UIListLayout", {
-            Parent = Holder, VerticalAlignment = "Top", HorizontalAlignment = "Right",
-            Padding = UDim.new(0, 8), SortOrder = "LayoutOrder"
+            Parent = Holder, 
+            VerticalAlignment = Enum.VerticalAlignment.Top, 
+            HorizontalAlignment = Enum.HorizontalAlignment.Right,
+            Padding = UDim.new(0, 8), 
+            SortOrder = Enum.SortOrder.LayoutOrder
         })
     end
 
-    -- เลือกสีตามประเภท
+    -- 2. ตั้งค่าธีมสีตามประเภท
     local NotifColor = SlayLib.Theme.MainColor
     if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
     elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
     elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
 
-    -- [หัวใจหลัก] CanvasGroup ทำให้โปร่งใสพร้อมกันทั้งยูนิต
+    -- 3. สร้าง Notification Unit (ใช้ CanvasGroup เพื่อคุมความโปร่งใสรวม)
     local NotifFrame = Create("CanvasGroup", {
-        Size = UDim2.new(1, 0, 0, 0),
+        Name = "Notification",
+        Size = UDim2.new(1, 0, 0, 0), -- เริ่มต้นที่ความสูง 0 เพื่อทำ Animation ขยาย
         BackgroundColor3 = Color3.fromRGB(15, 15, 15),
         BackgroundTransparency = 0.2,
-        GroupTransparency = 1, -- เริ่มที่จางหาย
+        GroupTransparency = 1, -- เริ่มต้นที่โปร่งใส 100%
+        ClipsDescendants = true,
         Parent = Holder
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
-    Create("UIStroke", {Color = NotifColor, Transparency = 0.6, Thickness = 1.2, Parent = NotifFrame})
-
-    -- เนื้อหาภายใน
-    local TextArea = Create("Frame", {
-        Size = UDim2.new(1, -35, 0, 0), Position = UDim2.new(0, 25, 0, 0),
-        BackgroundTransparency = 1, AutomaticSize = "Y", Parent = NotifFrame
+    
+    -- ขอบ Stroke บางๆ เพิ่มความคม
+    local Stroke = Create("UIStroke", {
+        Color = NotifColor, 
+        Transparency = 0.5, 
+        Thickness = 1.2, 
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border, 
+        Parent = NotifFrame
     })
-    Create("UIPadding", {PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), Parent = TextArea})
+
+    -- ขีดสีด้านข้างแบบมินิมอล (Status Accent)
+    local Accent = Create("Frame", {
+        Size = UDim2.new(0, 3, 1, -16), 
+        Position = UDim2.new(0, 8, 0, 8),
+        BackgroundColor3 = NotifColor, 
+        BorderSizePixel = 0,
+        Parent = NotifFrame
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Accent})
+
+    -- พื้นที่ข้อความ (TextArea)
+    local TextArea = Create("Frame", {
+        Size = UDim2.new(1, -30, 0, 0), 
+        Position = UDim2.new(0, 22, 0, 0),
+        BackgroundTransparency = 1, 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        Parent = NotifFrame
+    })
+    Create("UIPadding", {
+        PaddingTop = UDim.new(0, 12), 
+        PaddingBottom = UDim.new(0, 12), 
+        PaddingLeft = UDim.new(0, 5),
+        Parent = TextArea
+    })
     Create("UIListLayout", {Parent = TextArea, Padding = UDim.new(0, 2)})
 
+    -- หัวข้อ (Title)
     local TitleLabel = Create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 16), Font = "GothamBold", TextSize = 13,
-        TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left", 
-        Parent = TextArea, Text = Config.Title:upper()
+        Size = UDim2.new(1, 0, 0, 16), 
+        Font = Enum.Font.GothamBold, 
+        TextSize = 13,
+        TextColor3 = NotifColor, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = Enum.TextXAlignment.Left, 
+        Parent = TextArea, 
+        Text = Config.Title:upper()
     })
 
+    -- เนื้อหา (Content)
     local ContentLabel = Create("TextLabel", {
-        Size = UDim2.new(1, 0, 0, 0), Font = "GothamMedium", TextSize = 11,
-        TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1, 
-        TextXAlignment = "Left", TextWrapped = true, AutomaticSize = "Y", 
-        Parent = TextArea, Text = Config.Content
+        Size = UDim2.new(1, 0, 0, 0), 
+        Font = Enum.Font.GothamMedium, 
+        TextSize = 11,
+        TextColor3 = SlayLib.Theme.TextSecondary, 
+        BackgroundTransparency = 1, 
+        TextXAlignment = Enum.TextXAlignment.Left, 
+        TextWrapped = true, 
+        AutomaticSize = Enum.AutomaticSize.Y, 
+        Parent = TextArea, 
+        Text = Config.Content
     })
 
-    -- แอนิเมชันเปิดและปิด
+    -- 4. Entrance Animation (เปิดตัว)
     task.spawn(function()
-        -- ขยายความสูงตามเนื้อหาจริง (TextArea.AbsoluteSize.Y)
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, TextArea.AbsoluteSize.Y), GroupTransparency = 0}, 0.45)
+        -- รอคำนวณขนาดที่แท้จริงจาก AutomaticSize
+        local TargetHeight = TextArea.AbsoluteSize.Y
         
-        task.wait(Config.Duration)
+        -- ค่อยๆ ขยายขนาดและจางเข้าพร้อมกัน
+        Tween(NotifFrame, {
+            Size = UDim2.new(1, 0, 0, TargetHeight), 
+            GroupTransparency = 0
+        }, 0.5, Enum.EasingStyle.Quart)
         
-        -- ปิดพร้อมย่อขนาด
-        local Close = Tween(NotifFrame, {GroupTransparency = 1, Size = UDim2.new(1, 0, 0, 0)}, 0.4)
-        Close.Completed:Connect(function() NotifFrame:Destroy() end)
+        -- กระพริบ Stroke เล็กน้อยตอนเปิดตัว
+        Tween(Stroke, {Transparency = 0.2}, 0.5)
+    end)
+
+    -- 5. Auto-Destroy Sequence (หายไป)
+    task.delay(Config.Duration, function()
+        if NotifFrame then
+            -- แอนิเมชันตอนปิด: จางหายและย่อขนาดไปพร้อมกัน
+            local Close = Tween(NotifFrame, {
+                GroupTransparency = 1, 
+                Size = UDim2.new(1, 0, 0, 0)
+            }, 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+            
+            Close.Completed:Connect(function()
+                NotifFrame:Destroy()
+            end)
+        end
     end)
 end
 
