@@ -127,11 +127,12 @@ end
 function SlayLib:Notify(Config)
     Config = Config or {Title = "Notification", Content = "Message", Duration = 5, Type = "Neutral"}
     
-    -- 1. Setup Container
+    -- สร้าง ScreenGui แยกเพื่อให้อยู่บนสุดเสมอ
     local NotifGui = Parent:FindFirstChild("SlayNotifGui") or Create("ScreenGui", {
-        Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999, ResetOnSpawn = false
+        Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999
     })
 
+    -- ตัวจัดระเบียบการเรียงตัว (Holder)
     local Holder = NotifGui:FindFirstChild("NotifHolder") or Create("Frame", {
         Name = "NotifHolder", Parent = NotifGui, BackgroundTransparency = 1,
         Size = UDim2.new(0, 280, 1, -60), Position = UDim2.new(1, -300, 0, 30)
@@ -139,93 +140,61 @@ function SlayLib:Notify(Config)
     
     if not Holder:FindFirstChild("UIListLayout") then
         Create("UIListLayout", {
-            Parent = Holder, VerticalAlignment = "Top", HorizontalAlignment = "Right", -- เปลี่ยนเป็น Top เพื่อให้ใหม่รันจากบนลงล่าง
-            Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder
+            Parent = Holder, VerticalAlignment = "Top", HorizontalAlignment = "Right",
+            Padding = UDim.new(0, 8), SortOrder = "LayoutOrder"
         })
     end
 
-    -- 2. Theme Configuration
+    -- เลือกสีตามประเภท
     local NotifColor = SlayLib.Theme.MainColor
     if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
     elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
     elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
 
-    -- 3. Notification Unit (ใช้ CanvasGroup เพื่อคุมความโปร่งใสเบ็ดเสร็จ)
+    -- [หัวใจหลัก] CanvasGroup ทำให้โปร่งใสพร้อมกันทั้งยูนิต
     local NotifFrame = Create("CanvasGroup", {
-        Size = UDim2.new(1, 0, 0, 0), -- เริ่มที่ความสูง 0
-        BackgroundColor3 = Color3.fromRGB(15, 15, 15), -- สีดำลึกแบบ Sidebar
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
         BackgroundTransparency = 0.2,
         GroupTransparency = 1, -- เริ่มที่จางหาย
-        ClipsDescendants = true,
         Parent = Holder
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
-    
-    -- ขอบเงาเบาๆ (Shadow Stroke)
-    Create("UIStroke", {
-        Color = NotifColor, Transparency = 0.6, Thickness = 1.2, 
-        ApplyStrokeMode = "Border", Parent = NotifFrame
-    })
+    Create("UIStroke", {Color = NotifColor, Transparency = 0.6, Thickness = 1.2, Parent = NotifFrame})
 
-    -- แถบสีสถานะแบบมินิมอล (จุดกลมเล็กๆ แทนขีดหนา)
-    local StatusDot = Create("Frame", {
-        Size = UDim2.new(0, 6, 0, 6), Position = UDim2.new(0, 12, 0, 15),
-        BackgroundColor3 = NotifColor, Parent = NotifFrame
-    })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = StatusDot})
-
-    -- เนื้อหาข้อความ
+    -- เนื้อหาภายใน
     local TextArea = Create("Frame", {
-        Size = UDim2.new(1, -35, 0, 0), Position = UDim2.new(0, 28, 0, 0),
+        Size = UDim2.new(1, -35, 0, 0), Position = UDim2.new(0, 25, 0, 0),
         BackgroundTransparency = 1, AutomaticSize = "Y", Parent = NotifFrame
     })
-    Create("UIPadding", {PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 12), Parent = TextArea})
+    Create("UIPadding", {PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), Parent = TextArea})
     Create("UIListLayout", {Parent = TextArea, Padding = UDim.new(0, 2)})
 
     local TitleLabel = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 16), Font = "GothamBold", TextSize = 13,
-        TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left", Parent = TextArea,
-        Text = Config.Title:upper() -- ตัวพิมพ์ใหญ่เพื่อให้ดูเป็น UI System
+        TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left", 
+        Parent = TextArea, Text = Config.Title:upper()
     })
 
     local ContentLabel = Create("TextLabel", {
         Size = UDim2.new(1, 0, 0, 0), Font = "GothamMedium", TextSize = 11,
         TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1, 
-        TextXAlignment = "Left", TextWrapped = true, AutomaticSize = "Y", Parent = TextArea,
-        Text = Config.Content
+        TextXAlignment = "Left", TextWrapped = true, AutomaticSize = "Y", 
+        Parent = TextArea, Text = Config.Content
     })
 
-    -- 4. Animation Engine (Smooth & Fast)
+    -- แอนิเมชันเปิดและปิด
     task.spawn(function()
-        -- รอคำนวณขนาดที่แท้จริง
-        local RealHeight = TextArea.AbsoluteSize.Y
+        -- ขยายความสูงตามเนื้อหาจริง (TextArea.AbsoluteSize.Y)
+        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, TextArea.AbsoluteSize.Y), GroupTransparency = 0}, 0.45)
         
-        -- Slide In และขยายพร้อมกัน
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, RealHeight), GroupTransparency = 0}, 0.45, Enum.EasingStyle.Quart)
+        task.wait(Config.Duration)
         
-        -- เพิ่มลูกเล่นแสงกระพริบที่จุดสถานะ
-        local Glow = Create("Frame", {
-            Size = UDim2.new(0, 6, 0, 6), Position = UDim2.new(0, 12, 0, 15),
-            BackgroundColor3 = NotifColor, BackgroundTransparency = 0.5, Parent = NotifFrame
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Glow})
-        Tween(Glow, {Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(0, 5, 0, 8), BackgroundTransparency = 1}, 0.8):Completed:Connect(function() Glow:Destroy() end)
-    end)
-
-    -- 5. Auto-Destroy Sequence
-    task.delay(Config.Duration, function()
-        if NotifFrame then
-            -- หายไปแบบจางและย่อขนาด (แก้ปัญหาเศษค้าง)
-            local Close = Tween(NotifFrame, {GroupTransparency = 1, Size = UDim2.new(1, 0, 0, 0)}, 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
-            Close.Completed:Connect(function()
-                NotifFrame:Destroy()
-            end)
-        end
+        -- ปิดพร้อมย่อขนาด
+        local Close = Tween(NotifFrame, {GroupTransparency = 1, Size = UDim2.new(1, 0, 0, 0)}, 0.4)
+        Close.Completed:Connect(function() NotifFrame:Destroy() end)
     end)
 end
-
-
-
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
