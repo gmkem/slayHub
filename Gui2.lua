@@ -1,4 +1,4 @@
-Local SlayLib = {
+local SlayLib = {
 Folder = "SlayLib_Config",
 Settings = {},
 Flags = {},
