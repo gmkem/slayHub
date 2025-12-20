@@ -124,11 +124,17 @@ end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
+--// [REWRITTEN] MODERN POP-UP NOTIFICATION (BOTTOM-RIGHT)
 function SlayLib:Notify(Config)
-    -- กำหนดค่าเริ่มต้น (ปรับ Duration เป็น 6 วินาทีเพื่อให้คนอ่านทัน)
-    Config = Config or {Title = "SYSTEM", Content = "Message details here", Duration = 6, Type = "Neutral"}
+    -- 1. Setup Defaults & Theme
+    Config = Config or {Title = "SYSTEM", Content = "Notification Message", Duration = 6, Type = "Neutral"}
     
-    -- 1. Setup ScreenGui & Holder (ย้ายไปมุมขวาล่าง)
+    local NotifColor = SlayLib.Theme.MainColor
+    if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
+    elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
+    elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
+
+    -- 2. จัดการ Container (ยึดมุมขวาล่าง)
     local NotifGui = Parent:FindFirstChild("SlayNotifGui") or Create("ScreenGui", {
         Name = "SlayNotifGui", Parent = Parent, DisplayOrder = 9999, ResetOnSpawn = false
     })
@@ -136,50 +142,47 @@ function SlayLib:Notify(Config)
     local Holder = NotifGui:FindFirstChild("NotifHolder") or Create("Frame", {
         Name = "NotifHolder", Parent = NotifGui, BackgroundTransparency = 1,
         Size = UDim2.new(0, 300, 1, -40), 
-        Position = UDim2.new(1, -320, 0, 20) -- ยึดด้านขวา
+        Position = UDim2.new(1, -310, 0, 20) -- ชิดขวา
     })
     
     if not Holder:FindFirstChild("UIListLayout") then
         Create("UIListLayout", {
             Parent = Holder, 
-            VerticalAlignment = Enum.VerticalAlignment.Bottom, -- เด้งจากล่างขึ้นบน
+            VerticalAlignment = Enum.VerticalAlignment.Bottom, -- ใหม่ล่าสุดเด้งจากล่างขึ้นบน
             HorizontalAlignment = Enum.HorizontalAlignment.Right,
             Padding = UDim.new(0, 10), 
             SortOrder = Enum.SortOrder.LayoutOrder
         })
     end
 
-    -- 2. Theme Sync
-    local NotifColor = SlayLib.Theme.MainColor
-    if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
-    elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
-    elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
-
-    -- 3. Notification Canvas (แก้ปัญหาหายไม่พร้อมกัน)
+    -- 3. สร้าง Pop-up (CanvasGroup แก้ปัญหา Visual Sync)
     local NotifFrame = Create("CanvasGroup", {
         Name = "PopUp",
         Size = UDim2.new(1, 0, 0, 0), -- เริ่มต้นที่ 0 เพื่อทำ Slide Up
-        BackgroundColor3 = Color3.fromRGB(12, 12, 12), -- Deep Dark แบบธีมหลัก
+        BackgroundColor3 = Color3.fromRGB(12, 12, 12),
         BackgroundTransparency = 0.1,
         GroupTransparency = 1, -- เริ่มต้นจางหาย
+        ClipsDescendants = true,
         Parent = Holder
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
     Create("UIStroke", {Color = NotifColor, Transparency = 0.4, Thickness = 1.5, Parent = NotifFrame})
 
-    -- ตกแต่ง: แถบสีสถานะด้านซ้าย
+    -- ขีดสีด้านข้าง (Status Accent)
     local SideBar = Create("Frame", {
-        Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = NotifColor, Parent = NotifFrame
+        Size = UDim2.new(0, 4, 1, 0), 
+        BackgroundColor3 = NotifColor, 
+        Parent = NotifFrame
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = SideBar})
 
-    -- พื้นที่ข้อความ
+    -- พื้นที่เนื้อหา
     local ContentArea = Create("Frame", {
         Size = UDim2.new(1, -25, 0, 0), Position = UDim2.new(0, 15, 0, 0),
         BackgroundTransparency = 1, AutomaticSize = Enum.AutomaticSize.Y, Parent = NotifFrame
     })
-    Create("UIPadding", {PaddingTop = UDim.new(0, 15), PaddingBottom = UDim.new(0, 15), Parent = ContentArea})
-    Create("UIListLayout", {Parent = ContentArea, Padding = UDim.new(0, 4)})
+    Create("UIPadding", {PaddingTop = UDim.new(0, 12), PaddingBottom = UDim.new(0, 12), Parent = ContentArea})
+    Create("UIListLayout", {Parent = ContentArea, Padding = UDim.new(0, 2)})
 
     local T = Create("TextLabel", {
         Text = Config.Title:upper(), Font = "GothamBold", TextSize = 14,
@@ -192,25 +195,25 @@ function SlayLib:Notify(Config)
         TextXAlignment = "Left", TextWrapped = true, AutomaticSize = "Y", Parent = ContentArea
     })
 
-    -- 4. Animation Flow
+    -- 4. Animation Sequence
     task.spawn(function()
-        -- เด้งขึ้นมาและจางเข้า
-        local FullHeight = ContentArea.AbsoluteSize.Y
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, FullHeight), GroupTransparency = 0}, 0.6, Enum.EasingStyle.Back)
+        -- Slide Up & Fade In
+        local FullHeight = ContentArea.AbsoluteSize.Y + 24
+        Tween(NotifFrame, {
+            Size = UDim2.new(1, 0, 0, FullHeight), 
+            GroupTransparency = 0
+        }, 0.5, Enum.EasingStyle.Quart)
         
-        -- รอตามเวลาที่กำหนด (Default 6s)
+        -- รอตาม Duration ที่กำหนด
         task.wait(Config.Duration)
         
-        -- แอนิเมชันขาออก: จางหายและเลื่อนลง
-        local Out = Tween(NotifFrame, {
+        -- Exit: Fade Out & Slide Down
+        local Close = Tween(NotifFrame, {
             GroupTransparency = 1, 
-            Position = UDim2.new(0, 50, 0, 0) -- เลื่อนออกทางขวาเล็กน้อย
+            Size = UDim2.new(1, 0, 0, 0)
         }, 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
         
-        -- ค่อยๆ ยุบตัวเพื่อไม่ให้ตัวอื่นกระตุก
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.6)
-        
-        Out.Completed:Connect(function()
+        Close.Completed:Connect(function()
             NotifFrame:Destroy()
         end)
     end)
