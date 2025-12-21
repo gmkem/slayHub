@@ -589,74 +589,121 @@ function Window:CreateTab(Name, IconID)
         end  
 
         -- 3. SEARCHABLE DROPDOWN  
-        function Section:CreateDropdown(Props)  
-            Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}  
-            local IsOpen = false  
-            local Selected = Props.Options[1]  
+function Section:CreateDropdown(Props)
+    Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}
+    local IsOpen = false
+    local Selected = Props.Options[1]
+    SlayLib.Flags[Props.Flag] = Selected
 
-            local DContainer = Create("Frame", {  
-                Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element,  
-                ClipsDescendants = true, Parent = Page  
+    local DContainer = Create("Frame", {  
+        Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element,  
+        ClipsDescendants = true, Parent = Page  
+    })  
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = DContainer})  
+    local DStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1.2, Transparency = 0.5, Parent = DContainer})
+
+    -- Header Area
+    local MainBtn = Create("TextButton", {  
+        Size = UDim2.new(1, 0, 0, 52), BackgroundTransparency = 1, Text = "", Parent = DContainer  
+    })  
+
+    local DLbl = Create("TextLabel", {  
+        Text = "  " .. Props.Name .. ": " .. tostring(Selected), Size = UDim2.new(1, -50, 0, 52),  
+        Position = UDim2.new(0, 15, 0, 0), Font = "GothamMedium", TextSize = 14,  
+        TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = MainBtn  
+    })  
+
+    local Chevron = Create("ImageLabel", {  
+        Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -35, 0.5, -10),  
+        Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, ImageColor3 = SlayLib.Theme.TextSecondary, Parent = MainBtn  
+    })  
+
+    -- [ADDED] Search Box
+    local SearchArea = Create("Frame", {
+        Size = UDim2.new(1, -20, 0, 35), Position = UDim2.new(0, 10, 0, 55),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20), BackgroundTransparency = 0.5,
+        Visible = false, Parent = DContainer
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SearchArea})
+    
+    local SearchInput = Create("TextBox", {
+        Size = UDim2.new(1, -10, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        BackgroundTransparency = 1, Text = "", PlaceholderText = "Search options...",
+        TextColor3 = SlayLib.Theme.Text, PlaceholderColor3 = Color3.fromRGB(100, 100, 100),
+        Font = "Gotham", TextSize = 13, TextXAlignment = "Left", Parent = SearchArea
+    })
+
+    -- Scrolling List
+    local List = Create("ScrollingFrame", {  
+        Size = UDim2.new(1, -20, 0, 160), Position = UDim2.new(0, 10, 0, 100),  
+        BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
+        CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", Visible = false, Parent = DContainer  
+    })  
+    local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5), SortOrder = "Name"})  
+
+    local function Refresh()  
+        for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end  
+        for _, opt in pairs(Props.Options) do  
+            local OBtn = Create("TextButton", {  
+                Name = tostring(opt), Size = UDim2.new(1, -5, 0, 35), BackgroundColor3 = Color3.fromRGB(30,30,30),  
+                Text = "   " .. tostring(opt), Font = "Gotham", TextSize = 13,  
+                TextColor3 = SlayLib.Theme.TextSecondary, TextXAlignment = "Left", Parent = List  
             })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = DContainer})  
+            Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})  
 
-            local MainBtn = Create("TextButton", {  
-                Size = UDim2.new(1, 0, 0, 52), BackgroundTransparency = 1,  
-                Text = "", Parent = DContainer  
-            })  
-
-            local DLbl = Create("TextLabel", {  
-                Text = "  " .. Props.Name .. ": " .. Selected, Size = UDim2.new(1, -50, 0, 52),  
-                Position = UDim2.new(0, 15, 0, 0), Font = "GothamMedium", TextSize = 14,  
-                TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = MainBtn  
-            })  
-
-            local Chevron = Create("ImageLabel", {  
-                Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -35, 0.5, -10),  
-                Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, Parent = MainBtn  
-            })  
-
-            local List = Create("Frame", {  
-                Size = UDim2.new(1, -20, 0, 0), Position = UDim2.new(0, 10, 0, 55),  
-                BackgroundTransparency = 1, Parent = DContainer  
-            })  
-            local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5)})  
-
-            local function Refresh()  
-                for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end  
-                for _, opt in pairs(Props.Options) do  
-                    local OBtn = Create("TextButton", {  
-                        Size = UDim2.new(1, 0, 0, 35), BackgroundColor3 = Color3.fromRGB(30,30,30),  
-                        Text = "   " .. tostring(opt), Font = "Gotham", TextSize = 13,  
-                        TextColor3 = SlayLib.Theme.TextSecondary, TextXAlignment = "Left", Parent = List  
-                    })  
-                    Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})  
-
-                    OBtn.MouseButton1Click:Connect(function()  
-                        Selected = opt  
-                        DLbl.Text = "  " .. Props.Name .. ": " .. tostring(opt)  
-                        IsOpen = false  
-                        Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
-                        Tween(Chevron, {Rotation = 0}, 0.4)  
-                        task.spawn(Props.Callback, opt)  
-                    end)  
-                end  
-            end  
-
-            Refresh()  
-
-            MainBtn.MouseButton1Click:Connect(function()  
-                IsOpen = not IsOpen  
-                local Target = IsOpen and 60 + (#Props.Options * 40) or 52  
-                Tween(DContainer, {Size = UDim2.new(1, 0, 0, math.min(Target, 300))}, 0.4)  
-                Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.4)  
+            OBtn.MouseButton1Click:Connect(function()  
+                Selected = opt  
+                DLbl.Text = "  " .. Props.Name .. ": " .. tostring(opt)  
+                IsOpen = false  
+                SlayLib.Flags[Props.Flag] = opt
+                Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
+                Tween(Chevron, {Rotation = 0}, 0.4)  
+                Tween(DStroke, {Color = SlayLib.Theme.Stroke}, 0.3)
+                task.delay(0.4, function() List.Visible = false SearchArea.Visible = false end)
+                task.spawn(Props.Callback, opt)  
             end)  
-
-            function Section:UpdateDropdown(NewOptions)  
-                Props.Options = NewOptions  
-                Refresh()  
-            end  
         end  
+    end  
+
+    -- Search Logic
+    SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
+        local InputText = SearchInput.Text:lower()
+        for _, item in pairs(List:GetChildren()) do
+            if item:IsA("TextButton") then
+                if InputText == "" or item.Name:lower():find(InputText) then
+                    item.Visible = true
+                else
+                    item.Visible = false
+                end
+            end
+        end
+    end)
+
+    Refresh()  
+
+    MainBtn.MouseButton1Click:Connect(function()  
+        IsOpen = not IsOpen  
+        if IsOpen then
+            List.Visible = true
+            SearchArea.Visible = true
+            SearchInput.Text = "" -- Reset search when opening
+            local TargetSize = 270 -- Fixed size when open for better look with search
+            Tween(DContainer, {Size = UDim2.new(1, 0, 0, TargetSize)}, 0.4, Enum.EasingStyle.Quart)  
+            Tween(Chevron, {Rotation = 180}, 0.4)  
+            Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.3)
+        else
+            Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
+            Tween(Chevron, {Rotation = 0}, 0.4)  
+            Tween(DStroke, {Color = SlayLib.Theme.Stroke}, 0.3)
+            task.delay(0.4, function() if not IsOpen then List.Visible = false SearchArea.Visible = false end end)
+        end
+    end)  
+
+    function Section:UpdateDropdown(NewOptions)  
+        Props.Options = NewOptions  
+        Refresh()  
+    end  
+end
 
         -- 4. INTERACTIVE BUTTON  
         function Section:CreateButton(Props)  
