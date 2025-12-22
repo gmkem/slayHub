@@ -229,101 +229,124 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent, DisplayOrder = 999})
+    local Screen = Create("ScreenGui", {Name = "SlayUltimateLoading", Parent = Parent, DisplayOrder = 999})
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
 
-    local Holder = Create("Frame", {  
-        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = Screen  
-    })  
+    local MainFrame = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = Screen
+    })
 
-    -- [Glow Effect] แสงฟุ้งรอบโลโก้
-    local LogoGlow = Create("ImageLabel", {
+    -- [1] วงแหวนเทคโนโลยี (Rotating Rings)
+    local Ring1 = Create("ImageLabel", {
+        Size = UDim2.new(0, 350, 0, 350), Position = UDim2.new(0.5, -175, 0.45, -175),
+        Image = "rbxassetid://13214152549", -- วงแหวน Sci-fi
+        ImageColor3 = SlayLib.Theme.MainColor, ImageTransparency = 0.8,
+        BackgroundTransparency = 1, Parent = MainFrame
+    })
+    local Ring2 = Create("ImageLabel", {
+        Size = UDim2.new(0, 280, 0, 280), Position = UDim2.new(0.5, -140, 0.45, -140),
+        Image = "rbxassetid://13214152549", 
+        ImageColor3 = Color3.fromRGB(255, 255, 255), ImageTransparency = 0.9,
+        BackgroundTransparency = 1, Rotation = 90, Parent = MainFrame
+    })
+
+    -- [2] โลโก้และแสง Aura
+    local Aura = Create("ImageLabel", {
         Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),
-        Image = "rbxassetid://6015266835", -- Glow Shadow
-        ImageColor3 = SlayLib.Theme.MainColor, ImageTransparency = 0.6,
-        BackgroundTransparency = 1, Parent = Holder
+        Image = "rbxassetid://6015266835", ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.5, BackgroundTransparency = 1, Parent = MainFrame
+    })
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),
+        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1, ZIndex = 3, Parent = MainFrame
     })
 
-    local Logo = Create("ImageLabel", {  
-        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),  
-        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),  
-        BackgroundTransparency = 1, ZIndex = 2, Parent = Holder  
-    })  
-
-    -- [Text System] ตัวหนังสือแบบมีเงาและเลื่อนขึ้น
-    local InfoLabel = Create("TextLabel", {  
-        Text = "INITIALIZING...", Size = UDim2.new(1, 0, 0, 30),  
-        Position = UDim2.new(0, 0, 0.72, 10), Font = "Code", TextSize = 14,  
-        TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, 
-        TextTransparency = 1, Parent = Holder
-    })  
-
-    -- [Loading Bar] ดีไซน์ใหม่ให้ดูแพง
-    local BarBg = Create("Frame", {  
-        Size = UDim2.new(0, 280, 0, 2), Position = UDim2.new(0.5, -140, 0.75, 0),  
-        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, Parent = Holder
-    })  
-    local BarFill = Create("Frame", {  
-        Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255), 
-        Parent = BarBg, BorderSizePixel = 0
-    })  
-    -- เติมแสงให้ตัว Loading Bar
-    local BarGlow = Create("UIStroke", {
-        Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.6, Parent = BarFill
+    -- [3] ระบบข้อมูลและเปอร์เซ็นต์
+    local StatusLabel = Create("TextLabel", {
+        Text = "SYSTEM STANDBY", Size = UDim2.new(0, 400, 0, 20),
+        Position = UDim2.new(0.5, -200, 0.7, 0), Font = "Code", TextSize = 16,
+        TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, TextTransparency = 1, Parent = MainFrame
+    })
+    local PercentLabel = Create("TextLabel", {
+        Text = "0%", Size = UDim2.new(0, 100, 0, 40),
+        Position = UDim2.new(0.5, -50, 0.73, 0), Font = "GothamBold", TextSize = 24,
+        TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 1, TextTransparency = 1, Parent = MainFrame
     })
 
-    -- Sequence Start  
-    Tween(Blur, {Size = 25}, 1.5)  
-    
-    -- Logo Entrance (ใช้ Cubic เพื่อความนุ่มนวล)
-    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.45, -90)}, 1, Enum.EasingStyle.Cubic)
-    Tween(LogoGlow, {Size = UDim2.new(0, 400, 0, 400), Position = UDim2.new(0.5, -200, 0.45, -200)}, 1.5)
-    
-    task.wait(0.5)
-    Tween(InfoLabel, {TextTransparency = 0, Position = UDim2.new(0, 0, 0.72, 0)}, 0.5)
-    Tween(BarBg, {BackgroundTransparency = 0.8}, 0.5)
+    -- [4] Loading Bar (แบบเส้นคู่ Double Line)
+    local BarBg = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 2), Position = UDim2.new(0.5, -150, 0.8, 0),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0.9, Parent = MainFrame
+    })
+    local BarFill = Create("Frame", {
+        Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor,
+        BorderSizePixel = 0, Parent = BarBg
+    })
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.5, Parent = BarFill})
+
+    -- --- START ANIMATION ---
+    task.spawn(function()
+        while Screen.Parent do
+            Ring1.Rotation = Ring1.Rotation + 0.5
+            Ring2.Rotation = Ring2.Rotation - 1
+            task.wait()
+        end
+    end)
+
+    Tween(Blur, {Size = 20}, 1.2)
+    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.45, -90)}, 1.2, Enum.EasingStyle.Quart)
+    Tween(Aura, {Size = UDim2.new(0, 500, 0, 500), Position = UDim2.new(0.5, -250, 0.45, -250)}, 1.5)
+    task.wait(0.6)
+    Tween(StatusLabel, {TextTransparency = 0}, 0.5)
+    Tween(PercentLabel, {TextTransparency = 0.2}, 0.5)
 
     local Steps = {
-        "Fetching Cloud Config...",
-        "Bypassing Security...",
-        "Injecting SlayLib Core...",
-        "Syncing SlayLib X Themes...",
-        "Environment Stabilized!"
+        {msg = "INITIALIZING CORE", pct = 20},
+        {msg = "DECRYPTING ASSETS", pct = 45},
+        {msg = "BYPASSING HANDLER", pct = 70},
+        {msg = "STABILIZING UI", pct = 90},
+        {msg = "ACCESS GRANTED", pct = 100}
     }
 
-    for i, step in ipairs(Steps) do  
-        -- Text เปลี่ยนแบบนุ่มนวล
+    for _, step in ipairs(Steps) do
+        StatusLabel.Text = step.msg
+        -- ตัวเลขวิ่งแบบเนียนๆ
+        local startPct = tonumber(PercentLabel.Text:sub(1, -2)) or 0
         task.spawn(function()
-            Tween(InfoLabel, {TextTransparency = 1}, 0.2)
-            task.wait(0.2)
-            InfoLabel.Text = step:upper()
-            Tween(InfoLabel, {TextTransparency = 0}, 0.2)
+            for i = startPct, step.pct do
+                PercentLabel.Text = i .. "%"
+                task.wait(0.02)
+            end
         end)
-        
-        local targetSize = i/#Steps
-        Tween(BarFill, {Size = UDim2.new(targetSize, 0, 1, 0)}, 0.8, Enum.EasingStyle.Quart)
-        
-        -- เพิ่มลูกเล่นแสงกระพริบตอนเปลี่ยน Step
-        Tween(LogoGlow, {ImageTransparency = 0.2}, 0.2)
-        task.delay(0.2, function() Tween(LogoGlow, {ImageTransparency = 0.6}, 0.4) end)
-        
-        task.wait(math.random(6, 12) / 10)  
-    end  
 
-    -- Finish State: โลโก้สว่างขึ้นก่อนหายไป
-    Tween(Logo, {ImageColor3 = SlayLib.Theme.MainColor}, 0.4)
+        Tween(BarFill, {Size = UDim2.new(step.pct/100, 0, 1, 0)}, 0.8, Enum.EasingStyle.Quint)
+        
+        -- Aura Pulse
+        Tween(Aura, {ImageTransparency = 0.2}, 0.2)
+        task.delay(0.2, function() Tween(Aura, {ImageTransparency = 0.5}, 0.4) end)
+        
+        task.wait(math.random(8, 15) / 10)
+    end
+
+    -- --- EXIT SEQUENCE ---
     task.wait(0.5)
+    Tween(StatusLabel, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+    
+    -- "The Explode" Effect
+    Tween(Logo, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.45, -125), ImageTransparency = 1}, 0.8, Enum.EasingStyle.Quart)
+    Tween(Aura, {Size = UDim2.new(0, 800, 0, 800), Position = UDim2.new(0.5, -400, 0.45, -400), ImageTransparency = 1}, 0.8)
+    Tween(Ring1, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.6)
+    Tween(Ring2, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.6)
+    Tween(StatusLabel, {TextTransparency = 1, Position = UDim2.new(0.5, -200, 0.68, 0)}, 0.5)
+    Tween(PercentLabel, {TextTransparency = 1}, 0.4)
+    Tween(BarBg, {Size = UDim2.new(0, 0, 0, 2), Position = UDim2.new(0.5, 0, 0.8, 0)}, 0.6)
+    Tween(Blur, {Size = 0}, 1)
 
-    -- Fade Out Sequence (เท่ๆ แบบสลายตัว)
-    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 300, 0, 300), Position = UDim2.new(0.5, -150, 0.45, -150)}, 0.6, Enum.EasingStyle.Quart)
-    Tween(LogoGlow, {ImageTransparency = 1, Size = UDim2.new(0, 600, 0, 600), Position = UDim2.new(0.5, -300, 0.45, -300)}, 0.6)
-    Tween(InfoLabel, {TextTransparency = 1, Position = UDim2.new(0, 0, 0.72, -10)}, 0.4)
-    Tween(BarBg, {BackgroundTransparency = 1}, 0.4)
-    Tween(BarFill, {BackgroundTransparency = 1}, 0.4)
-    Tween(Blur, {Size = 0}, 1)  
-
-    task.wait(1)  
-    Screen:Destroy()  
+    task.wait(1)
+    Screen:Destroy()
     Blur:Destroy()
 end
 
