@@ -230,7 +230,7 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayHorizonInterface",
+        Name = "SlayEventHorizon",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -238,119 +238,127 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- [หัวใจสำคัญ] CanvasGroup ตัวเดียวที่คุมทุกอย่าง เพื่อการหายที่พร้อมกัน 100%
+    -- CanvasGroup: ตัวควบคุมความโปร่งใสและการยุบตัวเพียงหนึ่งเดียว
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1, -- เริ่มต้นที่โปร่งใส
+        GroupTransparency = 1,
         Parent = Screen
     })
 
-    -- Background: Solid Deep Dark (ลดความลายตา)
+    -- Background: Deep Gradient (สร้างจาก Frame ซ้อนกันเพื่อมิติ)
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(5, 5, 10),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 5),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] THE FOCUS: LOGO & VECTOR BRACKETS
-    local CenterFrame = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+    -- [1] THE "SCANLINE" GRID (สร้างบรรยากาศ Tech ล้ำๆ)
+    local Grid = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = Bg
+    })
+    for i = 0, 20 do
+        local Line = Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 1),
+            Position = UDim2.new(0, 0, i/20, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.95,
+            BorderSizePixel = 0,
+            Parent = Grid
+        })
+    end
+
+    -- [2] THE HUB: LOGO & DYNAMIC BRACKETS
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 400, 0, 400),
+        Position = UDim2.new(0.5, -200, 0.5, -200),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
-    -- สร้าง "วงเล็บเหลี่ยม" (Brackets) ล้อมโลโก้ แทนวงแหวนหมุนๆ เพื่อลดความลายตา
-    local function CreateBracket(name, pos, rot)
-        local B = Create("Frame", {
-            Name = name,
-            Size = UDim2.new(0, 60, 0, 2),
+    -- สร้าง "Laser Corners" (มุมเลเซอร์ที่ขยับได้)
+    local function CreateCorner(pos, rot)
+        local Corner = Create("Frame", {
+            Size = UDim2.new(0, 40, 0, 2),
             Position = pos,
             Rotation = rot,
             BackgroundColor3 = SlayLib.Theme.MainColor,
             BorderSizePixel = 0,
-            Parent = CenterFrame
+            Parent = Hub
         })
-        -- ส่วนหัวของวงเล็บ
-        local Head = Create("Frame", {
-            Size = UDim2.new(0, 2, 0, 20),
-            Position = UDim2.new(0, 0, 0, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BorderSizePixel = 0,
-            Parent = B
-        })
-        return B
+        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = Corner})
+        return Corner
     end
 
-    local TL = CreateBracket("TL", UDim2.new(0, 20, 0, 20), 0)
-    local TR = CreateBracket("TR", UDim2.new(1, -80, 0, 20), 0)
-    local BL = CreateBracket("BL", UDim2.new(0, 20, 1, -22), 0)
-    local BR = CreateBracket("BR", UDim2.new(1, -80, 1, -22), 0)
+    local C1 = CreateCorner(UDim2.new(0.2, 0, 0.2, 0), 0)
+    local C2 = CreateCorner(UDim2.new(0.8, -40, 0.2, 0), 0)
+    local C3 = CreateCorner(UDim2.new(0.2, 0, 0.8, 0), 0)
+    local C4 = CreateCorner(UDim2.new(0.8, -40, 0.8, 0), 0)
 
-    -- THE LOGO (พระเอกของงาน)
+    -- THE LOGO
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 150, 0, 150),
-        Position = UDim2.new(0.5, -75, 0.5, -75),
+        Size = UDim2.new(0, 160, 0, 160),
+        Position = UDim2.new(0.5, -80, 0.5, -80),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
-        Parent = CenterFrame
+        ZIndex = 10,
+        Parent = Hub
     })
 
-    -- [2] SLICK PROGRESS BAR (เส้นบางๆ ดูพรีเมียม)
-    local BarBase = Create("Frame", {
-        Size = UDim2.new(0, 200, 0, 1),
-        Position = UDim2.new(0.5, -100, 0.8, 0),
-        BackgroundColor3 = Color3.fromRGB(40, 40, 50),
-        BorderSizePixel = 0,
+    -- [3] STATUS INDICATOR (Minimalist)
+    local Status = Create("TextLabel", {
+        Text = "SYSTEM BREACH INITIATED",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.85, 0),
+        Font = "Code", TextSize = 14,
+        TextColor3 = SlayLib.Theme.MainColor,
+        TextTransparency = 0.5,
+        BackgroundTransparency = 1,
         Parent = MainCanvas
     })
-    local BarFill = Create("Frame", {
-        Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor,
-        BorderSizePixel = 0,
-        Parent = BarBase
-    })
 
-    -- --- ANIMATION START (Smooth & Fast) ---
-    Tween(Blur, {Size = 20}, 0.8):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 0.6):Play()
+    -- --- SEQUENCE START (Cinematic Flow) ---
+    Tween(Blur, {Size = 25}, 1):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 0.8):Play()
     
-    -- แอนิเมชันวงเล็บค่อยๆ บีบเข้าหาโลโก้
-    Tween(TL, {Position = UDim2.new(0, 50, 0, 50)}, 0.8, Enum.EasingStyle.Quart):Play()
-    Tween(TR, {Position = UDim2.new(1, -110, 0, 50)}, 0.8, Enum.EasingStyle.Quart):Play()
-    Tween(BL, {Position = UDim2.new(0, 50, 1, -52)}, 0.8, Enum.EasingStyle.Quart):Play()
-    Tween(BR, {Position = UDim2.new(1, -110, 1, -52)}, 0.8, Enum.EasingStyle.Quart):Play()
+    -- มุมเลเซอร์บีบเข้าหาโลโก้แบบมีสไตล์
+    Tween(C1, {Position = UDim2.new(0.35, 0, 0.35, 0)}, 1, Enum.EasingStyle.Quart):Play()
+    Tween(C2, {Position = UDim2.new(0.65, -40, 0.35, 0)}, 1, Enum.EasingStyle.Quart):Play()
+    Tween(C3, {Position = UDim2.new(0.35, 0, 0.65, 0)}, 1, Enum.EasingStyle.Quart):Play()
+    Tween(C4, {Position = UDim2.new(0.65, -40, 0.65, 0)}, 1, Enum.EasingStyle.Quart):Play()
 
-    -- โหลดแถบสถานะแบบรวดเร็ว
-    task.spawn(function()
-        Tween(BarFill, {Size = UDim2.new(1, 0, 1, 0)}, 1.2, Enum.EasingStyle.Linear):Play()
-    end)
-    task.wait(1.5) -- เวลาโหลดรวมทั้งหมด
+    -- ขั้นตอนการโหลดแบบกระชับ (รวม 1.5 วินาที)
+    local Steps = {"[ AUTH ]", "[ SYNC ]", "[ LOAD ]", "[ READY ]"}
+    for _, s in ipairs(Steps) do
+        Status.Text = s
+        task.wait(0.35)
+    end
 
-    -- --- THE PERFECT EXIT (The Horizon Collapse) ---
-    -- มั่นใจว่าหายพร้อมกัน 100% เพราะ Tween แค่ที่ MainCanvas และ Blur
+    -- --- THE "ZERO-G" EXIT (การหายที่พรีเมียมที่สุด) ---
+    task.wait(0.2)
     
-    -- 1. บีบทุกอย่างลงเป็นเส้นนอน (Horizon Line)
+    -- ทุกอย่างจะ "ยุบ" เข้าหาแกนกลางในแนวนอน และ "ขยาย" ในแนวตั้ง พร้อมจางหาย
     local ExitTween = Tween(MainCanvas, {
-        Size = UDim2.new(1, 0, 0, 0), 
-        Position = UDim2.new(0, 0, 0.5, 0),
-        GroupTransparency = 1
-    }, 0.5, Enum.EasingStyle.Quart)
+        Size = UDim2.new(1.5, 0, 0, 0), -- ยุบเป็นเส้นตรงแนวนอน
+        Position = UDim2.new(-0.25, 0, 0.5, 0),
+        GroupTransparency = 1 -- จางหายไปพร้อมกัน
+    }, 0.6, Enum.EasingStyle.Quart)
     
     ExitTween:Play()
-    Tween(Blur, {Size = 0}, 0.5):Play()
+    Tween(Blur, {Size = 0}, 0.6):Play()
 
-    -- 2. เมื่อ Tween จบ สั่งลบทิ้งทันที
+    -- เมื่อจบ Tween สั่งทำลายทิ้งทันที (Guarantee No Stuck)
     ExitTween.Completed:Connect(function()
         Screen:Destroy()
         Blur:Destroy()
     end)
 
-    -- Safety Kill (กันเหนียว 2 วินาที)
-    task.delay(2, function()
+    -- Safety Bypass: ถ้า Error ค้างเกิน 3 วินาที ให้เชือดทิ้ง
+    task.delay(3, function()
         if Screen and Screen.Parent then Screen:Destroy() end
     end)
 end
