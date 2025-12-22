@@ -229,101 +229,163 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
+    -- ตั้งค่าให้เต็มจอ 100% ทับทุกอย่าง
     local Screen = Create("ScreenGui", {
-        Name = "SlayQuantumInterface",
+        Name = "SlaySingularity",
         Parent = Parent,
         DisplayOrder = 99999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
+    
+    -- พื้นหลังมืดสนิทที่มีความลึก
     local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(5, 5, 8),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
         BorderSizePixel = 0,
         Parent = Screen
     })
 
-    -- [ตัวแปรควบคุม]
-    local LoadingFinished = false
-
-    -- [1] VIGNETTE & SHARDS
-    local Vignette = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
-        Image = "rbxassetid://13215234567",
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.2,
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-
-    local function SpawnShard()
-        local Shard = Create("Frame", {
-            Size = UDim2.new(0, math.random(2, 5), 0, math.random(40, 100)),
-            Position = UDim2.new(math.random(), 0, 1.1, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.7,
-            Rotation = math.random(-20, 20),
+    -- [1] STARFIELD EFFECT (จุดแสงเล็กๆ กระจายเต็มจอ)
+    for i = 1, 50 do
+        local Star = Create("Frame", {
+            Size = UDim2.new(0, 2, 0, 2),
+            Position = UDim2.new(math.random(), 0, math.random(), 0),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 0.8,
             Parent = Background
         })
-        Tween(Shard, {Position = UDim2.new(Shard.Position.X.Scale, 0, -0.2, 0)}, math.random(2, 4), Enum.EasingStyle.Linear):Play()
-        task.delay(4, function() Shard:Destroy() end)
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Star})
     end
 
-    -- [2] INTERFACE
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 500, 0, 500),
-        Position = UDim2.new(0.5, -250, 0.5, -250),
-        BackgroundTransparency = 1,
+    -- [2] THE CORE HUB
+    local Core = Create("Frame", {
+        Size = UDim2.new(0, 0, 0, 0), -- เริ่มจากจุดเดียว
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        BackgroundColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 0.5,
         Parent = Background
+    })
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Core})
+    
+    local CoreGlow = Create("ImageLabel", {
+        Size = UDim2.new(2, 0, 2, 0),
+        Position = UDim2.new(-0.5, 0, -0.5, 0),
+        Image = "rbxassetid://6015266835",
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.6,
+        BackgroundTransparency = 1,
+        Parent = Core
     })
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
-        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1, ZIndex = 5, Parent = Hub
+        Size = UDim2.new(0, 250, 0, 250),
+        Position = UDim2.new(0.5, -125, 0.5, -125),
+        Image = SlayLib.Icons.Logofull,
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageTransparency = 1, -- เริ่มจากโปร่งใส
+        BackgroundTransparency = 1,
+        ZIndex = 5,
+        Parent = Background
     })
 
-    local Subtitle = Create("TextLabel", {
-        Text = "INITIALIZING...", Size = UDim2.new(0, 300, 0, 20),
-        Position = UDim2.new(0.5, -150, 0.6, 110), Font = "Code", TextSize = 11,
-        TextColor3 = Color3.fromRGB(150, 150, 150), BackgroundTransparency = 1, Parent = Hub
-    })
-
-    -- --- แก้ไข: ระบบ Loop ที่ตรวจสอบ LoadingFinished ---
-    
-    -- Shard Spawning Loop
-    task.spawn(function()
-        while not LoadingFinished do
-            SpawnShard()
-            task.wait(0.2)
-        end
-    end)
-
-    -- Intro
-    Tween(Blur, {Size = 24}, 1.5):Play()
-    
-    -- [ขั้นตอนการโหลดจริง]
-    local Steps = {"PARSING_CORE", "INJECTING_SCRIPTS", "STABILIZING", "COMPLETED"}
-    for i, step in ipairs(Steps) do
-        Subtitle.Text = step .. "..."
-        task.wait(math.random(6, 10) / 10)
+    -- [3] SCANNING RINGS (วงแหวนหมุนซ้อนกัน 3 ชั้น)
+    local function CreateRing(size, speed, reverse)
+        local Ring = Create("ImageLabel", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            Image = "rbxassetid://12558442813",
+            ImageColor3 = SlayLib.Theme.MainColor,
+            ImageTransparency = 1,
+            BackgroundTransparency = 1,
+            Parent = Background
+        })
+        task.spawn(function()
+            while Screen.Parent do
+                Ring.Rotation = Ring.Rotation + (reverse and -speed or speed)
+                task.wait()
+            end
+        end)
+        return Ring
     end
 
-    -- สั่งหยุดทุกอย่าง
-    LoadingFinished = true 
-    Subtitle.Text = "SYSTEMS OPERATIONAL"
+    local R1 = CreateRing(400, 0.5, false)
+    local R2 = CreateRing(350, 1, true)
+    local R3 = CreateRing(450, 0.3, false)
+
+    -- [4] INFO & PERCENTAGE
+    local ProgressText = Create("TextLabel", {
+        Text = "SYSTEM_INITIALIZING",
+        Size = UDim2.new(0, 400, 0, 20),
+        Position = UDim2.new(0.5, -200, 0.8, 0),
+        Font = "Code",
+        TextSize = 16,
+        TextColor3 = SlayLib.Theme.MainColor,
+        TextTransparency = 1,
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+
+    -- --- อลังการตอนเข้า (The Big Bang Entrance) ---
+    Tween(Blur, {Size = 25}, 2):Play()
+    -- Core พุ่งออกมาจากจุดศูนย์กลาง
+    Tween(Core, {Size = UDim2.new(0, 10, 0, 10), Position = UDim2.new(0.5, -5, 0.5, -5)}, 0.5, Enum.EasingStyle.Quart):Play()
+    task.wait(0.5)
+    -- โลโก้และวงแหวนค่อยๆ ปรากฏพร้อม Glitch
+    Tween(Logo, {ImageTransparency = 0}, 1):Play()
+    Tween(R1, {ImageTransparency = 0.7}, 1):Play()
+    Tween(R2, {ImageTransparency = 0.8}, 1):Play()
+    Tween(R3, {ImageTransparency = 0.9}, 1):Play()
+    Tween(ProgressText, {TextTransparency = 0}, 1):Play()
+
+    -- ขั้นตอนการโหลด
+    local Steps = {
+        "LOADING_CORE_MODULES",
+        "SYNCING_USER_DATA",
+        "BYPASSING_ANTicheat",
+        "FINALIZING_INTERFACE"
+    }
+
+    for i, step in ipairs(Steps) do
+        ProgressText.Text = step .. " [" .. math.floor((i/#Steps)*100) .. "%]"
+        -- Core Pulse Effect
+        Tween(CoreGlow, {ImageTransparency = 0.2}, 0.2):Play()
+        task.delay(0.2, function() Tween(CoreGlow, {ImageTransparency = 0.6}, 0.4):Play() end)
+        task.wait(math.random(8, 15) / 10)
+    end
+
+    -- --- อลังการตอนออก (The Supernova Exit) ---
+    ProgressText.Text = "ACCESS_GRANTED"
     task.wait(0.5)
 
-    -- --- EXIT (ปิดหน้าโหลดเพื่อเริ่มสคริปต์หลัก) ---
-    local ExitTween = Tween(Logo, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.5, Enum.EasingStyle.BackIn)
-    ExitTween:Play()
+    -- ชาร์จพลัง (หดตัวก่อนระเบิด)
+    Tween(Logo, {Size = UDim2.new(0, 150, 0, 150), Position = UDim2.new(0.5, -75, 0.5, -75)}, 0.4, Enum.EasingStyle.BackIn):Play()
+    Tween(R1, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
+    Tween(R2, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
+    Tween(R3, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
+    task.wait(0.4)
+
+    -- การระเบิด (Supernova)
+    local Flash = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        ZIndex = 100,
+        Parent = Screen
+    })
     
+    Tween(Flash, {BackgroundTransparency = 0}, 0.1):Play() -- แฟลชขาววาบ
+    task.wait(0.1)
+    
+    -- สลายตัวทุกอย่างออกไปแบบรวดเร็ว
+    Logo.Visible = false
+    Core.Visible = false
     Tween(Background, {BackgroundTransparency = 1}, 0.8):Play()
-    Tween(Vignette, {ImageTransparency = 1}, 0.8):Play()
     Tween(Blur, {Size = 0}, 1):Play()
-    
-    ExitTween.Completed:Wait() -- รอจนกว่าแอนิเมชันจะเล่นจบจริงๆ
+    Tween(Flash, {BackgroundTransparency = 1}, 0.8):Play()
+
+    task.wait(1)
     Screen:Destroy()
     Blur:Destroy()
 end
