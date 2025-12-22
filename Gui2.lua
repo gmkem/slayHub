@@ -229,8 +229,9 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
+    -- [1] Setup หัวใจของระบบ
     local Screen = Create("ScreenGui", {
-        Name = "SlayEventHorizon",
+        Name = "SlaySingularity",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -238,127 +239,119 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- CanvasGroup: ตัวควบคุมความโปร่งใสและการยุบตัวเพียงหนึ่งเดียว
+    -- CanvasGroup คือพระเอก: ตัวคุมความใสและการสลายตัว
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1,
+        GroupTransparency = 1, -- เริ่มจากใส
         Parent = Screen
     })
 
-    -- Background: Deep Gradient (สร้างจาก Frame ซ้อนกันเพื่อมิติ)
+    -- Background: Deep Void
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 5),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] THE "SCANLINE" GRID (สร้างบรรยากาศ Tech ล้ำๆ)
-    local Grid = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Parent = Bg
-    })
-    for i = 0, 20 do
-        local Line = Create("Frame", {
+    -- [2] PROCEDURAL DECOR (สร้างจากโค้ด 100% ไม่จืดชืด)
+    -- สร้างเส้น Scanning สองเส้นที่วิ่งสวนกันแบบเท่ๆ
+    local function CreateScanner(name, color, startPos)
+        local Scanner = Create("Frame", {
+            Name = name,
             Size = UDim2.new(1, 0, 0, 1),
-            Position = UDim2.new(0, 0, i/20, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.95,
+            Position = startPos,
+            BackgroundColor3 = color,
+            BackgroundTransparency = 0.5,
             BorderSizePixel = 0,
-            Parent = Grid
+            Parent = Bg
         })
+        Create("UIStroke", {Color = color, Thickness = 2, Parent = Scanner})
+        return Scanner
     end
 
-    -- [2] THE HUB: LOGO & DYNAMIC BRACKETS
+    local Scan1 = CreateScanner("Scan1", SlayLib.Theme.MainColor, UDim2.new(0, 0, 0, 0))
+    local Scan2 = CreateScanner("Scan2", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 1, 0))
+
+    -- [3] THE CORE HUB (เน้นความคมของเส้น)
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 400),
-        Position = UDim2.new(0.5, -200, 0.5, -200),
+        Size = UDim2.new(0, 300, 0, 300),
+        Position = UDim2.new(0.5, -150, 0.5, -150),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
-    -- สร้าง "Laser Corners" (มุมเลเซอร์ที่ขยับได้)
-    local function CreateCorner(pos, rot)
-        local Corner = Create("Frame", {
-            Size = UDim2.new(0, 40, 0, 2),
-            Position = pos,
-            Rotation = rot,
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BorderSizePixel = 0,
-            Parent = Hub
-        })
-        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = Corner})
-        return Corner
-    end
+    -- เส้นตัดไขว้กลางจอ (Crosshair Style)
+    local VLine = Create("Frame", {Size = UDim2.new(0, 1, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = Hub})
+    local HLine = Create("Frame", {Size = UDim2.new(0, 0, 0, 1), Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = Hub})
 
-    local C1 = CreateCorner(UDim2.new(0.2, 0, 0.2, 0), 0)
-    local C2 = CreateCorner(UDim2.new(0.8, -40, 0.2, 0), 0)
-    local C3 = CreateCorner(UDim2.new(0.2, 0, 0.8, 0), 0)
-    local C4 = CreateCorner(UDim2.new(0.8, -40, 0.8, 0), 0)
-
-    -- THE LOGO
+    -- โลโก้ของคุณ (ความสำคัญอันดับ 1)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 160, 0, 160),
-        Position = UDim2.new(0.5, -80, 0.5, -80),
+        Size = UDim2.new(0, 120, 0, 120),
+        Position = UDim2.new(0.5, -60, 0.5, -60),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageTransparency = 1,
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = Hub
     })
 
-    -- [3] STATUS INDICATOR (Minimalist)
-    local Status = Create("TextLabel", {
-        Text = "SYSTEM BREACH INITIATED",
+    -- --- START CINEMATIC SEQUENCE ---
+    Tween(Blur, {Size = 30}, 0.8):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 0.5):Play()
+
+    -- 1. กางเส้น Crosshair ออก
+    Tween(VLine, {Size = UDim2.new(0, 1, 1, 0), Position = UDim2.new(0.5, 0, 0, 0)}, 0.6, Enum.EasingStyle.Quart):Play()
+    Tween(HLine, {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0.5, 0)}, 0.6, Enum.EasingStyle.Quart):Play()
+    task.wait(0.4)
+    
+    -- 2. โลโก้ปรากฏแบบ Fade + Scale Up
+    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90), ImageTransparency = 0}, 0.8, Enum.EasingStyle.BackOut):Play()
+
+    -- 3. เส้นสแกนรันสวนกัน
+    Tween(Scan1, {Position = UDim2.new(0, 0, 1, 0)}, 1.5, Enum.EasingStyle.Linear):Play()
+    Tween(Scan2, {Position = UDim2.new(0, 0, 0, 0)}, 1.5, Enum.EasingStyle.Linear):Play()
+
+    -- สถานะประมวลผล (ไวแต่เท่)
+    local StatusText = Create("TextLabel", {
+        Text = "BREACHING_SYSTEM",
         Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.85, 0),
+        Position = UDim2.new(0, 0, 0.8, 0),
         Font = "Code", TextSize = 14,
         TextColor3 = SlayLib.Theme.MainColor,
-        TextTransparency = 0.5,
-        BackgroundTransparency = 1,
-        Parent = MainCanvas
+        BackgroundTransparency = 1, Parent = MainCanvas
     })
-
-    -- --- SEQUENCE START (Cinematic Flow) ---
-    Tween(Blur, {Size = 25}, 1):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 0.8):Play()
     
-    -- มุมเลเซอร์บีบเข้าหาโลโก้แบบมีสไตล์
-    Tween(C1, {Position = UDim2.new(0.35, 0, 0.35, 0)}, 1, Enum.EasingStyle.Quart):Play()
-    Tween(C2, {Position = UDim2.new(0.65, -40, 0.35, 0)}, 1, Enum.EasingStyle.Quart):Play()
-    Tween(C3, {Position = UDim2.new(0.35, 0, 0.65, 0)}, 1, Enum.EasingStyle.Quart):Play()
-    Tween(C4, {Position = UDim2.new(0.65, -40, 0.65, 0)}, 1, Enum.EasingStyle.Quart):Play()
+    task.wait(1.2) -- โหลดรวม 1.6 วินาที (ไม่นานไป ไม่เร็วไป)
 
-    -- ขั้นตอนการโหลดแบบกระชับ (รวม 1.5 วินาที)
-    local Steps = {"[ AUTH ]", "[ SYNC ]", "[ LOAD ]", "[ READY ]"}
-    for _, s in ipairs(Steps) do
-        Status.Text = s
-        task.wait(0.35)
-    end
-
-    -- --- THE "ZERO-G" EXIT (การหายที่พรีเมียมที่สุด) ---
+    -- --- THE FINAL COLLAPSE (จุดที่รื้อทำใหม่เพื่อความคมกริบ) ---
+    -- ทุกอย่างจะหายไปพร้อมกันผ่านการยุบตัวของ MainCanvas
+    
+    -- สร้าง Shockwave เล็กๆ ก่อนหาย (ขยายแล้วหด)
+    Tween(Logo, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 0.5}, 0.2):Play()
+    
     task.wait(0.2)
     
-    -- ทุกอย่างจะ "ยุบ" เข้าหาแกนกลางในแนวนอน และ "ขยาย" ในแนวตั้ง พร้อมจางหาย
-    local ExitTween = Tween(MainCanvas, {
-        Size = UDim2.new(1.5, 0, 0, 0), -- ยุบเป็นเส้นตรงแนวนอน
-        Position = UDim2.new(-0.25, 0, 0.5, 0),
-        GroupTransparency = 1 -- จางหายไปพร้อมกัน
-    }, 0.6, Enum.EasingStyle.Quart)
+    -- การหายแบบ "Digital Slice": ยุบแนวนอนเป็นเส้นขอบฟ้าและหายวับไป
+    local Exit = Tween(MainCanvas, {
+        Size = UDim2.new(1, 0, 0, 0),
+        Position = UDim2.new(0, 0, 0.5, 0),
+        GroupTransparency = 1
+    }, 0.5, Enum.EasingStyle.Quart)
     
-    ExitTween:Play()
-    Tween(Blur, {Size = 0}, 0.6):Play()
+    Exit:Play()
+    Tween(Blur, {Size = 0}, 0.5):Play()
 
-    -- เมื่อจบ Tween สั่งทำลายทิ้งทันที (Guarantee No Stuck)
-    ExitTween.Completed:Connect(function()
+    -- เมื่อ Tween จบ สั่งทำลายทิ้งทันที 100%
+    Exit.Completed:Connect(function()
         Screen:Destroy()
         Blur:Destroy()
     end)
 
-    -- Safety Bypass: ถ้า Error ค้างเกิน 3 วินาที ให้เชือดทิ้ง
-    task.delay(3, function()
+    -- Safety Kill (เซฟตี้คัท 5 วินาที)
+    task.delay(5, function()
         if Screen and Screen.Parent then Screen:Destroy() end
     end)
 end
