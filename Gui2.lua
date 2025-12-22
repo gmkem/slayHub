@@ -229,9 +229,8 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- [1] Setup หัวใจของระบบ
     local Screen = Create("ScreenGui", {
-        Name = "SlaySingularity",
+        Name = "SlayFinalBreach",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -239,15 +238,21 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- CanvasGroup คือพระเอก: ตัวคุมความใสและการสลายตัว
-    local MainCanvas = Create("CanvasGroup", {
+    -- ใช้ Frame ธรรมดาหุ้ม CanvasGroup อีกทีเพื่อป้องกันคำสั่งขัดแย้ง
+    local MasterFrame = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1, -- เริ่มจากใส
         Parent = Screen
     })
 
-    -- Background: Deep Void
+    local MainCanvas = Create("CanvasGroup", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        GroupTransparency = 1,
+        Parent = MasterFrame
+    })
+
+    -- Background: Deep Black
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -255,104 +260,62 @@ local function ExecuteLoadingSequence()
         Parent = MainCanvas
     })
 
-    -- [2] PROCEDURAL DECOR (สร้างจากโค้ด 100% ไม่จืดชืด)
-    -- สร้างเส้น Scanning สองเส้นที่วิ่งสวนกันแบบเท่ๆ
-    local function CreateScanner(name, color, startPos)
-        local Scanner = Create("Frame", {
-            Name = name,
-            Size = UDim2.new(1, 0, 0, 1),
-            Position = startPos,
-            BackgroundColor3 = color,
-            BackgroundTransparency = 0.5,
-            BorderSizePixel = 0,
-            Parent = Bg
-        })
-        Create("UIStroke", {Color = color, Thickness = 2, Parent = Scanner})
-        return Scanner
-    end
+    -- [1] CUSTOM ASSETS (สร้างด้วย UI เพียวๆ)
+    -- เส้นสแกนแนวตั้ง 2 เส้น (เท่กว่า Crosshair ปกติ)
+    local LineL = Create("Frame", {Size = UDim2.new(0, 1, 1, 0), Position = UDim2.new(0.3, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = MainCanvas})
+    local LineR = Create("Frame", {Size = UDim2.new(0, 1, 1, 0), Position = UDim2.new(0.7, 0, 0, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = MainCanvas})
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = LineL})
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = LineR})
 
-    local Scan1 = CreateScanner("Scan1", SlayLib.Theme.MainColor, UDim2.new(0, 0, 0, 0))
-    local Scan2 = CreateScanner("Scan2", Color3.fromRGB(255, 255, 255), UDim2.new(0, 0, 1, 0))
-
-    -- [3] THE CORE HUB (เน้นความคมของเส้น)
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+    -- โลโก้ (หัวใจหลัก)
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(0, 200, 0, 200),
+        Position = UDim2.new(0.5, -100, 0.5, -100),
+        Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
+        ZIndex = 10,
         Parent = MainCanvas
     })
 
-    -- เส้นตัดไขว้กลางจอ (Crosshair Style)
-    local VLine = Create("Frame", {Size = UDim2.new(0, 1, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = Hub})
-    local HLine = Create("Frame", {Size = UDim2.new(0, 0, 0, 1), Position = UDim2.new(0.5, 0, 0.5, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = Hub})
-
-    -- โลโก้ของคุณ (ความสำคัญอันดับ 1)
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 120, 0, 120),
-        Position = UDim2.new(0.5, -60, 0.5, -60),
-        Image = SlayLib.Icons.Logofull,
-        ImageColor3 = Color3.fromRGB(255, 255, 255),
-        ImageTransparency = 1,
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = Hub
-    })
-
-    -- --- START CINEMATIC SEQUENCE ---
-    Tween(Blur, {Size = 30}, 0.8):Play()
+    -- --- START SEQUENCE ---
+    Tween(Blur, {Size = 25}, 0.5):Play()
     Tween(MainCanvas, {GroupTransparency = 0}, 0.5):Play()
-
-    -- 1. กางเส้น Crosshair ออก
-    Tween(VLine, {Size = UDim2.new(0, 1, 1, 0), Position = UDim2.new(0.5, 0, 0, 0)}, 0.6, Enum.EasingStyle.Quart):Play()
-    Tween(HLine, {Size = UDim2.new(1, 0, 0, 1), Position = UDim2.new(0, 0, 0.5, 0)}, 0.6, Enum.EasingStyle.Quart):Play()
-    task.wait(0.4)
     
-    -- 2. โลโก้ปรากฏแบบ Fade + Scale Up
-    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90), ImageTransparency = 0}, 0.8, Enum.EasingStyle.BackOut):Play()
+    -- แอนิเมชันเส้นสแกนบีบเข้าหาโลโก้
+    Tween(LineL, {Position = UDim2.new(0.45, 0, 0, 0)}, 0.8, Enum.EasingStyle.Quart):Play()
+    Tween(LineR, {Position = UDim2.new(0.55, 0, 0, 0)}, 0.8, Enum.EasingStyle.Quart):Play()
 
-    -- 3. เส้นสแกนรันสวนกัน
-    Tween(Scan1, {Position = UDim2.new(0, 0, 1, 0)}, 1.5, Enum.EasingStyle.Linear):Play()
-    Tween(Scan2, {Position = UDim2.new(0, 0, 0, 0)}, 1.5, Enum.EasingStyle.Linear):Play()
+    -- [2] ระบบสั่งปิดแบบ "Nuclear Option" (หายชัวร์ 100%)
+    local function AbsoluteCleanup()
+        -- บีบอัดหน้าจอเป็นเส้นแนวนอน (เท่และเร็ว)
+        local Final = Tween(MainCanvas, {
+            Size = UDim2.new(1, 0, 0, 0),
+            Position = UDim2.new(0, 0, 0.5, 0),
+            GroupTransparency = 1
+        }, 0.4, Enum.EasingStyle.Quart)
+        
+        Final:Play()
+        Tween(Blur, {Size = 0}, 0.4):Play()
+        
+        -- ใช้ task.delay แทน Completed ป้องกัน Thread ค้าง
+        task.delay(0.45, function()
+            if Screen then Screen:Destroy() end
+            if Blur then Blur:Destroy() end
+        end)
+    end
 
-    -- สถานะประมวลผล (ไวแต่เท่)
-    local StatusText = Create("TextLabel", {
-        Text = "BREACHING_SYSTEM",
-        Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.8, 0),
-        Font = "Code", TextSize = 14,
-        TextColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1, Parent = MainCanvas
-    })
+    -- ขั้นตอนการทำงาน (ปรับให้ไวขึ้น)
+    task.wait(1.5) 
     
-    task.wait(1.2) -- โหลดรวม 1.6 วินาที (ไม่นานไป ไม่เร็วไป)
+    -- สั่งปิด
+    AbsoluteCleanup()
 
-    -- --- THE FINAL COLLAPSE (จุดที่รื้อทำใหม่เพื่อความคมกริบ) ---
-    -- ทุกอย่างจะหายไปพร้อมกันผ่านการยุบตัวของ MainCanvas
-    
-    -- สร้าง Shockwave เล็กๆ ก่อนหาย (ขยายแล้วหด)
-    Tween(Logo, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 0.5}, 0.2):Play()
-    
-    task.wait(0.2)
-    
-    -- การหายแบบ "Digital Slice": ยุบแนวนอนเป็นเส้นขอบฟ้าและหายวับไป
-    local Exit = Tween(MainCanvas, {
-        Size = UDim2.new(1, 0, 0, 0),
-        Position = UDim2.new(0, 0, 0.5, 0),
-        GroupTransparency = 1
-    }, 0.5, Enum.EasingStyle.Quart)
-    
-    Exit:Play()
-    Tween(Blur, {Size = 0}, 0.5):Play()
-
-    -- เมื่อ Tween จบ สั่งทำลายทิ้งทันที 100%
-    Exit.Completed:Connect(function()
-        Screen:Destroy()
-        Blur:Destroy()
-    end)
-
-    -- Safety Kill (เซฟตี้คัท 5 วินาที)
-    task.delay(5, function()
-        if Screen and Screen.Parent then Screen:Destroy() end
+    -- [3] เซฟตี้คัทสุดท้าย (ถ้า 3 วินาทียังอยู่ ให้ลบหน้าจอทิ้งทันที)
+    task.delay(3, function()
+        if Screen and Screen.Parent then
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end
     end)
 end
 
