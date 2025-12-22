@@ -590,9 +590,18 @@ function Window:CreateTab(Name, IconID)
 
         -- 3. SEARCHABLE DROPDOWN  
 function Section:CreateDropdown(Props)
-    Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}
+    Props = Props or {
+        Name = "Dropdown", 
+        Options = {"Option 1", "Option 2"}, 
+        Flag = "Drop_1", 
+        Callback = function() end,
+        Multi = false, -- เลือกได้หลายอย่างไหม
+        Limit = 1 -- จำนวนที่เลือกได้ (ถ้า Multi = true)
+    }
+    
     local IsOpen = false
-    local Selected = Props.Options[1]
+    -- กำหนดค่าเริ่มต้นเป็นตารางเปล่าสำหรับ Multi หรือ None สำหรับ Single
+    local Selected = Props.Multi and {} or nil 
     SlayLib.Flags[Props.Flag] = Selected
 
     local DContainer = Create("Frame", {  
@@ -600,67 +609,124 @@ function Section:CreateDropdown(Props)
         ClipsDescendants = true, Parent = Page  
     })  
     Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = DContainer})  
-    local DStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1.2, Transparency = 0.5, Parent = DContainer})
+    local DStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1.5, Parent = DContainer})
 
-    -- Header Area
     local MainBtn = Create("TextButton", {  
         Size = UDim2.new(1, 0, 0, 52), BackgroundTransparency = 1, Text = "", Parent = DContainer  
     })  
 
+    -- แสดงผลข้อความ (ถ้ายังไม่เลือกให้โชว์ None หรือ Select...)
     local DLbl = Create("TextLabel", {  
-        Text = "  " .. Props.Name .. ": " .. tostring(Selected), Size = UDim2.new(1, -50, 0, 52),  
-        Position = UDim2.new(0, 15, 0, 0), Font = "GothamMedium", TextSize = 14,  
-        TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = MainBtn  
+        Text = "  " .. Props.Name .. ": " .. (Props.Multi and "None" or "None"), 
+        Size = UDim2.new(1, -50, 0, 52), Position = UDim2.new(0, 15, 0, 0), 
+        Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.TextSecondary, 
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = MainBtn  
     })  
 
     local Chevron = Create("ImageLabel", {  
-        Size = UDim2.new(0, 20, 0, 20), Position = UDim2.new(1, -35, 0.5, -10),  
+        Size = UDim2.new(0, 18, 0, 18), Position = UDim2.new(1, -30, 0.5, -9),  
         Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, ImageColor3 = SlayLib.Theme.TextSecondary, Parent = MainBtn  
     })  
 
-    -- [ADDED] Search Box
     local SearchArea = Create("Frame", {
-        Size = UDim2.new(1, -20, 0, 35), Position = UDim2.new(0, 10, 0, 55),
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20), BackgroundTransparency = 0.5,
-        Visible = false, Parent = DContainer
+        Size = UDim2.new(1, -24, 0, 35), Position = UDim2.new(0, 12, 0, 55),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20), BackgroundTransparency = 0.5, Visible = false, Parent = DContainer
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SearchArea})
     
     local SearchInput = Create("TextBox", {
         Size = UDim2.new(1, -10, 1, 0), Position = UDim2.new(0, 10, 0, 0),
-        BackgroundTransparency = 1, Text = "", PlaceholderText = "Search options...",
-        TextColor3 = SlayLib.Theme.Text, PlaceholderColor3 = Color3.fromRGB(100, 100, 100),
-        Font = "Gotham", TextSize = 13, TextXAlignment = "Left", Parent = SearchArea
+        BackgroundTransparency = 1, Text = "", PlaceholderText = "Search...",
+        TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 13, TextXAlignment = "Left", Parent = SearchArea
     })
 
-    -- Scrolling List
     local List = Create("ScrollingFrame", {  
-        Size = UDim2.new(1, -20, 0, 160), Position = UDim2.new(0, 10, 0, 100),  
+        Size = UDim2.new(1, -12, 0, 160), Position = UDim2.new(0, 6, 0, 100),  
         BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
         CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", Visible = false, Parent = DContainer  
     })  
+    Create("UIPadding", {Parent = List, PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), PaddingBottom = UDim.new(0, 5)})
     local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5), SortOrder = "Name"})  
+
+    -- ฟังก์ชันจัดรูปแบบข้อความที่แสดงบน Dropdown
+    local function UpdateDisplay()
+        if Props.Multi then
+            if #Selected == 0 then
+                DLbl.Text = "  " .. Props.Name .. ": None"
+                DLbl.TextColor3 = SlayLib.Theme.TextSecondary
+            else
+                DLbl.Text = "  " .. Props.Name .. ": " .. table.concat(Selected, ", ")
+                DLbl.TextColor3 = SlayLib.Theme.MainColor
+            end
+        else
+            if not Selected then
+                DLbl.Text = "  " .. Props.Name .. ": None"
+                DLbl.TextColor3 = SlayLib.Theme.TextSecondary
+            else
+                DLbl.Text = "  " .. Props.Name .. ": " .. tostring(Selected)
+                DLbl.TextColor3 = SlayLib.Theme.MainColor
+            end
+        end
+    end
 
     local function Refresh()  
         for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end  
         for _, opt in pairs(Props.Options) do  
             local OBtn = Create("TextButton", {  
-                Name = tostring(opt), Size = UDim2.new(1, -5, 0, 35), BackgroundColor3 = Color3.fromRGB(30,30,30),  
+                Name = tostring(opt), Size = UDim2.new(1, 0, 0, 35), 
+                BackgroundColor3 = Color3.fromRGB(30,30,30),  
                 Text = "   " .. tostring(opt), Font = "Gotham", TextSize = 13,  
                 TextColor3 = SlayLib.Theme.TextSecondary, TextXAlignment = "Left", Parent = List  
             })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})  
+            Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})
+            local OStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.5, Transparency = 1, Parent = OBtn})
+
+            -- ตรวจสอบว่าเคยเลือกไว้หรือยัง (สำหรับ Multi)
+            local function IsSelected()
+                if Props.Multi then
+                    return table.find(Selected, opt)
+                else
+                    return Selected == opt
+                end
+            end
+
+            -- อัปเดตสถานะปุ่ม (สี/ขอบ)
+            local function UpdateVisual()
+                if IsSelected() then
+                    Tween(OBtn, {BackgroundColor3 = Color3.fromRGB(40, 40, 40), TextColor3 = SlayLib.Theme.MainColor}, 0.2)
+                    OStroke.Transparency = 0
+                else
+                    Tween(OBtn, {BackgroundColor3 = Color3.fromRGB(30, 30, 30), TextColor3 = SlayLib.Theme.TextSecondary}, 0.2)
+                    OStroke.Transparency = 1
+                end
+            end
+            UpdateVisual()
 
             OBtn.MouseButton1Click:Connect(function()  
-                Selected = opt  
-                DLbl.Text = "  " .. Props.Name .. ": " .. tostring(opt)  
-                IsOpen = false  
-                SlayLib.Flags[Props.Flag] = opt
-                Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
-                Tween(Chevron, {Rotation = 0}, 0.4)  
-                Tween(DStroke, {Color = SlayLib.Theme.Stroke}, 0.3)
-                task.delay(0.4, function() List.Visible = false SearchArea.Visible = false end)
-                task.spawn(Props.Callback, opt)  
+                if Props.Multi then
+                    local index = table.find(Selected, opt)
+                    if index then
+                        table.remove(Selected, index)
+                    else
+                        -- ตรวจสอบ Limit
+                        if #Selected < (Props.Limit or 999) then
+                            table.insert(Selected, opt)
+                        else
+                            SlayLib:Notify({Title = "Limit Reached", Content = "You can only select up to "..Props.Limit.." options!", Type = "Warning", Duration = 2})
+                        end
+                    end
+                else
+                    Selected = opt
+                    IsOpen = false
+                    Tween(DContainer, {Size = UDim2.new(1, 0, 0, 52)}, 0.4)  
+                    Tween(Chevron, {Rotation = 0}, 0.4)  
+                    task.delay(0.4, function() if not IsOpen then List.Visible = false SearchArea.Visible = false end end)
+                end
+                
+                SlayLib.Flags[Props.Flag] = Selected
+                UpdateDisplay()
+                Refresh() -- รีเฟรช visual ของปุ่มทั้งหมด
+                task.spawn(Props.Callback, Selected)  
             end)  
         end  
     end  
@@ -670,11 +736,7 @@ function Section:CreateDropdown(Props)
         local InputText = SearchInput.Text:lower()
         for _, item in pairs(List:GetChildren()) do
             if item:IsA("TextButton") then
-                if InputText == "" or item.Name:lower():find(InputText) then
-                    item.Visible = true
-                else
-                    item.Visible = false
-                end
+                item.Visible = (InputText == "" or item.Name:lower():find(InputText))
             end
         end
     end)
@@ -686,9 +748,7 @@ function Section:CreateDropdown(Props)
         if IsOpen then
             List.Visible = true
             SearchArea.Visible = true
-            SearchInput.Text = "" -- Reset search when opening
-            local TargetSize = 270 -- Fixed size when open for better look with search
-            Tween(DContainer, {Size = UDim2.new(1, 0, 0, TargetSize)}, 0.4, Enum.EasingStyle.Quart)  
+            Tween(DContainer, {Size = UDim2.new(1, 0, 0, 275)}, 0.4, Enum.EasingStyle.Quart)  
             Tween(Chevron, {Rotation = 180}, 0.4)  
             Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.3)
         else
@@ -698,12 +758,8 @@ function Section:CreateDropdown(Props)
             task.delay(0.4, function() if not IsOpen then List.Visible = false SearchArea.Visible = false end end)
         end
     end)  
-
-    function Section:UpdateDropdown(NewOptions)  
-        Props.Options = NewOptions  
-        Refresh()  
-    end  
 end
+
 
         -- 4. INTERACTIVE BUTTON  
         function Section:CreateButton(Props)  
