@@ -704,7 +704,7 @@ function Section:CreateDropdown(Props)
                         if #Selected < SelectionLimit then
                             table.insert(Selected, opt)
                         else
-                            SlayLib:Notify({Title = "Limit Reached", Content = "You can select up to "..SelectionLimit.." items.", Type = "Warning"})
+                            SlayLib:Notify({Title = "Limit Reached", Content = "You can select up to "..SelectionLimit.." items.", Type = "Warning", Duration = 3})
                             return
                         end
                     end
