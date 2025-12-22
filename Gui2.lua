@@ -230,15 +230,13 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayFractureInterface",
+        Name = "SlayVectorBreach",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
-    -- CanvasGroup สำหรับควบคุมการสลายตัวแบบ Sync ทั้งหน้าจอ
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
@@ -246,137 +244,142 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- Background: Deep Gradient
+    -- Background: Ultra Dark Blue
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(3, 3, 7),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] VIGNETTE & PARTICLES (เพิ่มความลึก)
-    local Vignette = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
-        Image = "rbxassetid://13215234567", -- Vignette Asset
-        ImageColor3 = Color3.fromRGB(0, 0, 0),
-        ImageTransparency = 0.3,
+    -- [1] PRODEDURAL FX: สร้างเส้นกริดแบบมีมิติ (Perspective Grid)
+    local GridContainer = Create("Frame", {
+        Size = UDim2.new(1, 0, 0.4, 0),
+        Position = UDim2.new(0, 0, 0.6, 0),
         BackgroundTransparency = 1,
         Parent = Bg
     })
+    for i = 1, 15 do
+        Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 1),
+            Position = UDim2.new(0, 0, i/15, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.9 - (i/15),
+            BorderSizePixel = 0,
+            Parent = GridContainer
+        })
+    end
 
-    -- [2] THE FRACTURE CORE (หัวใจของระบบ)
+    -- [2] THE HUB: LOGO & VECTOR RINGS
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 500, 0, 500),
-        Position = UDim2.new(0.5, -250, 0.5, -250),
+        Size = UDim2.new(0, 400, 0, 400),
+        Position = UDim2.new(0.5, -200, 0.5, -200),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
-    -- สร้าง "เศษเสี้ยวพลังงาน" พุ่งออกจากศูนย์กลาง (Fracture Lines)
-    local function SpawnFracture()
+    -- สร้างเส้นหมุนรอบโลโก้ (สร้างจาก Frame ล้วนๆ)
+    local function CreateTechLine(size, speed, rot)
         local Line = Create("Frame", {
-            Size = UDim2.new(0, 1, 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = UDim2.new(0, size, 0, 2),
+            Position = UDim2.new(0.5, -size/2, 0.5, -1),
             BackgroundColor3 = SlayLib.Theme.MainColor,
-            Rotation = math.random(0, 360),
             BorderSizePixel = 0,
+            Rotation = rot,
             Parent = Hub
         })
-        Tween(Line, {Size = UDim2.new(0, 1, 0, 300), BackgroundTransparency = 1}, 1, Enum.EasingStyle.Quart):Play()
-        task.delay(1, function() Line:Destroy() end)
-    end
-
-    -- วงแหวนแบบ Tech-Pulse
-    local OuterRing = Create("ImageLabel", {
-        Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225),
-        Image = "rbxassetid://12558442813", ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.8, BackgroundTransparency = 1, Parent = Hub
-    })
-
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
-        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1, ZIndex = 10, Parent = Hub
-    })
-
-    -- [3] SCANLINE EFFECT (เส้นสแกนพรีเมียม)
-    local Scanline = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, -0.1, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 0.6,
-        BorderSizePixel = 0, Parent = Bg
-    })
-
-    -- --- START ANIMATION ---
-    Tween(Blur, {Size = 45}, 1.5):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
-    
-    -- วงแหวนหมุนแบบ Smooth
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            OuterRing.Rotation = OuterRing.Rotation + 0.5
-            SpawnFracture() -- พ่นเศษเสี้ยวออกมาตลอดเวลา
-            task.wait(0.1)
-        end
-    end)
-
-    -- Scanline movement
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            Scanline.Position = UDim2.new(0, 0, -0.1, 0)
-            Tween(Scanline, {Position = UDim2.new(0, 0, 1.1, 0)}, 2.5, Enum.EasingStyle.Linear):Play()
-            task.wait(2.5)
-        end
-    end)
-
-    -- Loading Sequence
-    local Steps = {"[ ANALYZING CORE ]", "[ BYPASSING KERNEL ]", "[ LOADING ASSETS ]", "[ READY ]"}
-    for i, step in ipairs(Steps) do
-        -- เอฟเฟกต์ Logo Pulse ตามจังหวะ
-        Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 0.1):Play()
-        task.wait(0.1)
-        Tween(Logo, {Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100)}, 0.3):Play()
-        task.wait(0.6)
-    end
-
-    -- --- EXIT SEQUENCE (The Singularity Burst) ---
-    -- 1. ชาร์จพลัง (Logo หมุนเร็วขึ้นและสั่น)
-    local ChargeTween = Tween(OuterRing, {Rotation = OuterRing.Rotation + 360, ImageTransparency = 0}, 0.5, Enum.EasingStyle.Quart)
-    ChargeTween:Play()
-    
-    task.spawn(function()
-        for i = 1, 10 do
-            Hub.Position = UDim2.new(0.5, -250 + math.random(-15, 15), 0.5, -250 + math.random(-15, 15))
-            task.wait(0.05)
-        end
-    end)
-    
-    task.wait(0.5)
-
-    -- 2. ระเบิดแสง (Nova Flash)
-    local Flash = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        ZIndex = 99999, Parent = Screen, BackgroundTransparency = 1
-    })
-
-    Tween(Flash, {BackgroundTransparency = 0}, 0.1):Play()
-    
-    -- 3. สลายหายไปพร้อมกัน (Destroy Safety)
-    task.delay(0.1, function()
-        Tween(MainCanvas, {GroupTransparency = 1}, 0.6):Play()
-        Tween(Blur, {Size = 0}, 0.8):Play()
-        local FinalFade = Tween(Flash, {BackgroundTransparency = 1}, 0.8)
-        FinalFade:Play()
+        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = Line})
         
-        FinalFade.Completed:Connect(function()
-            Screen:Destroy()
-            Blur:Destroy()
+        task.spawn(function()
+            while Screen and Screen.Parent do
+                Line.Rotation = Line.Rotation + speed
+                task.wait()
+            end
         end)
+    end
+    -- สร้างเส้นไขว้ไปมา 4 เส้น
+    CreateTechLine(320, 2, 0)
+    CreateTechLine(320, -1.5, 45)
+    CreateTechLine(350, 0.8, 90)
+
+    -- THE LOGO (ชิ้นส่วนเดียวที่เป็นรูปภาพ)
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(0, 180, 0, 180),
+        Position = UDim2.new(0.5, -90, 0.5, -90),
+        Image = SlayLib.Icons.Logofull,
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        ZIndex = 10,
+        Parent = Hub
+    })
+    -- เงาสะท้อนโลโก้ด้านล่าง (Mirror Effect)
+    local LogoRef = Create("ImageLabel", {
+        Size = UDim2.new(0, 180, 0, 180),
+        Position = UDim2.new(0.5, -90, 1.2, 0),
+        Image = SlayLib.Icons.Logofull,
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.8,
+        ScaleType = "Slice",
+        Rotation = 180,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
+
+    -- [3] PROGRESS TEXT (Minimalist)
+    local StatusText = Create("TextLabel", {
+        Text = "SYSTEM.INITIALIZING",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.8, 0),
+        Font = "Code", TextSize = 14,
+        TextColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        Parent = MainCanvas
+    })
+
+    -- --- FAST & COOL SEQUENCE ---
+    Tween(Blur, {Size = 25}, 0.6):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 0.6):Play()
+    
+    local Sequence = {"[CORE]", "[NET]", "[SYNC]", "[OK]"}
+    for _, msg in ipairs(Sequence) do
+        StatusText.Text = msg
+        -- Logo Pulse
+        Tween(Logo, {Size = UDim2.new(0, 195, 0, 195), Position = UDim2.new(0.5, -97.5, 0.5, -97.5)}, 0.1):Play()
+        task.wait(0.1)
+        Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90)}, 0.2):Play()
+        task.wait(0.3)
+    end
+
+    -- --- THE VECTOR DISSOLVE (การหายแบบเท่ๆ ไม่แสบตา) ---
+    task.wait(0.2)
+    
+    -- 1. บีบ Hub เข้าหาแกนกลาง
+    local FinalTween = Tween(MainCanvas, {
+        Size = UDim2.new(1.5, 0, 0, 0), 
+        Position = UDim2.new(-0.25, 0, 0.5, 0), 
+        GroupTransparency = 1
+    }, 0.5, Enum.EasingStyle.Quart)
+    
+    FinalTween:Play()
+    Tween(Blur, {Size = 0}, 0.5):Play()
+    
+    -- 2. สร้างเส้นตัดผ่าน (Slice Line) ตอนหาย
+    local Slice = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 0.5, -1),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BorderSizePixel = 0,
+        Parent = Screen
+    })
+    Tween(Slice, {Size = UDim2.new(0, 0, 0, 2), Position = UDim2.new(0.5, 0, 0.5, -1)}, 0.5):Play()
+
+    FinalTween.Completed:Connect(function()
+        Screen:Destroy()
+        Blur:Destroy()
     end)
 
-    -- ** ANTI-STUCK: ทำลายทิ้งแน่นอนเมื่อผ่านไป 10 วินาที **
-    task.delay(10, function()
-        if Screen and Screen.Parent then Screen:Destroy() end
-    end)
+    -- Safety Cleanup
+    task.delay(3, function() if Screen then Screen:Destroy() end end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
