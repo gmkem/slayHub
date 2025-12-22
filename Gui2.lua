@@ -596,30 +596,22 @@ function Section:CreateDropdown(Props)
         Flag = "Drop_1", 
         Callback = function() end,
         Multi = false,
-        Limit = nil
+        Limit = nil -- ใส่ตัวเลขเพื่อจำกัด หรือไม่ต้องใส่เลยเพื่อ Unlimited
     }
     
     local IsOpen = false
+    -- ถ้า Multi เป็น true และไม่มี Limit จะตั้งเป็น math.huge (ไม่จำกัด) อัตโนมัติ
     local SelectionLimit = Props.Multi and (Props.Limit or math.huge) or 1
     local Selected = Props.Multi and {} or nil 
     SlayLib.Flags[Props.Flag] = Selected
 
-    -- [จุดแก้] Container: เพิ่มความกว้างนิดหน่อย และจัดการ ClipsDescendants ให้ฉลาดขึ้น
+    -- Container Setup
     local DContainer = Create("Frame", {  
-        Size = UDim2.new(1, 0, 0, 52), 
-        BackgroundColor3 = SlayLib.Theme.Element,  
-        ClipsDescendants = true, -- ยังต้องมีไว้เพื่อกันรายการล้นตอนพับ
-        Parent = Page  
+        Size = UDim2.new(1, 0, 0, 52), BackgroundColor3 = SlayLib.Theme.Element,  
+        ClipsDescendants = true, Parent = Page  
     })  
     Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = DContainer})  
-    
-    -- [จุดแก้] Stroke: ใช้ ApplyStrokeMode เพื่อให้เส้นอยู่ด้านในขอบ ไม่โดนตัด
-    local DStroke = Create("UIStroke", {
-        Color = SlayLib.Theme.Stroke, 
-        Thickness = 1.6, 
-        ApplyStrokeMode = Enum.ApplyStrokeMode.Border, 
-        Parent = DContainer
-    })
+    local DStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1.5, Parent = DContainer})
 
     local MainBtn = Create("TextButton", {  
         Size = UDim2.new(1, 0, 0, 52), BackgroundTransparency = 1, Text = "", Parent = DContainer  
@@ -637,59 +629,51 @@ function Section:CreateDropdown(Props)
         Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, ImageColor3 = SlayLib.Theme.TextSecondary, Parent = MainBtn  
     })  
 
-    -- [จุดแก้] Search Area: ปรับให้หดเข้ามา (Margin) เพื่อให้เห็นขอบม่วงรอบๆ
+    -- Search System
     local SearchArea = Create("Frame", {
-        Size = UDim2.new(1, -24, 0, 35), -- หดเข้าข้างละ 12px
-        Position = UDim2.new(0, 12, 0, 55),
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20), 
-        BackgroundTransparency = 0.5, 
-        Visible = false, 
-        Parent = DContainer
+        Size = UDim2.new(1, -24, 0, 35), Position = UDim2.new(0, 12, 0, 55),
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20), BackgroundTransparency = 0.5, Visible = false, Parent = DContainer
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SearchArea})
     
     local SearchInput = Create("TextBox", {
-        Size = UDim2.new(1, -15, 1, 0), Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -10, 1, 0), Position = UDim2.new(0, 10, 0, 0),
         BackgroundTransparency = 1, Text = "", PlaceholderText = "Search...",
         TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 13, TextXAlignment = "Left", Parent = SearchArea
     })
 
-    -- [จุดแก้] Scrolling List: ปรับความกว้างและตำแหน่งใหม่
+    -- List System
     local List = Create("ScrollingFrame", {  
-        Size = UDim2.new(1, -20, 0, 160), -- หดเข้าเพื่อให้มีช่องว่างระหว่าง Scrollbar กับขอบม่วง
-        Position = UDim2.new(0, 10, 0, 100),  
-        BackgroundTransparency = 1, 
-        ScrollBarThickness = 2, 
-        ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
-        CanvasSize = UDim2.new(0,0,0,0), 
-        AutomaticCanvasSize = "Y", 
-        Visible = false, 
-        Parent = DContainer  
+        Size = UDim2.new(1, -12, 0, 160), Position = UDim2.new(0, 6, 0, 100),  
+        BackgroundTransparency = 1, ScrollBarThickness = 2, ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
+        CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", Visible = false, Parent = DContainer  
     })  
-    
-    -- [จุดแก้] เพิ่ม Padding ใน List: กันปุ่มไปเบียดขอบจน Stroke ของปุ่มแหว่ง
-    Create("UIPadding", {
-        Parent = List, 
-        PaddingLeft = UDim.new(0, 5), 
-        PaddingRight = UDim.new(0, 5), 
-        PaddingBottom = UDim.new(0, 5),
-        PaddingTop = UDim.new(0, 2)
-    })
-    
-    local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 6), SortOrder = "Name"})  
+    Create("UIPadding", {Parent = List, PaddingLeft = UDim.new(0, 6), PaddingRight = UDim.new(0, 6), PaddingBottom = UDim.new(0, 5)})
+    local ListLayout = Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 5), SortOrder = "Name"})  
 
+    -- [Smart Logic] ฟังก์ชันอัปเดตข้อความหน้า Dropdown
     local function UpdateDisplay()
-        local TextColor = (Props.Multi and #Selected > 0) or (not Props.Multi and Selected) and SlayLib.Theme.MainColor or SlayLib.Theme.TextSecondary
-        local DisplayText = "None"
-        
         if Props.Multi then
-            DisplayText = #Selected == 0 and "None" or (#Selected > 2 and "Selected ("..#Selected..")" or table.concat(Selected, ", "))
+            if #Selected == 0 then
+                DLbl.Text = "  " .. Props.Name .. ": None"
+                DLbl.TextColor3 = SlayLib.Theme.TextSecondary
+            elseif #Selected > 3 then
+                -- ถ้ายาวเกิน 3 อัน ให้ย่อเป็นจำนวนแทน
+                DLbl.Text = "  " .. Props.Name .. ": Selected (" .. #Selected .. ")"
+                DLbl.TextColor3 = SlayLib.Theme.MainColor
+            else
+                DLbl.Text = "  " .. Props.Name .. ": " .. table.concat(Selected, ", ")
+                DLbl.TextColor3 = SlayLib.Theme.MainColor
+            end
         else
-            DisplayText = Selected or "None"
+            if not Selected then
+                DLbl.Text = "  " .. Props.Name .. ": None"
+                DLbl.TextColor3 = SlayLib.Theme.TextSecondary
+            else
+                DLbl.Text = "  " .. Props.Name .. ": " .. tostring(Selected)
+                DLbl.TextColor3 = SlayLib.Theme.MainColor
+            end
         end
-        
-        DLbl.Text = "  " .. Props.Name .. ": " .. DisplayText
-        DLbl.TextColor3 = TextColor
     end
 
     local function RefreshOptions()  
@@ -697,34 +681,30 @@ function Section:CreateDropdown(Props)
         for _, opt in pairs(Props.Options) do  
             local IsItemSelected = Props.Multi and table.find(Selected, opt) or Selected == opt
             
-            -- [จุดแก้] ปุ่ม Option: ทำให้กว้างพอดีกับพื้นที่ Padding ที่เว้นไว้
             local OBtn = Create("TextButton", {  
-                Name = tostring(opt), 
-                Size = UDim2.new(1, 0, 0, 36), 
-                BackgroundColor3 = IsItemSelected and Color3.fromRGB(45, 45, 45) or Color3.fromRGB(30, 30, 30),  
-                Text = "   " .. tostring(opt), 
-                Font = "Gotham", 
-                TextSize = 13,  
+                Name = tostring(opt), Size = UDim2.new(1, 0, 0, 35), 
+                BackgroundColor3 = IsItemSelected and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(30,30,30),  
+                Text = "   " .. tostring(opt), Font = "Gotham", TextSize = 13,  
                 TextColor3 = IsItemSelected and SlayLib.Theme.MainColor or SlayLib.Theme.TextSecondary, 
-                TextXAlignment = "Left", 
-                Parent = List  
+                TextXAlignment = "Left", Parent = List  
             })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 7), Parent = OBtn})
+            Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = OBtn})
             
             local OStroke = Create("UIStroke", {
-                Color = SlayLib.Theme.MainColor, 
-                Thickness = 1.4, 
-                ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
-                Transparency = IsItemSelected and 0.2 or 1, 
-                Parent = OBtn
+                Color = SlayLib.Theme.MainColor, Thickness = 1.5, 
+                Transparency = IsItemSelected and 0 or 1, Parent = OBtn
             })
 
             OBtn.MouseButton1Click:Connect(function()  
                 if Props.Multi then
                     local index = table.find(Selected, opt)
-                    if index then table.remove(Selected, index) else
-                        if #Selected < SelectionLimit then table.insert(Selected, opt) else
-                            SlayLib:Notify({Title = "Limit Reached", Content = "Max " .. SelectionLimit, Type = "Warning"})
+                    if index then
+                        table.remove(Selected, index)
+                    else
+                        if #Selected < SelectionLimit then
+                            table.insert(Selected, opt)
+                        else
+                            SlayLib:Notify({Title = "Limit Reached", Content = "You can select up to "..SelectionLimit.." items.", Type = "Warning"})
                             return
                         end
                     end
@@ -738,12 +718,13 @@ function Section:CreateDropdown(Props)
                 
                 SlayLib.Flags[Props.Flag] = Selected
                 UpdateDisplay()
-                RefreshOptions()
+                RefreshOptions() -- อัปเดตสีปุ่ม
                 task.spawn(Props.Callback, Selected)  
             end)  
         end  
     end  
 
+    -- Search Filter
     SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
         local InputText = SearchInput.Text:lower()
         for _, item in pairs(List:GetChildren()) do
@@ -755,12 +736,14 @@ function Section:CreateDropdown(Props)
 
     RefreshOptions()  
 
+    -- Open/Close Logic
     MainBtn.MouseButton1Click:Connect(function()  
         IsOpen = not IsOpen  
         if IsOpen then
             List.Visible = true
             SearchArea.Visible = true
-            Tween(DContainer, {Size = UDim2.new(1, 0, 0, 280)}, 0.4, Enum.EasingStyle.Quart)  
+            SearchInput.Text = "" 
+            Tween(DContainer, {Size = UDim2.new(1, 0, 0, 275)}, 0.4, Enum.EasingStyle.Quart)  
             Tween(Chevron, {Rotation = 180}, 0.4)  
             Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.3)
         else
