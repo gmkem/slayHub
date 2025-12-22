@@ -229,61 +229,102 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent})
-local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
+    local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent, DisplayOrder = 999})
+    local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
 
-local Holder = Create("Frame", {  
-    Size = UDim2.new(0, 400, 0, 400), Position = UDim2.new(0.5, -200, 0.5, -200),  
-    BackgroundTransparency = 1, Parent = Screen  
-})  
+    local Holder = Create("Frame", {  
+        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = Screen  
+    })  
 
-local Logo = Create("ImageLabel", {  
-    Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),  
-    Image = SlayLib.Icons.Logofull, ImageColor3 = SlayLib.Theme.MainColor,  
-    BackgroundTransparency = 1, Parent = Holder  
-})  
+    -- [Glow Effect] แสงฟุ้งรอบโลโก้
+    local LogoGlow = Create("ImageLabel", {
+        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),
+        Image = "rbxassetid://6015266835", -- Glow Shadow
+        ImageColor3 = SlayLib.Theme.MainColor, ImageTransparency = 0.6,
+        BackgroundTransparency = 1, Parent = Holder
+    })
 
-local InfoLabel = Create("TextLabel", {  
-    Text = "INITIALIZING CORE COMPONENTS...", Size = UDim2.new(1, 0, 0, 20),  
-    Position = UDim2.new(0, 0, 0.75, 0), Font = "Code", TextSize = 12,  
-    TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, Parent = Holder,  
-    TextTransparency = 1  
-})  
+    local Logo = Create("ImageLabel", {  
+        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.45, 0),  
+        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),  
+        BackgroundTransparency = 1, ZIndex = 2, Parent = Holder  
+    })  
 
-local BarBg = Create("Frame", {  
-    Size = UDim2.new(0, 250, 0, 4), Position = UDim2.new(0.5, -125, 0.7, 0),  
-    BackgroundColor3 = Color3.fromRGB(40, 40, 40), Parent = Holder, BackgroundTransparency = 1  
-})  
-local BarFill = Create("Frame", {  
-    Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, Parent = BarBg  
-})  
-Create("UICorner", {Parent = BarBg}) Create("UICorner", {Parent = BarFill})  
+    -- [Text System] ตัวหนังสือแบบมีเงาและเลื่อนขึ้น
+    local InfoLabel = Create("TextLabel", {  
+        Text = "INITIALIZING...", Size = UDim2.new(1, 0, 0, 30),  
+        Position = UDim2.new(0, 0, 0.72, 10), Font = "Code", TextSize = 14,  
+        TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, 
+        TextTransparency = 1, Parent = Holder
+    })  
 
--- Sequence Start  
-Tween(Blur, {Size = 28}, 1)  
-Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.45, -110)}, 1.2, Enum.EasingStyle.Elastic)  
-task.wait(0.6)  
-Tween(InfoLabel, {TextTransparency = 0}, 0.5)  
-Tween(BarBg, {BackgroundTransparency = 0}, 0.5)  
+    -- [Loading Bar] ดีไซน์ใหม่ให้ดูแพง
+    local BarBg = Create("Frame", {  
+        Size = UDim2.new(0, 280, 0, 2), Position = UDim2.new(0.5, -140, 0.75, 0),  
+        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, Parent = Holder
+    })  
+    local BarFill = Create("Frame", {  
+        Size = UDim2.new(0, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255), 
+        Parent = BarBg, BorderSizePixel = 0
+    })  
+    -- เติมแสงให้ตัว Loading Bar
+    local BarGlow = Create("UIStroke", {
+        Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.6, Parent = BarFill
+    })
 
-local Steps = {"Authenticating...", "Loading UI Elements...", "Applying Themes...", "Ready!"}  
-for i, step in ipairs(Steps) do  
-    InfoLabel.Text = step:upper()  
-    Tween(BarFill, {Size = UDim2.new(i/#Steps, 0, 1, 0)}, 0.4)  
-    task.wait(math.random(4, 8) / 10)  
-end  
+    -- Sequence Start  
+    Tween(Blur, {Size = 25}, 1.5)  
+    
+    -- Logo Entrance (ใช้ Cubic เพื่อความนุ่มนวล)
+    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.45, -90)}, 1, Enum.EasingStyle.Cubic)
+    Tween(LogoGlow, {Size = UDim2.new(0, 400, 0, 400), Position = UDim2.new(0.5, -200, 0.45, -200)}, 1.5)
+    
+    task.wait(0.5)
+    Tween(InfoLabel, {TextTransparency = 0, Position = UDim2.new(0, 0, 0.72, 0)}, 0.5)
+    Tween(BarBg, {BackgroundTransparency = 0.8}, 0.5)
 
--- Fade Out  
-Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 160, 0, 160), Position = UDim2.new(0.5, -80, 0.45, -80)}, 0.6)  
-Tween(InfoLabel, {TextTransparency = 1}, 0.4)  
-Tween(BarBg, {BackgroundTransparency = 1}, 0.4)  
-Tween(BarFill, {BackgroundTransparency = 1}, 0.4)  
-Tween(Blur, {Size = 0}, 0.8)  
+    local Steps = {
+        "Fetching Cloud Config...",
+        "Bypassing Security...",
+        "Injecting SlayLib Core...",
+        "Syncing SlayLib X Themes...",
+        "Environment Stabilized!"
+    }
 
-task.wait(0.8)  
-Screen:Destroy()  
-Blur:Destroy()
+    for i, step in ipairs(Steps) do  
+        -- Text เปลี่ยนแบบนุ่มนวล
+        task.spawn(function()
+            Tween(InfoLabel, {TextTransparency = 1}, 0.2)
+            task.wait(0.2)
+            InfoLabel.Text = step:upper()
+            Tween(InfoLabel, {TextTransparency = 0}, 0.2)
+        end)
+        
+        local targetSize = i/#Steps
+        Tween(BarFill, {Size = UDim2.new(targetSize, 0, 1, 0)}, 0.8, Enum.EasingStyle.Quart)
+        
+        -- เพิ่มลูกเล่นแสงกระพริบตอนเปลี่ยน Step
+        Tween(LogoGlow, {ImageTransparency = 0.2}, 0.2)
+        task.delay(0.2, function() Tween(LogoGlow, {ImageTransparency = 0.6}, 0.4) end)
+        
+        task.wait(math.random(6, 12) / 10)  
+    end  
 
+    -- Finish State: โลโก้สว่างขึ้นก่อนหายไป
+    Tween(Logo, {ImageColor3 = SlayLib.Theme.MainColor}, 0.4)
+    task.wait(0.5)
+
+    -- Fade Out Sequence (เท่ๆ แบบสลายตัว)
+    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 300, 0, 300), Position = UDim2.new(0.5, -150, 0.45, -150)}, 0.6, Enum.EasingStyle.Quart)
+    Tween(LogoGlow, {ImageTransparency = 1, Size = UDim2.new(0, 600, 0, 600), Position = UDim2.new(0.5, -300, 0.45, -300)}, 0.6)
+    Tween(InfoLabel, {TextTransparency = 1, Position = UDim2.new(0, 0, 0.72, -10)}, 0.4)
+    Tween(BarBg, {BackgroundTransparency = 1}, 0.4)
+    Tween(BarFill, {BackgroundTransparency = 1}, 0.4)
+    Tween(Blur, {Size = 0}, 1)  
+
+    task.wait(1)  
+    Screen:Destroy()  
+    Blur:Destroy()
 end
 
 --// MAIN WINDOW CONSTRUCTOR
