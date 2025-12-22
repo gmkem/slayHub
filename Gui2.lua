@@ -229,182 +229,150 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- ใช้ IgnoreGuiInset = true เพื่อให้คลุมแถบเมนูด้านบนของ Roblox (เต็มจอ 100%)
+    -- แก้ปัญหาไม่เต็มจอด้วย IgnoreGuiInset และตั้ง DisplayOrder สูงสุด
     local Screen = Create("ScreenGui", {
-        Name = "SlayNeuralInterface",
+        Name = "SlayQuantumInterface",
         Parent = Parent,
-        DisplayOrder = 9999,
+        DisplayOrder = 99999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- พื้นหลังหลักสีดำสนิท
+    -- Background: ใช้สีเทาเข้มจัดๆ เกือบดำ (Deep Charcoal) เพื่อให้ดูพรีเมียมกว่าสีดำสนิท
     local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(5, 5, 8),
         BorderSizePixel = 0,
         Parent = Screen
     })
 
-    -- [1] Neural Background Animation (สร้างเส้นสายวิ่งไปมาจางๆ)
-    local Grid = Create("ImageLabel", {
-        Size = UDim2.new(1.5, 0, 1.5, 0),
-        Position = UDim2.new(-0.25, 0, -0.25, 0),
-        Image = "rbxassetid://10881903613", -- Grid Texture
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.95,
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-    -- ทำให้ Grid เคลื่อนไหวช้าๆ
-    task.spawn(function()
-        while Screen.Parent do
-            Tween(Grid, {Position = UDim2.new(-0.2, 0, -0.2, 0)}, 10, Enum.EasingStyle.Linear):Play()
-            task.wait(10)
-            Tween(Grid, {Position = UDim2.new(-0.3, 0, -0.3, 0)}, 10, Enum.EasingStyle.Linear):Play()
-            task.wait(10)
-        end
-    end)
-
-    -- [2] Center Hub (ที่รวมของโลโก้และวงแหวนประมวลผล)
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 400),
-        Position = UDim2.new(0.5, -200, 0.5, -200),
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-
-    -- วงแหวนประมวลผลชั้นนอก (Outer Ring)
-    local ScanRing = Create("ImageLabel", {
+    -- [1] VIGNETTE EFFECT: เพิ่มความลึกให้หน้าจอ (ขอบมืด)
+    local Vignette = Create("ImageLabel", {
         Size = UDim2.new(1, 0, 1, 0),
-        Image = "rbxassetid://12558442813", -- Tech Circle
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.8,
+        Image = "rbxassetid://13215234567", -- Vignette Texture
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.2,
         BackgroundTransparency = 1,
-        Parent = Hub
+        Parent = Background
     })
 
+    -- [2] THE CORE SHARDS: สร้างเศษเรขาคณิตลอยไปมา
+    local function SpawnShard()
+        local Shard = Create("Frame", {
+            Size = UDim2.new(0, math.random(2, 5), 0, math.random(40, 100)),
+            Position = UDim2.new(math.random(), 0, 1.1, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.7,
+            Rotation = math.random(-20, 20),
+            Parent = Background
+        })
+        Tween(Shard, {Position = UDim2.new(Shard.Position.X.Scale, 0, -0.2, 0)}, math.random(2, 4), Enum.EasingStyle.Linear):Play()
+        task.delay(4, function() Shard:Destroy() end)
+    end
+
+    -- [3] MAIN INTERFACE HUB
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 500, 0, 500),
+        Position = UDim2.new(0.5, -250, 0.5, -250),
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+
+    -- Logo Glitch Layers (สร้างเลเยอร์ซ้อนกันเพื่อทำ Glitch Effect)
+    local LogoGlow = Create("ImageLabel", {
+        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
+        Image = SlayLib.Icons.Logofull, ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.6, BackgroundTransparency = 1, Parent = Hub
+    })
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Image = SlayLib.Icons.Logofull,
-        ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
-        ZIndex = 5,
-        Parent = Hub
+        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
+        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1, ZIndex = 5, Parent = Hub
     })
 
-    -- [3] Right-Side System Stats (ข้อมูลระบบแบบเรียลไทม์)
-    local StatsFrame = Create("Frame", {
-        Size = UDim2.new(0, 200, 0, 100),
-        Position = UDim2.new(1, -220, 0.85, 0),
-        BackgroundTransparency = 1,
-        Parent = Background
+    -- [4] QUANTUM SCANNER (เส้นสแกนแนวนอน)
+    local ScanLine = Create("Frame", {
+        Size = UDim2.new(1.2, 0, 0, 2), Position = UDim2.new(-0.1, 0, 0, 0),
+        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 0.5,
+        ZIndex = 10, Parent = Background
     })
-    local function CreateStat(name, value, pos)
-        local Label = Create("TextLabel", {
-            Text = name .. ": " .. value,
-            Size = UDim2.new(1, 0, 0, 15),
-            Position = UDim2.new(0, 0, 0, pos),
-            Font = "Code",
-            TextSize = 12,
-            TextColor3 = SlayLib.Theme.MainColor,
-            TextTransparency = 0.5,
-            TextXAlignment = "Right",
-            BackgroundTransparency = 1,
-            Parent = StatsFrame
-        })
-        return Label
-    end
+
+    -- [5] SYSTEM TEXT (จัดวางแบบ Modern Minimal)
+    local Title = Create("TextLabel", {
+        Text = "SLAYLIB X // QUANTUM BOOT", Size = UDim2.new(0, 300, 0, 20),
+        Position = UDim2.new(0.5, -150, 0.4, -130), Font = "Code", TextSize = 14,
+        TextColor3 = SlayLib.Theme.MainColor, TextTransparency = 1, BackgroundTransparency = 1, Parent = Hub
+    })
+
+    local Subtitle = Create("TextLabel", {
+        Text = "ESTABLISHING SECURE PROTOCOLS", Size = UDim2.new(0, 300, 0, 20),
+        Position = UDim2.new(0.5, -150, 0.6, 110), Font = "Code", TextSize = 11,
+        TextColor3 = Color3.fromRGB(150, 150, 150), TextTransparency = 1, BackgroundTransparency = 1, Parent = Hub
+    })
+
+    -- --- ANIMATION LOGIC ---
     
-    local PingStat = CreateStat("LATENCY", "CALCULATING", 0)
-    local TimeStat = CreateStat("SYS_TIME", os.date("%H:%M:%S"), 20)
-
-    -- [4] Bottom Console (เหมือนรูปที่ 3 แต่ทำให้เนียนขึ้น)
-    local Console = Create("Frame", {
-        Size = UDim2.new(0, 350, 0, 120),
-        Position = UDim2.new(0.02, 0, 0.98, -130),
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-    Create("UIListLayout", {Parent = Console, VerticalAlignment = "Bottom", Padding = UDim.new(0, 4)})
-
-    local function AddLog(text)
-        local Log = Create("TextLabel", {
-            Text = ">> " .. text,
-            Size = UDim2.new(1, 0, 0, 16),
-            Font = "Code",
-            TextSize = 13,
-            TextColor3 = Color3.fromRGB(200, 200, 200),
-            TextXAlignment = "Left",
-            BackgroundTransparency = 1,
-            TextTransparency = 1,
-            Parent = Console
-        })
-        Tween(Log, {TextTransparency = 0}, 0.3):Play()
-        if #Console:GetChildren() > 7 then Console:GetChildren()[2]:Destroy() end
-    end
-
-    -- --- START SEQUENCE ---
-    Tween(Blur, {Size = 20}, 1.5):Play()
-    
-    -- วงแหวนหมุนแบบ Smooth
+    -- Scanline movement
     task.spawn(function()
         while Screen.Parent do
-            ScanRing.Rotation = ScanRing.Rotation + 1
-            task.wait()
+            ScanLine.Position = UDim2.new(-0.1, 0, 0, 0)
+            Tween(ScanLine, {Position = UDim2.new(-0.1, 0, 1, 0)}, 2, Enum.EasingStyle.Linear):Play()
+            task.wait(2)
         end
     end)
 
-    -- โลโก้ปรากฏแบบพุ่งออกมา
-    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90)}, 1.2, Enum.EasingStyle.Quart):Play()
-    
-    local Sequence = {
-        "INITIATING NEURAL LINK...",
-        "BYPASSING ROBLOX SECURITY...",
-        "ACCESSING SLAY-CLOUD ASSETS...",
-        "HARDWARE ID VERIFIED.",
-        "COMPILING UI COMPONENTS...",
-        "STABILIZING INTERFACE..."
-    }
+    -- Shard Spawning
+    task.spawn(function()
+        while Screen.Parent do
+            SpawnShard()
+            task.wait(0.2)
+        end
+    end)
 
-    for i, msg in ipairs(Sequence) do
-        AddLog(msg)
-        TimeStat.Text = "SYS_TIME: " .. os.date("%H:%M:%S")
-        -- สุ่มเลข Latency ให้ดูเหมือนกำลังโหลดจริง
-        PingStat.Text = "LATENCY: " .. math.random(10, 50) .. "ms"
-        
-        -- Effect ตอนเปลี่ยน step
-        Tween(ScanRing, {ImageColor3 = Color3.fromRGB(255, 255, 255)}, 0.1):Play()
-        task.wait(0.1)
-        Tween(ScanRing, {ImageColor3 = SlayLib.Theme.MainColor}, 0.3):Play()
-        
-        task.wait(math.random(7, 12) / 10)
+    -- Intro Sequence
+    Tween(Blur, {Size = 24}, 2):Play()
+    task.wait(0.5)
+    Tween(Title, {TextTransparency = 0}, 0.8):Play()
+    Tween(Subtitle, {TextTransparency = 0}, 0.8):Play()
+
+    -- Glitch Logo Loop
+    task.spawn(function()
+        while Screen.Parent do
+            task.wait(math.random(1, 3))
+            Logo.Position = UDim2.new(0.5, -98, 0.5, -100)
+            Logo.ImageColor3 = Color3.fromRGB(255, 100, 100)
+            task.wait(0.05)
+            Logo.Position = UDim2.new(0.5, -102, 0.5, -100)
+            Logo.ImageColor3 = Color3.fromRGB(100, 255, 255)
+            task.wait(0.05)
+            Logo.Position = UDim2.new(0.5, -100, 0.5, -100)
+            Logo.ImageColor3 = Color3.fromRGB(255, 255, 255)
+        end
+    end)
+
+    local Steps = {"PARSING_CORE", "INJECTING_SCRIPTS", "STABILIZING_MODULES", "READY_TO_SLAY"}
+    for _, step in ipairs(Steps) do
+        Subtitle.Text = step .. "..."
+        Tween(LogoGlow, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 1}, 0.6):Play()
+        task.wait(0.6)
+        LogoGlow.Size = UDim2.new(0, 200, 0, 200)
+        LogoGlow.Position = UDim2.new(0.5, -100, 0.5, -100)
+        LogoGlow.ImageTransparency = 0.6
+        task.wait(math.random(5, 10) / 10)
     end
 
-    -- --- EXIT (THE BREACH) ---
-    AddLog("SYSTEM READY. EXECUTING...")
+    -- --- EXIT RADIANCE (The Final Slay) ---
+    Subtitle.Text = "SYSTEMS OPERATIONAL"
     task.wait(0.5)
 
-    -- สร้างเอฟเฟกต์แฟลชสีขาวก่อนเปิด
-    local Flash = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = Screen
-    })
-
-    Tween(Flash, {BackgroundTransparency = 0.5}, 0.2):Play()
-    task.wait(0.2)
-    
-    -- ทุกอย่างกระจายตัวออก
-    Tween(Hub, {Size = UDim2.new(0, 1000, 0, 1000), Position = UDim2.new(0.5, -500, 0.5, -500)}, 0.8, Enum.EasingStyle.Quart):Play()
-    Tween(Logo, {ImageTransparency = 1}, 0.5):Play()
+    -- Fade ทุกอย่างออกด้วยความเร็วแสง
+    Tween(Logo, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.5, Enum.EasingStyle.BackIn):Play()
     Tween(Background, {BackgroundTransparency = 1}, 0.8):Play()
+    Tween(Vignette, {ImageTransparency = 1}, 0.8):Play()
+    Tween(Title, {TextTransparency = 1}, 0.3):Play()
+    Tween(Subtitle, {TextTransparency = 1}, 0.3):Play()
     Tween(Blur, {Size = 0}, 1):Play()
-    Tween(Flash, {BackgroundTransparency = 1}, 0.8):Play()
     
     task.wait(1)
     Screen:Destroy()
