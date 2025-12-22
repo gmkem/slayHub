@@ -229,7 +229,6 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- แก้ปัญหาไม่เต็มจอด้วย IgnoreGuiInset และตั้ง DisplayOrder สูงสุด
     local Screen = Create("ScreenGui", {
         Name = "SlayQuantumInterface",
         Parent = Parent,
@@ -238,8 +237,6 @@ local function ExecuteLoadingSequence()
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
-    -- Background: ใช้สีเทาเข้มจัดๆ เกือบดำ (Deep Charcoal) เพื่อให้ดูพรีเมียมกว่าสีดำสนิท
     local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(5, 5, 8),
@@ -247,17 +244,19 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- [1] VIGNETTE EFFECT: เพิ่มความลึกให้หน้าจอ (ขอบมืด)
+    -- [ตัวแปรควบคุม]
+    local LoadingFinished = false
+
+    -- [1] VIGNETTE & SHARDS
     local Vignette = Create("ImageLabel", {
         Size = UDim2.new(1, 0, 1, 0),
-        Image = "rbxassetid://13215234567", -- Vignette Texture
+        Image = "rbxassetid://13215234567",
         ImageColor3 = Color3.fromRGB(0, 0, 0),
         ImageTransparency = 0.2,
         BackgroundTransparency = 1,
         Parent = Background
     })
 
-    -- [2] THE CORE SHARDS: สร้างเศษเรขาคณิตลอยไปมา
     local function SpawnShard()
         local Shard = Create("Frame", {
             Size = UDim2.new(0, math.random(2, 5), 0, math.random(40, 100)),
@@ -271,7 +270,7 @@ local function ExecuteLoadingSequence()
         task.delay(4, function() Shard:Destroy() end)
     end
 
-    -- [3] MAIN INTERFACE HUB
+    -- [2] INTERFACE
     local Hub = Create("Frame", {
         Size = UDim2.new(0, 500, 0, 500),
         Position = UDim2.new(0.5, -250, 0.5, -250),
@@ -279,102 +278,52 @@ local function ExecuteLoadingSequence()
         Parent = Background
     })
 
-    -- Logo Glitch Layers (สร้างเลเยอร์ซ้อนกันเพื่อทำ Glitch Effect)
-    local LogoGlow = Create("ImageLabel", {
-        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
-        Image = SlayLib.Icons.Logofull, ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.6, BackgroundTransparency = 1, Parent = Hub
-    })
     local Logo = Create("ImageLabel", {
         Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
         Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1, ZIndex = 5, Parent = Hub
     })
 
-    -- [4] QUANTUM SCANNER (เส้นสแกนแนวนอน)
-    local ScanLine = Create("Frame", {
-        Size = UDim2.new(1.2, 0, 0, 2), Position = UDim2.new(-0.1, 0, 0, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 0.5,
-        ZIndex = 10, Parent = Background
-    })
-
-    -- [5] SYSTEM TEXT (จัดวางแบบ Modern Minimal)
-    local Title = Create("TextLabel", {
-        Text = "SLAYLIB X // QUANTUM BOOT", Size = UDim2.new(0, 300, 0, 20),
-        Position = UDim2.new(0.5, -150, 0.4, -130), Font = "Code", TextSize = 14,
-        TextColor3 = SlayLib.Theme.MainColor, TextTransparency = 1, BackgroundTransparency = 1, Parent = Hub
-    })
-
     local Subtitle = Create("TextLabel", {
-        Text = "ESTABLISHING SECURE PROTOCOLS", Size = UDim2.new(0, 300, 0, 20),
+        Text = "INITIALIZING...", Size = UDim2.new(0, 300, 0, 20),
         Position = UDim2.new(0.5, -150, 0.6, 110), Font = "Code", TextSize = 11,
-        TextColor3 = Color3.fromRGB(150, 150, 150), TextTransparency = 1, BackgroundTransparency = 1, Parent = Hub
+        TextColor3 = Color3.fromRGB(150, 150, 150), BackgroundTransparency = 1, Parent = Hub
     })
 
-    -- --- ANIMATION LOGIC ---
+    -- --- แก้ไข: ระบบ Loop ที่ตรวจสอบ LoadingFinished ---
     
-    -- Scanline movement
+    -- Shard Spawning Loop
     task.spawn(function()
-        while Screen.Parent do
-            ScanLine.Position = UDim2.new(-0.1, 0, 0, 0)
-            Tween(ScanLine, {Position = UDim2.new(-0.1, 0, 1, 0)}, 2, Enum.EasingStyle.Linear):Play()
-            task.wait(2)
-        end
-    end)
-
-    -- Shard Spawning
-    task.spawn(function()
-        while Screen.Parent do
+        while not LoadingFinished do
             SpawnShard()
             task.wait(0.2)
         end
     end)
 
-    -- Intro Sequence
-    Tween(Blur, {Size = 24}, 2):Play()
-    task.wait(0.5)
-    Tween(Title, {TextTransparency = 0}, 0.8):Play()
-    Tween(Subtitle, {TextTransparency = 0}, 0.8):Play()
-
-    -- Glitch Logo Loop
-    task.spawn(function()
-        while Screen.Parent do
-            task.wait(math.random(1, 3))
-            Logo.Position = UDim2.new(0.5, -98, 0.5, -100)
-            Logo.ImageColor3 = Color3.fromRGB(255, 100, 100)
-            task.wait(0.05)
-            Logo.Position = UDim2.new(0.5, -102, 0.5, -100)
-            Logo.ImageColor3 = Color3.fromRGB(100, 255, 255)
-            task.wait(0.05)
-            Logo.Position = UDim2.new(0.5, -100, 0.5, -100)
-            Logo.ImageColor3 = Color3.fromRGB(255, 255, 255)
-        end
-    end)
-
-    local Steps = {"PARSING_CORE", "INJECTING_SCRIPTS", "STABILIZING_MODULES", "READY_TO_SLAY"}
-    for _, step in ipairs(Steps) do
+    -- Intro
+    Tween(Blur, {Size = 24}, 1.5):Play()
+    
+    -- [ขั้นตอนการโหลดจริง]
+    local Steps = {"PARSING_CORE", "INJECTING_SCRIPTS", "STABILIZING", "COMPLETED"}
+    for i, step in ipairs(Steps) do
         Subtitle.Text = step .. "..."
-        Tween(LogoGlow, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 1}, 0.6):Play()
-        task.wait(0.6)
-        LogoGlow.Size = UDim2.new(0, 200, 0, 200)
-        LogoGlow.Position = UDim2.new(0.5, -100, 0.5, -100)
-        LogoGlow.ImageTransparency = 0.6
-        task.wait(math.random(5, 10) / 10)
+        task.wait(math.random(6, 10) / 10)
     end
 
-    -- --- EXIT RADIANCE (The Final Slay) ---
+    -- สั่งหยุดทุกอย่าง
+    LoadingFinished = true 
     Subtitle.Text = "SYSTEMS OPERATIONAL"
     task.wait(0.5)
 
-    -- Fade ทุกอย่างออกด้วยความเร็วแสง
-    Tween(Logo, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.5, Enum.EasingStyle.BackIn):Play()
+    -- --- EXIT (ปิดหน้าโหลดเพื่อเริ่มสคริปต์หลัก) ---
+    local ExitTween = Tween(Logo, {Size = UDim2.new(0, 0, 0, 0), ImageTransparency = 1}, 0.5, Enum.EasingStyle.BackIn)
+    ExitTween:Play()
+    
     Tween(Background, {BackgroundTransparency = 1}, 0.8):Play()
     Tween(Vignette, {ImageTransparency = 1}, 0.8):Play()
-    Tween(Title, {TextTransparency = 1}, 0.3):Play()
-    Tween(Subtitle, {TextTransparency = 1}, 0.3):Play()
     Tween(Blur, {Size = 0}, 1):Play()
     
-    task.wait(1)
+    ExitTween.Completed:Wait() -- รอจนกว่าแอนิเมชันจะเล่นจบจริงๆ
     Screen:Destroy()
     Blur:Destroy()
 end
