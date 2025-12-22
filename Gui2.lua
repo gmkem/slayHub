@@ -229,153 +229,182 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local Screen = Create("ScreenGui", {Name = "SlaySingularity", Parent = Parent, DisplayOrder = 9999})
+    -- ใช้ IgnoreGuiInset = true เพื่อให้คลุมแถบเมนูด้านบนของ Roblox (เต็มจอ 100%)
+    local Screen = Create("ScreenGui", {
+        Name = "SlayNeuralInterface",
+        Parent = Parent,
+        DisplayOrder = 9999,
+        IgnoreGuiInset = true 
+    })
+    
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- พื้นหลังสีดำสนิทที่จะค่อยๆ จางออก
-    local Canvas = Create("Frame", {
+    -- พื้นหลังหลักสีดำสนิท
+    local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 2),
-        BackgroundTransparency = 1,
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BorderSizePixel = 0,
         Parent = Screen
     })
 
-    -- [1] กราฟิกเส้นขีดแบบ Matrix/Diagnostic (ตกแต่งรอบๆ)
-    local function CreateDecoration()
-        for i = 1, 4 do
-            local CornerLine = Create("Frame", {
-                Size = UDim2.new(0, 2, 0, 0),
-                Position = UDim2.new(i == 1 or i == 3 and 0.05 or 0.95, 0, i < 3 and 0.05 or 0.95, 0),
-                BackgroundColor3 = SlayLib.Theme.MainColor,
-                BackgroundTransparency = 0.5,
-                Parent = Canvas
-            })
-            Tween(CornerLine, {Size = UDim2.new(0, 2, 0, 100)}, 1.5, Enum.EasingStyle.Quart)
-        end
-    end
-
-    -- [2] The Core (ศูนย์กลางการประกอบร่าง)
-    local CoreHolder = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+    -- [1] Neural Background Animation (สร้างเส้นสายวิ่งไปมาจางๆ)
+    local Grid = Create("ImageLabel", {
+        Size = UDim2.new(1.5, 0, 1.5, 0),
+        Position = UDim2.new(-0.25, 0, -0.25, 0),
+        Image = "rbxassetid://10881903613", -- Grid Texture
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.95,
         BackgroundTransparency = 1,
-        Parent = Canvas
+        Parent = Background
+    })
+    -- ทำให้ Grid เคลื่อนไหวช้าๆ
+    task.spawn(function()
+        while Screen.Parent do
+            Tween(Grid, {Position = UDim2.new(-0.2, 0, -0.2, 0)}, 10, Enum.EasingStyle.Linear):Play()
+            task.wait(10)
+            Tween(Grid, {Position = UDim2.new(-0.3, 0, -0.3, 0)}, 10, Enum.EasingStyle.Linear):Play()
+            task.wait(10)
+        end
+    end)
+
+    -- [2] Center Hub (ที่รวมของโลโก้และวงแหวนประมวลผล)
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 400, 0, 400),
+        Position = UDim2.new(0.5, -200, 0.5, -200),
+        BackgroundTransparency = 1,
+        Parent = Background
     })
 
-    -- สร้างชิ้นส่วนสามเหลี่ยม/เรขาคณิตวิ่งเข้าหาศูนย์กลาง
-    local function SpawnGeometry()
-        for i = 1, 8 do
-            local Part = Create("Frame", {
-                Size = UDim2.new(0, math.random(10, 30), 0, 1),
-                Position = UDim2.new(math.random(), 0, math.random(), 0),
-                BackgroundColor3 = SlayLib.Theme.MainColor,
-                Rotation = math.random(0, 360),
-                BackgroundTransparency = 1,
-                Parent = CoreHolder
-            })
-            task.spawn(function()
-                Tween(Part, {
-                    Position = UDim2.new(0.5, 0, 0.5, 0),
-                    BackgroundTransparency = 0,
-                    Rotation = Part.Rotation + 180
-                }, 1.5, Enum.EasingStyle.ExpoIn)
-                task.wait(1.5)
-                Part:Destroy()
-            end)
-        end
-    end
+    -- วงแหวนประมวลผลชั้นนอก (Outer Ring)
+    local ScanRing = Create("ImageLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        Image = "rbxassetid://12558442813", -- Tech Circle
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.8,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 120, 0, 120),
-        Position = UDim2.new(0.5, -60, 0.5, -60),
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         Image = SlayLib.Icons.Logofull,
-        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
-        ImageTransparency = 1,
         ZIndex = 5,
-        Parent = CoreHolder
+        Parent = Hub
     })
 
-    -- [3] Diagnostic Text (ข้อความด้านข้างแบบ Real-time)
-    local ConsoleFrame = Create("Frame", {
-        Size = UDim2.new(0, 250, 0, 150),
-        Position = UDim2.new(0.05, 0, 0.8, 0),
+    -- [3] Right-Side System Stats (ข้อมูลระบบแบบเรียลไทม์)
+    local StatsFrame = Create("Frame", {
+        Size = UDim2.new(0, 200, 0, 100),
+        Position = UDim2.new(1, -220, 0.85, 0),
         BackgroundTransparency = 1,
-        Parent = Canvas
+        Parent = Background
     })
-    local ListLayout = Create("UIListLayout", {
-        Parent = ConsoleFrame,
-        VerticalAlignment = "Bottom",
-        Padding = UDim.new(0, 3)
-    })
+    local function CreateStat(name, value, pos)
+        local Label = Create("TextLabel", {
+            Text = name .. ": " .. value,
+            Size = UDim2.new(1, 0, 0, 15),
+            Position = UDim2.new(0, 0, 0, pos),
+            Font = "Code",
+            TextSize = 12,
+            TextColor3 = SlayLib.Theme.MainColor,
+            TextTransparency = 0.5,
+            TextXAlignment = "Right",
+            BackgroundTransparency = 1,
+            Parent = StatsFrame
+        })
+        return Label
+    end
+    
+    local PingStat = CreateStat("LATENCY", "CALCULATING", 0)
+    local TimeStat = CreateStat("SYS_TIME", os.date("%H:%M:%S"), 20)
 
-    local function TypeLog(text)
+    -- [4] Bottom Console (เหมือนรูปที่ 3 แต่ทำให้เนียนขึ้น)
+    local Console = Create("Frame", {
+        Size = UDim2.new(0, 350, 0, 120),
+        Position = UDim2.new(0.02, 0, 0.98, -130),
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+    Create("UIListLayout", {Parent = Console, VerticalAlignment = "Bottom", Padding = UDim.new(0, 4)})
+
+    local function AddLog(text)
         local Log = Create("TextLabel", {
-            Text = "> " .. text,
-            Size = UDim2.new(1, 0, 0, 18),
+            Text = ">> " .. text,
+            Size = UDim2.new(1, 0, 0, 16),
             Font = "Code",
             TextSize = 13,
-            TextColor3 = Color3.fromRGB(150, 150, 150),
+            TextColor3 = Color3.fromRGB(200, 200, 200),
             TextXAlignment = "Left",
             BackgroundTransparency = 1,
             TextTransparency = 1,
-            Parent = ConsoleFrame
+            Parent = Console
         })
-        Tween(Log, {TextTransparency = 0}, 0.3)
-        if #ConsoleFrame:GetChildren() > 8 then ConsoleFrame:GetChildren()[2]:Destroy() end
+        Tween(Log, {TextTransparency = 0}, 0.3):Play()
+        if #Console:GetChildren() > 7 then Console:GetChildren()[2]:Destroy() end
     end
 
-    -- --- SEQUENCE START ---
-    Tween(Canvas, {BackgroundTransparency = 0}, 0.8)
-    Tween(Blur, {Size = 15}, 1)
-    CreateDecoration()
+    -- --- START SEQUENCE ---
+    Tween(Blur, {Size = 20}, 1.5):Play()
     
-    task.wait(0.5)
+    -- วงแหวนหมุนแบบ Smooth
+    task.spawn(function()
+        while Screen.Parent do
+            ScanRing.Rotation = ScanRing.Rotation + 1
+            task.wait()
+        end
+    end)
+
+    -- โลโก้ปรากฏแบบพุ่งออกมา
+    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90)}, 1.2, Enum.EasingStyle.Quart):Play()
     
-    local Logs = {
-        "INITIALIZING CORE BOOTSTRAP...",
-        "CONNECTING TO SLAY-SERVERS...",
-        "DECRYPTING INTERFACE ELEMENTS...",
-        "VALIDATING HARDWARE ID...",
-        "INJECTING GRAPHICS ENGINE...",
-        "PREPARING WORKSPACE...",
-        "BOOT SEQUENCE COMPLETE."
+    local Sequence = {
+        "INITIATING NEURAL LINK...",
+        "BYPASSING ROBLOX SECURITY...",
+        "ACCESSING SLAY-CLOUD ASSETS...",
+        "HARDWARE ID VERIFIED.",
+        "COMPILING UI COMPONENTS...",
+        "STABILIZING INTERFACE..."
     }
 
-    for i, msg in ipairs(Logs) do
-        TypeLog(msg)
-        SpawnGeometry() -- ปล่อยเศษส่วนประกอบวิ่งเข้าหาโลโก้
+    for i, msg in ipairs(Sequence) do
+        AddLog(msg)
+        TimeStat.Text = "SYS_TIME: " .. os.date("%H:%M:%S")
+        -- สุ่มเลข Latency ให้ดูเหมือนกำลังโหลดจริง
+        PingStat.Text = "LATENCY: " .. math.random(10, 50) .. "ms"
         
-        if i == 4 then
-            -- ปรากฏโลโก้แบบกระพริบ (Glitch Effect)
-            Tween(Logo, {ImageTransparency = 0}, 0.1)
-            task.wait(0.05)
-            Logo.ImageTransparency = 0.5
-            task.wait(0.05)
-            Logo.ImageTransparency = 0
-        end
+        -- Effect ตอนเปลี่ยน step
+        Tween(ScanRing, {ImageColor3 = Color3.fromRGB(255, 255, 255)}, 0.1):Play()
+        task.wait(0.1)
+        Tween(ScanRing, {ImageColor3 = SlayLib.Theme.MainColor}, 0.3):Play()
         
-        task.wait(0.4)
+        task.wait(math.random(7, 12) / 10)
     end
 
-    -- Final Charge (ชาร์จพลังก่อนเข้าหน้าหลัก)
-    local Ring = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.5,
-        ZIndex = 4,
-        Parent = CoreHolder
-    })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
+    -- --- EXIT (THE BREACH) ---
+    AddLog("SYSTEM READY. EXECUTING...")
+    task.wait(0.5)
 
-    task.wait(0.3)
+    -- สร้างเอฟเฟกต์แฟลชสีขาวก่อนเปิด
+    local Flash = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        ZIndex = 10,
+        Parent = Screen
+    })
+
+    Tween(Flash, {BackgroundTransparency = 0.5}, 0.2):Play()
+    task.wait(0.2)
     
-    -- --- EXIT RADIUS (การระเบิดออกของแสง) ---
-    Tween(Ring, {Size = UDim2.new(2, 0, 2, 0), Position = UDim2.new(-0.5, 0, -0.5, 0), BackgroundTransparency = 1}, 0.8, Enum.EasingStyle.Quart)
-    Tween(Logo, {Size = UDim2.new(0, 1000, 0, 1000), Position = UDim2.new(0.5, -500, 0.5, -500), ImageTransparency = 1}, 0.8, Enum.EasingStyle.Quart)
-    Tween(Canvas, {BackgroundTransparency = 1}, 1)
-    Tween(Blur, {Size = 0}, 1)
+    -- ทุกอย่างกระจายตัวออก
+    Tween(Hub, {Size = UDim2.new(0, 1000, 0, 1000), Position = UDim2.new(0.5, -500, 0.5, -500)}, 0.8, Enum.EasingStyle.Quart):Play()
+    Tween(Logo, {ImageTransparency = 1}, 0.5):Play()
+    Tween(Background, {BackgroundTransparency = 1}, 0.8):Play()
+    Tween(Blur, {Size = 0}, 1):Play()
+    Tween(Flash, {BackgroundTransparency = 1}, 0.8):Play()
     
     task.wait(1)
     Screen:Destroy()
