@@ -230,38 +230,54 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayAbsoluteLoading",
+        Name = "SlayUltimateInterface",
         Parent = Parent,
         DisplayOrder = 99999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    local Background = Create("Frame", {
+    
+    -- ใช้ CanvasGroup เป็นตัวคุมความโปร่งใสของทุกอย่าง
+    local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 5),
-        BorderSizePixel = 0,
+        BackgroundTransparency = 1,
+        GroupTransparency = 1, -- เริ่มจากจางหาย
         Parent = Screen
     })
 
-    -- [1] กราฟิกพื้นหลัง: Scanline & Grid (ทำให้ดูมีมิติ)
-    local Grid = Create("ImageLabel", {
-        Size = UDim2.new(1.2, 0, 1.2, 0), Position = UDim2.new(-0.1, 0, -0.1, 0),
-        Image = "rbxassetid://10881903613", ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.9, BackgroundTransparency = 1, Parent = Background
+    local Background = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
+        BorderSizePixel = 0,
+        Parent = MainCanvas
     })
 
-    -- [2] ระบบวงแหวนพลังงาน (Energy Rings) - ใช้ Screen.Parent เพื่อให้หยุดเมื่อโดนลบ
+    -- [1] กราฟิกอนุภาค (Particle Shards) วิ่งวนรอบจอ
+    for i = 1, 20 do
+        local Shard = Create("Frame", {
+            Size = UDim2.new(0, math.random(1,3), 0, math.random(50, 150)),
+            Position = UDim2.new(math.random(), 0, math.random(), 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.8,
+            Parent = Background
+        })
+    end
+
+    -- [2] ระบบ Core ปฏิกรณ์ (The Reactor)
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225),
-        BackgroundTransparency = 1, Parent = Background
+        Size = UDim2.new(0, 500, 0, 500),
+        Position = UDim2.new(0.5, -250, 0.5, -250),
+        BackgroundTransparency = 1,
+        Parent = MainCanvas
     })
 
     local function CreateRing(id, size, speed)
         local Ring = Create("ImageLabel", {
-            Size = UDim2.new(0, size, 0, size), Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
             Image = id, ImageColor3 = SlayLib.Theme.MainColor,
-            ImageTransparency = 0.8, BackgroundTransparency = 1, Parent = Hub
+            ImageTransparency = 0.7, BackgroundTransparency = 1, Parent = Hub
         })
         task.spawn(function()
             while Screen and Screen.Parent do
@@ -272,81 +288,74 @@ local function ExecuteLoadingSequence()
         return Ring
     end
 
-    local R1 = CreateRing("rbxassetid://12558442813", 400, 0.5)
-    local R2 = CreateRing("rbxassetid://12558442813", 320, -1.2)
+    local R1 = CreateRing("rbxassetid://12558442813", 450, 0.3)
+    local R2 = CreateRing("rbxassetid://12558442813", 380, -0.7)
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0),
-        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1, ZIndex = 10, Parent = Hub
+        Size = UDim2.new(0, 220, 0, 220),
+        Position = UDim2.new(0.5, -110, 0.5, -110),
+        Image = SlayLib.Icons.Logofull,
+        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1,
+        ZIndex = 10,
+        Parent = Hub
     })
 
-    -- [3] ข้อมูลระบบ (Modern HUD)
-    local Console = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 150), Position = UDim2.new(0.03, 0, 0.97, -150),
-        BackgroundTransparency = 1, Parent = Background
+    -- [3] ข้อความสถานะ
+    local StatusLabel = Create("TextLabel", {
+        Text = "SYSTEM_BREACH_IN_PROGRESS",
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 0.85, 0),
+        Font = "Code", TextSize = 18,
+        TextColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        Parent = MainCanvas
     })
-    Create("UIListLayout", {Parent = Console, VerticalAlignment = "Bottom", Padding = UDim.new(0, 2)})
 
-    local function Log(text)
-        local l = Create("TextLabel", {
-            Text = ":: " .. text, Size = UDim2.new(1, 0, 0, 16),
-            Font = "Code", TextSize = 13, TextColor3 = SlayLib.Theme.MainColor,
-            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Console
-        })
-        Tween(l, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
-        if #Console:GetChildren() > 8 then Console:GetChildren()[2]:Destroy() end
-    end
-
-    -- --- START SEQUENCE ---
+    -- --- SEQUENCE START (การเข้าแบบ Impact) ---
     Tween(Blur, {Size = 25}, 1.5):Play()
-    
-    -- โลโก้เด้งออกมาแบบมีพลัง (Elastic)
-    Tween(Logo, {Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100)}, 1.5, Enum.EasingStyle.Elastic):Play()
-    
-    local Sequence = {
-        "CONNECTING TO NEURAL NETWORK",
-        "BYPASSING KERNEL SENSORS",
-        "DOWNLOADING ASSETS",
-        "INJECTING SLAYLIB_CORE",
-        "OPTIMIZING RENDERING",
-        "ESTABLISHING SECURE CONNECTION"
-    }
+    -- จางเข้าพร้อมกันด้วย GroupTransparency
+    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
+    -- โลโก้พุ่งออกมา
+    Logo.Size = UDim2.new(0, 0, 0, 0)
+    Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 1.5, Enum.EasingStyle.Elastic):Play()
 
-    for i, msg in ipairs(Sequence) do
-        Log(msg)
-        -- ลูกเล่นแสงกระพริบตอนเปลี่ยนขั้น
-        Tween(R1, {ImageColor3 = Color3.fromRGB(255,255,255), ImageTransparency = 0.4}, 0.1):Play()
-        task.wait(0.1)
-        Tween(R1, {ImageColor3 = SlayLib.Theme.MainColor, ImageTransparency = 0.8}, 0.3):Play()
-        
-        task.wait(math.random(5, 9) / 10)
+    local Steps = {"BYPASSING", "DECRYPTING", "STABILIZING", "READY"}
+    for _, step in ipairs(Steps) do
+        StatusLabel.Text = "> " .. step .. " <"
+        task.wait(0.7)
     end
 
-    Log("SYSTEM STABILIZED. WELCOME.")
-    task.wait(0.6)
-
-    -- --- EXIT (THE SUPERNOVA) ---
-    local Flash = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1, ZIndex = 100, Parent = Screen
-    })
-
-    -- ขั้นตอนการปิดแบบ Cinematic
-    local ExitTween = Tween(Flash, {BackgroundTransparency = 0.3}, 0.2) -- แฟลชสว่างขึ้นนิดนึง
-    ExitTween:Play()
+    -- --- EXIT (THE TOTAL COLLAPSE) ---
+    -- นี่คือจุดที่ "อลังการ" และ "หายพร้อมกัน"
+    task.wait(0.3)
     
-    -- ทุกอย่างขยายตัวพุ่งเข้าหาหน้าจอ (Depth Effect)
-    Tween(Hub, {Size = UDim2.new(0, 2000, 0, 2000), Position = UDim2.new(0.5, -1000, 0.5, -1000)}, 0.8, Enum.EasingStyle.Quart):Play()
-    Tween(Logo, {ImageTransparency = 1}, 0.4):Play()
-    Tween(Background, {BackgroundTransparency = 1}, 0.7):Play()
-    Tween(Blur, {Size = 0}, 1):Play()
+    -- 1. สร้างความรู้สึก "ชาร์จพลัง" (หดตัวอย่างแรง)
+    local Charge = Tween(Hub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4, Enum.EasingStyle.Quart)
+    Charge:Play()
     
-    ExitTween.Completed:Connect(function()
-        Tween(Flash, {BackgroundTransparency = 1}, 0.5):Play()
-        task.wait(0.5)
-        Screen:Destroy()
-        Blur:Destroy()
+    -- 2. เมื่อหดจนสุด ให้ "ระเบิด" และ "จางหาย" ไปพร้อมกัน
+    Charge.Completed:Connect(function()
+        -- แฟลชขาววาบสั้นๆ
+        local Flash = Create("Frame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            ZIndex = 9999,
+            Parent = Screen
+        })
+        
+        -- สั่งหายพร้อมกันทุกอย่าง!
+        Tween(MainCanvas, {GroupTransparency = 1}, 0.5):Play()
+        Tween(Blur, {Size = 0}, 0.5):Play()
+        
+        local LastTween = Tween(Flash, {BackgroundTransparency = 1}, 0.5)
+        LastTween:Play()
+        
+        LastTween.Completed:Connect(function()
+            Screen:Destroy()
+            Blur:Destroy()
+        end)
     end)
 end
 
