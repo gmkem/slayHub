@@ -230,23 +230,23 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayQuantumSingularity",
+        Name = "SlayFractureInterface",
         Parent = Parent,
-        DisplayOrder = 9999999, -- Max DisplayOrder to ensure it's on top
+        DisplayOrder = 9999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- Main CanvasGroup for synchronized fades and transformations
+    -- CanvasGroup สำหรับควบคุมการสลายตัวแบบ Sync ทั้งหน้าจอ
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1, -- Start invisible
+        GroupTransparency = 1,
         Parent = Screen
     })
 
-    -- Background: Deep Space / Dimensional Void
+    -- Background: Deep Gradient
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -254,181 +254,128 @@ local function ExecuteLoadingSequence()
         Parent = MainCanvas
     })
 
-    -- [1] DIMENSIONAL RIFT EFFECT (พื้นหลังฉีกขาดเป็นแสง)
-    local function CreateRiftLine(angle, delayTime)
-        local Line = Create("Frame", {
-            Size = UDim2.new(0, math.random(2, 5), 0, 0),
-            Position = UDim2.new(0.5, 0, 0.5, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            Rotation = angle,
-            BackgroundTransparency = 0.8,
-            Parent = Bg
-        })
-        Tween(Line, {Size = UDim2.new(0, math.random(2, 5), 0, 2000)}, 1.5, Enum.EasingStyle.Exponential):Play()
-        task.delay(1.5, function() Line:Destroy() end)
-    end
-    
-    -- [2] QUANTUM CORE (ศูนย์กลางพลังงาน)
-    local CoreHub = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 0), -- Starts as a tiny point
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+    -- [1] VIGNETTE & PARTICLES (เพิ่มความลึก)
+    local Vignette = Create("ImageLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        Image = "rbxassetid://13215234567", -- Vignette Asset
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.3,
+        BackgroundTransparency = 1,
+        Parent = Bg
+    })
+
+    -- [2] THE FRACTURE CORE (หัวใจของระบบ)
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 500, 0, 500),
+        Position = UDim2.new(0.5, -250, 0.5, -250),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
-    -- Energy Rings (Complex, multi-layered rotation)
-    local function CreateComplexRing(id, size, speed, transparency, color)
-        local Ring = Create("ImageLabel", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            Image = id, ImageColor3 = color,
-            ImageTransparency = transparency, BackgroundTransparency = 1, Parent = CoreHub
+    -- สร้าง "เศษเสี้ยวพลังงาน" พุ่งออกจากศูนย์กลาง (Fracture Lines)
+    local function SpawnFracture()
+        local Line = Create("Frame", {
+            Size = UDim2.new(0, 1, 0, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            Rotation = math.random(0, 360),
+            BorderSizePixel = 0,
+            Parent = Hub
         })
-        task.spawn(function()
-            while Screen and Screen.Parent do
-                Ring.Rotation = Ring.Rotation + speed
-                task.wait()
-            end
-        end)
-        return Ring
+        Tween(Line, {Size = UDim2.new(0, 1, 0, 300), BackgroundTransparency = 1}, 1, Enum.EasingStyle.Quart):Play()
+        task.delay(1, function() Line:Destroy() end)
     end
 
-    local Ring1 = CreateComplexRing("rbxassetid://12558442813", 600, 0.3, 0.8, SlayLib.Theme.MainColor)
-    local Ring2 = CreateComplexRing("rbxassetid://12558442813", 500, -0.7, 0.6, Color3.fromRGB(255, 255, 255))
-    local Ring3 = CreateComplexRing("rbxassetid://12558442813", 400, 1.2, 0.5, SlayLib.Theme.MainColor)
-    local Ring4 = CreateComplexRing("rbxassetid://13214152549", 300, -2.0, 0.4, Color3.fromRGB(150, 255, 255)) -- Different asset for variety
-
-    -- Logo with Energy Aura
-    local Aura = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0), -- Starts invisible
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Image = "rbxassetid://6015266835",
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 1,
-        BackgroundTransparency = 1,
-        Parent = CoreHub
+    -- วงแหวนแบบ Tech-Pulse
+    local OuterRing = Create("ImageLabel", {
+        Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225),
+        Image = "rbxassetid://12558442813", ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.8, BackgroundTransparency = 1, Parent = Hub
     })
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0), -- Starts invisible
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        Image = SlayLib.Icons.Logofull,
-        ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = CoreHub
+        Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100),
+        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1, ZIndex = 10, Parent = Hub
     })
 
-    -- [3] DATA STREAM & PROGRESS BAR (Dynamic Visuals)
-    local ConsoleFrame = Create("Frame", {
-        Size = UDim2.new(0, 450, 0, 150),
-        Position = UDim2.new(0.5, -225, 0.85, -75),
-        BackgroundTransparency = 1,
-        Parent = MainCanvas
+    -- [3] SCANLINE EFFECT (เส้นสแกนพรีเมียม)
+    local Scanline = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2), Position = UDim2.new(0, 0, -0.1, 0),
+        BackgroundColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 0.6,
+        BorderSizePixel = 0, Parent = Bg
     })
-    Create("UIListLayout", {Parent = ConsoleFrame, VerticalAlignment = "Bottom", Padding = UDim.new(0, 5)})
 
-    local function AddLog(text)
-        local Log = Create("TextLabel", {
-            Text = ">> " .. text, Size = UDim2.new(1, 0, 0, 18),
-            Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
-            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = ConsoleFrame
-        })
-        Tween(Log, {TextTransparency = 0}, 0.2):Play()
-        if #ConsoleFrame:GetChildren() > 6 then ConsoleFrame:GetChildren()[2]:Destroy() end
-    end
-
-    local ProgressBar = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 4),
-        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        BorderSizePixel = 0,
-        Parent = ConsoleFrame
-    })
-    local ProgressFill = Create("Frame", {
-        Size = UDim2.new(0, 0, 1, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor,
-        BorderSizePixel = 0,
-        Parent = ProgressBar
-    })
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.5, Parent = ProgressFill})
-
-    -- --- SEQUENCE START (Dimensional Breach) ---
-    Tween(Blur, {Size = 60}, 2):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 1.5):Play()
+    -- --- START ANIMATION ---
+    Tween(Blur, {Size = 45}, 1.5):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
     
-    -- Rift Lines appearing
-    for i = 1, 10 do CreateRiftLine(i * 36, 0) end
-    
-    -- Core Hub emerges and Logo forms
-    Tween(CoreHub, {Size = UDim2.new(0, 600, 0, 600), Position = UDim2.new(0.5, -300, 0.5, -300)}, 1.5, Enum.EasingStyle.Quart):Play()
-    Tween(Aura, {Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225), ImageTransparency = 0.2}, 1.5):Play()
-    Tween(Logo, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 0}, 1.5, Enum.EasingStyle.Elastic):Play()
-    
-    local Steps = {
-        "INITIATING QUANTUM LINKAGE...",
-        "DECRYPTING MULTIVERSAL DATASTREAM...",
-        "CALIBRATING TEMPORAL ANCHORS...",
-        "SYNCHRONIZING GRAVITY DRIVES...",
-        "ESTABLISHING SECURE DIMENSIONAL TUNNEL...",
-        "QUANTUM SINGULARITY ONLINE."
-    }
+    -- วงแหวนหมุนแบบ Smooth
+    task.spawn(function()
+        while Screen and Screen.Parent do
+            OuterRing.Rotation = OuterRing.Rotation + 0.5
+            SpawnFracture() -- พ่นเศษเสี้ยวออกมาตลอดเวลา
+            task.wait(0.1)
+        end
+    end)
 
-    local currentProgress = 0
+    -- Scanline movement
+    task.spawn(function()
+        while Screen and Screen.Parent do
+            Scanline.Position = UDim2.new(0, 0, -0.1, 0)
+            Tween(Scanline, {Position = UDim2.new(0, 0, 1.1, 0)}, 2.5, Enum.EasingStyle.Linear):Play()
+            task.wait(2.5)
+        end
+    end)
+
+    -- Loading Sequence
+    local Steps = {"[ ANALYZING CORE ]", "[ BYPASSING KERNEL ]", "[ LOADING ASSETS ]", "[ READY ]"}
     for i, step in ipairs(Steps) do
-        AddLog(step)
-        currentProgress = (i / #Steps)
-        Tween(ProgressFill, {Size = UDim2.new(currentProgress, 0, 1, 0)}, 0.5):Play()
-        
-        -- Aura Pulse & Glitch Effect
-        Tween(Aura, {Size = UDim2.new(0, 500, 0, 500), Position = UDim2.new(0.5, -250, 0.5, -250), ImageTransparency = 0.0}, 0.2):Play()
-        task.wait(0.2)
-        Tween(Aura, {Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225), ImageTransparency = 0.2}, 0.3):Play()
-        
-        -- Small Screen Shake for impact
-        MainCanvas.Position = UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
-        task.wait(0.05)
-        MainCanvas.Position = UDim2.new(0, 0, 0, 0)
-
-        task.wait(math.random(8, 15) / 10)
+        -- เอฟเฟกต์ Logo Pulse ตามจังหวะ
+        Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 0.1):Play()
+        task.wait(0.1)
+        Tween(Logo, {Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100)}, 0.3):Play()
+        task.wait(0.6)
     end
 
-    -- --- THE APOCALYPSE EXIT (Total System Meltdown) ---
-    AddLog("WELCOME TO THE SLAYLIB X UNIVERSE.")
-    task.wait(0.8)
-
-    -- 1. Final Charge: ทุกอย่างหดตัวเข้าสู่จุดศูนย์กลางอย่างรุนแรง
-    local FinalCharge = Tween(CoreHub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.6, Enum.EasingStyle.BackIn)
-    FinalCharge:Play()
-    Tween(ConsoleFrame, {GroupTransparency = 1}, 0.4):Play()
+    -- --- EXIT SEQUENCE (The Singularity Burst) ---
+    -- 1. ชาร์จพลัง (Logo หมุนเร็วขึ้นและสั่น)
+    local ChargeTween = Tween(OuterRing, {Rotation = OuterRing.Rotation + 360, ImageTransparency = 0}, 0.5, Enum.EasingStyle.Quart)
+    ChargeTween:Play()
     
-    FinalCharge.Completed:Connect(function()
-        -- 2. Massive Screen Shake + Flash Bang
-        task.spawn(function()
-            for i = 1, 20 do
-                MainCanvas.Position = UDim2.new(0, math.random(-50, 50), 0, math.random(-50, 50))
-                task.wait(0.01)
-            end
-            MainCanvas.Position = UDim2.new(0, 0, 0, 0)
-        end)
-        
-        local Flash = Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            ZIndex = 9999999,
-            Parent = Screen
-        })
-        
-        -- 3. สลายหายไปพร้อมกันอย่างสมบูรณ์แบบ
-        Tween(MainCanvas, {GroupTransparency = 1}, 0.5):Play()
-        Tween(Blur, {Size = 0}, 1):Play()
-        
-        local FinalFade = Tween(Flash, {BackgroundTransparency = 1}, 1)
+    task.spawn(function()
+        for i = 1, 10 do
+            Hub.Position = UDim2.new(0.5, -250 + math.random(-15, 15), 0.5, -250 + math.random(-15, 15))
+            task.wait(0.05)
+        end
+    end)
+    
+    task.wait(0.5)
+
+    -- 2. ระเบิดแสง (Nova Flash)
+    local Flash = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        ZIndex = 99999, Parent = Screen, BackgroundTransparency = 1
+    })
+
+    Tween(Flash, {BackgroundTransparency = 0}, 0.1):Play()
+    
+    -- 3. สลายหายไปพร้อมกัน (Destroy Safety)
+    task.delay(0.1, function()
+        Tween(MainCanvas, {GroupTransparency = 1}, 0.6):Play()
+        Tween(Blur, {Size = 0}, 0.8):Play()
+        local FinalFade = Tween(Flash, {BackgroundTransparency = 1}, 0.8)
         FinalFade:Play()
         
         FinalFade.Completed:Connect(function()
             Screen:Destroy()
             Blur:Destroy()
         end)
+    end)
+
+    -- ** ANTI-STUCK: ทำลายทิ้งแน่นอนเมื่อผ่านไป 10 วินาที **
+    task.delay(10, function()
+        if Screen and Screen.Parent then Screen:Destroy() end
     end)
 end
 
