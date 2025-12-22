@@ -229,151 +229,125 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- ตั้งค่าเต็มจอ 100% และ IgnoreGuiInset
     local Screen = Create("ScreenGui", {
-        Name = "SlayEventHorizon",
+        Name = "SlayAbsoluteLoading",
         Parent = Parent,
-        DisplayOrder = 999999,
+        DisplayOrder = 99999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
-    -- Background ชั้นลึกที่สุด
-    local Bg = Create("Frame", {
+    local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 5),
         BorderSizePixel = 0,
         Parent = Screen
     })
 
-    -- [1] เติม "เส้นแสง" วิ่งผ่านหน้าจอ (Anamorphic Lens Flare)
-    local Flare = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 2),
-        Position = UDim2.new(0, 0, 0.5, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 0.5,
-        Parent = Bg
-    })
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 4, Transparency = 0.5, Parent = Flare})
-
-    -- [2] ระบบ Core ปฏิกรณ์ (The Reactor)
-    local MainHub = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        BackgroundTransparency = 1,
-        Parent = Bg
+    -- [1] กราฟิกพื้นหลัง: Scanline & Grid (ทำให้ดูมีมิติ)
+    local Grid = Create("ImageLabel", {
+        Size = UDim2.new(1.2, 0, 1.2, 0), Position = UDim2.new(-0.1, 0, -0.1, 0),
+        Image = "rbxassetid://10881903613", ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.9, BackgroundTransparency = 1, Parent = Background
     })
 
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 280, 0, 280),
-        Position = UDim2.new(0.5, -140, 0.5, -140),
-        Image = SlayLib.Icons.Logofull,
-        ImageColor3 = Color3.fromRGB(255, 255, 255),
-        ImageTransparency = 1,
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = MainHub
+    -- [2] ระบบวงแหวนพลังงาน (Energy Rings) - ใช้ Screen.Parent เพื่อให้หยุดเมื่อโดนลบ
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225),
+        BackgroundTransparency = 1, Parent = Background
     })
 
-    -- วงแหวนพลังงาน (Energy Rings)
-    local function CreateEnergyRing(id, size, rotationSpeed)
+    local function CreateRing(id, size, speed)
         local Ring = Create("ImageLabel", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            Image = id, -- ใช้ Asset ID สำหรับวงแหวนแสง
-            ImageColor3 = SlayLib.Theme.MainColor,
-            ImageTransparency = 1,
-            BackgroundTransparency = 1,
-            Parent = MainHub
+            Size = UDim2.new(0, size, 0, size), Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            Image = id, ImageColor3 = SlayLib.Theme.MainColor,
+            ImageTransparency = 0.8, BackgroundTransparency = 1, Parent = Hub
         })
         task.spawn(function()
-            while Screen.Parent do
-                Ring.Rotation = Ring.Rotation + rotationSpeed
+            while Screen and Screen.Parent do
+                Ring.Rotation = Ring.Rotation + speed
                 task.wait()
             end
         end)
         return Ring
     end
 
-    local R1 = CreateEnergyRing("rbxassetid://12558442813", 450, 0.4)
-    local R2 = CreateEnergyRing("rbxassetid://12558442813", 400, -0.8)
+    local R1 = CreateRing("rbxassetid://12558442813", 400, 0.5)
+    local R2 = CreateRing("rbxassetid://12558442813", 320, -1.2)
 
-    -- [3] หน้าจอ Log แบบ HUD ทหาร (Military HUD)
-    local HUD = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 200),
-        Position = UDim2.new(0.05, 0, 0.05, 0),
-        BackgroundTransparency = 1,
-        Parent = Bg
-    })
-    local HUDTitle = Create("TextLabel", {
-        Text = "SYSTEM STATUS: RECOVERING",
-        Size = UDim2.new(1, 0, 0, 20),
-        Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
-        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = HUD
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0),
+        Image = SlayLib.Icons.Logofull, ImageColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 1, ZIndex = 10, Parent = Hub
     })
 
-    -- --- อลังการตอนเข้า (The Breach Sequence) ---
-    Tween(Blur, {Size = 30}, 2):Play()
-    
-    -- เสียงสะท้อนของภาพ (Logo Entrance)
-    task.spawn(function()
-        for i = 1, 3 do
-            Logo.ImageTransparency = 0.5
-            Logo.Size = UDim2.new(0, 350, 0, 350)
-            Logo.Position = UDim2.new(0.5, -175, 0.5, -175)
-            task.wait(0.05)
-            Logo.ImageTransparency = 1
-            Logo.Size = UDim2.new(0, 280, 0, 280)
-            Logo.Position = UDim2.new(0.5, -140, 0.5, -140)
-            task.wait(0.05)
-        end
-        Tween(Logo, {ImageTransparency = 0}, 0.5):Play()
-        Tween(R1, {ImageTransparency = 0.6}, 1):Play()
-        Tween(R2, {ImageTransparency = 0.6}, 1):Play()
-        Tween(Flare, {Size = UDim2.new(1, 0, 0, 1)}, 1):Play()
-    end)
+    -- [3] ข้อมูลระบบ (Modern HUD)
+    local Console = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 150), Position = UDim2.new(0.03, 0, 0.97, -150),
+        BackgroundTransparency = 1, Parent = Background
+    })
+    Create("UIListLayout", {Parent = Console, VerticalAlignment = "Bottom", Padding = UDim.new(0, 2)})
 
-    -- ขั้นตอนการโหลดแบบสมจริง
-    local Steps = {"MEM_READ", "SEC_BYPASS", "UI_SYNC", "STABLE"}
-    for i, step in ipairs(Steps) do
-        HUDTitle.Text = "EXE: " .. step .. " >> " .. math.random(1000, 9999)
-        -- กระตุกหน้าจอเบาๆ ทุกครั้งที่โหลด
-        MainHub.Position = UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
-        task.wait(0.8)
-        MainHub.Position = UDim2.new(0, 0, 0, 0)
+    local function Log(text)
+        local l = Create("TextLabel", {
+            Text = ":: " .. text, Size = UDim2.new(1, 0, 0, 16),
+            Font = "Code", TextSize = 13, TextColor3 = SlayLib.Theme.MainColor,
+            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Console
+        })
+        Tween(l, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.2)
+        if #Console:GetChildren() > 8 then Console:GetChildren()[2]:Destroy() end
     end
 
-    -- --- อลังการตอนออก (The Singularity Collapse) ---
-    HUDTitle.Text = "CRITICAL: COLLAPSING INTERFACE"
-    task.wait(0.5)
+    -- --- START SEQUENCE ---
+    Tween(Blur, {Size = 25}, 1.5):Play()
+    
+    -- โลโก้เด้งออกมาแบบมีพลัง (Elastic)
+    Tween(Logo, {Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100)}, 1.5, Enum.EasingStyle.Elastic):Play()
+    
+    local Sequence = {
+        "CONNECTING TO NEURAL NETWORK",
+        "BYPASSING KERNEL SENSORS",
+        "DOWNLOADING ASSETS",
+        "INJECTING SLAYLIB_CORE",
+        "OPTIMIZING RENDERING",
+        "ESTABLISHING SECURE CONNECTION"
+    }
 
-    -- 1. หดทุกอย่างเป็นเส้นเดียว (Anamorphic Collapse)
-    local Collapse = Tween(MainHub, {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0.5, 0)}, 0.5, Enum.EasingStyle.Quart)
-    Collapse:Play()
-    Tween(Logo, {ImageTransparency = 1}, 0.3):Play()
-    Tween(R1, {ImageTransparency = 1}, 0.3):Play()
-    Tween(R2, {ImageTransparency = 1}, 0.3):Play()
+    for i, msg in ipairs(Sequence) do
+        Log(msg)
+        -- ลูกเล่นแสงกระพริบตอนเปลี่ยนขั้น
+        Tween(R1, {ImageColor3 = Color3.fromRGB(255,255,255), ImageTransparency = 0.4}, 0.1):Play()
+        task.wait(0.1)
+        Tween(R1, {ImageColor3 = SlayLib.Theme.MainColor, ImageTransparency = 0.8}, 0.3):Play()
+        
+        task.wait(math.random(5, 9) / 10)
+    end
 
-    -- 2. ระเบิดแสงสีขาวแบบเต็มจอ
-    Collapse.Completed:Wait()
+    Log("SYSTEM STABILIZED. WELCOME.")
+    task.wait(0.6)
+
+    -- --- EXIT (THE SUPERNOVA) ---
     local Flash = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        ZIndex = 999, Parent = Screen, BackgroundTransparency = 1
+        BackgroundTransparency = 1, ZIndex = 100, Parent = Screen
     })
-    
-    local FinalTween = Tween(Flash, {BackgroundTransparency = 0}, 0.15)
-    FinalTween:Play()
-    FinalTween.Completed:Wait()
 
-    -- 3. สลายตัวและทำลาย Gui
-    Tween(Blur, {Size = 0}, 1):Play()
-    Tween(Flash, {BackgroundTransparency = 1}, 0.8):Play()
-    Tween(Bg, {BackgroundTransparency = 1}, 0.8):Play()
+    -- ขั้นตอนการปิดแบบ Cinematic
+    local ExitTween = Tween(Flash, {BackgroundTransparency = 0.3}, 0.2) -- แฟลชสว่างขึ้นนิดนึง
+    ExitTween:Play()
     
-    task.wait(0.8)
-    Screen:Destroy()
-    Blur:Destroy()
+    -- ทุกอย่างขยายตัวพุ่งเข้าหาหน้าจอ (Depth Effect)
+    Tween(Hub, {Size = UDim2.new(0, 2000, 0, 2000), Position = UDim2.new(0.5, -1000, 0.5, -1000)}, 0.8, Enum.EasingStyle.Quart):Play()
+    Tween(Logo, {ImageTransparency = 1}, 0.4):Play()
+    Tween(Background, {BackgroundTransparency = 1}, 0.7):Play()
+    Tween(Blur, {Size = 0}, 1):Play()
+    
+    ExitTween.Completed:Connect(function()
+        Tween(Flash, {BackgroundTransparency = 1}, 0.5):Play()
+        task.wait(0.5)
+        Screen:Destroy()
+        Blur:Destroy()
+    end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
