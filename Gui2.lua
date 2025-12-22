@@ -230,54 +230,55 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayUltimateInterface",
+        Name = "SlayInfinityInterface",
         Parent = Parent,
-        DisplayOrder = 99999,
+        DisplayOrder = 999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- ใช้ CanvasGroup เป็นตัวคุมความโปร่งใสของทุกอย่าง
+    -- CanvasGroup สำหรับควบคุมการสลายตัวพร้อมกัน
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1, -- เริ่มจากจางหาย
+        GroupTransparency = 1,
         Parent = Screen
     })
 
-    local Background = Create("Frame", {
+    -- Background: Deep Universe Depth
+    local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 2),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] กราฟิกอนุภาค (Particle Shards) วิ่งวนรอบจอ
-    for i = 1, 20 do
-        local Shard = Create("Frame", {
-            Size = UDim2.new(0, math.random(1,3), 0, math.random(50, 150)),
-            Position = UDim2.new(math.random(), 0, math.random(), 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.8,
-            Parent = Background
-        })
-    end
+    -- [1] Cinematic Lens Flare (เส้นแสงแนวนอนพาดผ่านจอ)
+    local Flare = Create("Frame", {
+        Size = UDim2.new(1.5, 0, 0, 2),
+        Position = UDim2.new(-0.25, 0, 0.5, 0),
+        BackgroundColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 0.4,
+        ZIndex = 20,
+        Parent = Bg
+    })
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 10, Transparency = 0.6, Parent = Flare})
 
-    -- [2] ระบบ Core ปฏิกรณ์ (The Reactor)
+    -- [2] The Infinity Core (วงแหวน 4 ชั้น หมุนสวนทางกัน)
     local Hub = Create("Frame", {
         Size = UDim2.new(0, 500, 0, 500),
         Position = UDim2.new(0.5, -250, 0.5, -250),
         BackgroundTransparency = 1,
-        Parent = MainCanvas
+        Parent = Bg
     })
 
-    local function CreateRing(id, size, speed)
+    local function CreateAdvancedRing(id, size, speed, transparency)
         local Ring = Create("ImageLabel", {
             Size = UDim2.new(0, size, 0, size),
             Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
             Image = id, ImageColor3 = SlayLib.Theme.MainColor,
-            ImageTransparency = 0.7, BackgroundTransparency = 1, Parent = Hub
+            ImageTransparency = transparency, BackgroundTransparency = 1, Parent = Hub
         })
         task.spawn(function()
             while Screen and Screen.Parent do
@@ -288,12 +289,24 @@ local function ExecuteLoadingSequence()
         return Ring
     end
 
-    local R1 = CreateRing("rbxassetid://12558442813", 450, 0.3)
-    local R2 = CreateRing("rbxassetid://12558442813", 380, -0.7)
+    local R1 = CreateAdvancedRing("rbxassetid://12558442813", 550, 0.2, 0.8)
+    local R2 = CreateAdvancedRing("rbxassetid://12558442813", 450, -0.6, 0.7)
+    local R3 = CreateAdvancedRing("rbxassetid://12558442813", 350, 1.5, 0.6)
+
+    -- [3] Logo with Aura Glow
+    local Aura = Create("ImageLabel", {
+        Size = UDim2.new(0, 400, 0, 400),
+        Position = UDim2.new(0.5, -200, 0.5, -200),
+        Image = "rbxassetid://6015266835",
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.5,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 220, 0, 220),
-        Position = UDim2.new(0.5, -110, 0.5, -110),
+        Size = UDim2.new(0, 200, 0, 200),
+        Position = UDim2.new(0.5, -100, 0.5, -100),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
@@ -301,55 +314,82 @@ local function ExecuteLoadingSequence()
         Parent = Hub
     })
 
-    -- [3] ข้อความสถานะ
-    local StatusLabel = Create("TextLabel", {
-        Text = "SYSTEM_BREACH_IN_PROGRESS",
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0.85, 0),
-        Font = "Code", TextSize = 18,
-        TextColor3 = SlayLib.Theme.MainColor,
+    -- [4] Boot Log (สไตล์ Command Prompt)
+    local LogFrame = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 200),
+        Position = UDim2.new(0.02, 0, 0.98, -180),
         BackgroundTransparency = 1,
-        Parent = MainCanvas
+        Parent = Bg
     })
+    Create("UIListLayout", {Parent = LogFrame, VerticalAlignment = "Bottom", Padding = UDim.new(0, 4)})
 
-    -- --- SEQUENCE START (การเข้าแบบ Impact) ---
-    Tween(Blur, {Size = 25}, 1.5):Play()
-    -- จางเข้าพร้อมกันด้วย GroupTransparency
-    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
-    -- โลโก้พุ่งออกมา
-    Logo.Size = UDim2.new(0, 0, 0, 0)
-    Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 1.5, Enum.EasingStyle.Elastic):Play()
-
-    local Steps = {"BYPASSING", "DECRYPTING", "STABILIZING", "READY"}
-    for _, step in ipairs(Steps) do
-        StatusLabel.Text = "> " .. step .. " <"
-        task.wait(0.7)
+    local function AddSystemLog(text)
+        local Log = Create("TextLabel", {
+            Text = "[SYSTEM] " .. text, Size = UDim2.new(1, 0, 0, 18),
+            Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
+            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = LogFrame
+        })
+        Tween(Log, {TextColor3 = Color3.fromRGB(255, 255, 255)}, 0.3):Play()
+        if #LogFrame:GetChildren() > 8 then LogFrame:GetChildren()[2]:Destroy() end
     end
 
-    -- --- EXIT (THE TOTAL COLLAPSE) ---
-    -- นี่คือจุดที่ "อลังการ" และ "หายพร้อมกัน"
-    task.wait(0.3)
+    -- --- SEQUENCE START (The Grand Opening) ---
+    Tween(Blur, {Size = 35}, 2):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 1.2):Play()
     
-    -- 1. สร้างความรู้สึก "ชาร์จพลัง" (หดตัวอย่างแรง)
-    local Charge = Tween(Hub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4, Enum.EasingStyle.Quart)
+    -- Logo Glitch Entrance
+    task.spawn(function()
+        for i = 1, 5 do
+            Logo.ImageColor3 = SlayLib.Theme.MainColor
+            Logo.Position = UDim2.new(0.5, -105, 0.5, -100)
+            task.wait(0.05)
+            Logo.ImageColor3 = Color3.fromRGB(255, 255, 255)
+            Logo.Position = UDim2.new(0.5, -95, 0.5, -100)
+            task.wait(0.05)
+        end
+        Tween(Logo, {Position = UDim2.new(0.5, -100, 0.5, -100)}, 0.5):Play()
+    end)
+
+    local Steps = {
+        "INITIALIZING INFINITY_ENGINE",
+        "SYNCING QUANTUM_DATABASE",
+        "BYPASSING KERNEL_BARRIER",
+        "ESTABLISHING SECURE_TUNNEL",
+        "STABILIZING INTERFACE",
+        "ACCESS GRANTED"
+    }
+
+    for _, step in ipairs(Steps) do
+        AddSystemLog(step)
+        -- Aura Pulse
+        Tween(Aura, {Size = UDim2.new(0, 500, 0, 500), Position = UDim2.new(0.5, -250, 0.5, -250), ImageTransparency = 0.8}, 0.4):Play()
+        task.wait(0.5)
+        Tween(Aura, {Size = UDim2.new(0, 400, 0, 400), Position = UDim2.new(0.5, -200, 0.5, -200), ImageTransparency = 0.5}, 0.4):Play()
+        task.wait(math.random(3, 7) / 10)
+    end
+
+    -- --- THE ABSOLUTE EXIT (Supernova Dissolve) ---
+    task.wait(0.5)
+
+    -- 1. ชาร์จพลังงาน: ทุกอย่างหดตัวเข้าจุดศูนย์กลางอย่างรวดเร็ว
+    local Charge = Tween(Hub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.6, Enum.EasingStyle.Quart)
     Charge:Play()
+    Tween(Flare, {Size = UDim2.new(0, 0, 0, 2), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.6):Play()
     
-    -- 2. เมื่อหดจนสุด ให้ "ระเบิด" และ "จางหาย" ไปพร้อมกัน
     Charge.Completed:Connect(function()
-        -- แฟลชขาววาบสั้นๆ
+        -- 2. ระเบิดแสง (Final Flash)
         local Flash = Create("Frame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            ZIndex = 9999,
+            ZIndex = 999999,
             Parent = Screen
         })
         
-        -- สั่งหายพร้อมกันทุกอย่าง!
-        Tween(MainCanvas, {GroupTransparency = 1}, 0.5):Play()
-        Tween(Blur, {Size = 0}, 0.5):Play()
+        -- 3. สลายหายไปพร้อมกันอย่างสมบูรณ์
+        Tween(MainCanvas, {GroupTransparency = 1}, 0.4):Play()
+        Tween(Blur, {Size = 0}, 0.8):Play()
         
-        local LastTween = Tween(Flash, {BackgroundTransparency = 1}, 0.5)
+        local LastTween = Tween(Flash, {BackgroundTransparency = 1}, 0.8)
         LastTween:Play()
         
         LastTween.Completed:Connect(function()
