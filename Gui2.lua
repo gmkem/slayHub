@@ -230,22 +230,23 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayNovaBreach",
+        Name = "SlayQuantumSingularity",
         Parent = Parent,
-        DisplayOrder = 999999,
+        DisplayOrder = 9999999, -- Max DisplayOrder to ensure it's on top
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- CanvasGroup เพื่อคุมการสลายตัวแบบ Total Sync
+    -- Main CanvasGroup for synchronized fades and transformations
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1,
+        GroupTransparency = 1, -- Start invisible
         Parent = Screen
     })
 
+    -- Background: Deep Space / Dimensional Void
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -253,135 +254,175 @@ local function ExecuteLoadingSequence()
         Parent = MainCanvas
     })
 
-    -- [1] SPACE WARP EFFECT (เส้นแสงพุ่งเข้าหาหน้าจอ)
-    local WarpFolder = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Parent = Bg
-    })
-
-    local function SpawnWarpLine()
-        local Angle = math.rad(math.random(0, 360))
+    -- [1] DIMENSIONAL RIFT EFFECT (พื้นหลังฉีกขาดเป็นแสง)
+    local function CreateRiftLine(angle, delayTime)
         local Line = Create("Frame", {
-            Size = UDim2.new(0, 2, 0, 0),
+            Size = UDim2.new(0, math.random(2, 5), 0, 0),
             Position = UDim2.new(0.5, 0, 0.5, 0),
             BackgroundColor3 = SlayLib.Theme.MainColor,
-            Rotation = math.deg(Angle),
-            BorderSizePixel = 0,
-            Parent = WarpFolder
+            Rotation = angle,
+            BackgroundTransparency = 0.8,
+            Parent = Bg
         })
-        -- พุ่งออกจากจุดศูนย์กลาง
-        local Dist = 1000
-        local TargetPos = UDim2.new(0.5 + math.cos(Angle) * 0.8, 0, 0.5 + math.sin(Angle) * 0.8, 0)
-        Tween(Line, {Size = UDim2.new(0, 2, 0, 200), Position = TargetPos, BackgroundTransparency = 1}, 0.8, Enum.EasingStyle.Quart):Play()
-        task.delay(0.8, function() Line:Destroy() end)
+        Tween(Line, {Size = UDim2.new(0, math.random(2, 5), 0, 2000)}, 1.5, Enum.EasingStyle.Exponential):Play()
+        task.delay(1.5, function() Line:Destroy() end)
     end
-
-    -- [2] THE HUB: LOGO & NEON RINGS
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 500, 0, 500),
-        Position = UDim2.new(0.5, -250, 0.5, -250),
+    
+    -- [2] QUANTUM CORE (ศูนย์กลางพลังงาน)
+    local CoreHub = Create("Frame", {
+        Size = UDim2.new(0, 0, 0, 0), -- Starts as a tiny point
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
+    -- Energy Rings (Complex, multi-layered rotation)
+    local function CreateComplexRing(id, size, speed, transparency, color)
+        local Ring = Create("ImageLabel", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            Image = id, ImageColor3 = color,
+            ImageTransparency = transparency, BackgroundTransparency = 1, Parent = CoreHub
+        })
+        task.spawn(function()
+            while Screen and Screen.Parent do
+                Ring.Rotation = Ring.Rotation + speed
+                task.wait()
+            end
+        end)
+        return Ring
+    end
+
+    local Ring1 = CreateComplexRing("rbxassetid://12558442813", 600, 0.3, 0.8, SlayLib.Theme.MainColor)
+    local Ring2 = CreateComplexRing("rbxassetid://12558442813", 500, -0.7, 0.6, Color3.fromRGB(255, 255, 255))
+    local Ring3 = CreateComplexRing("rbxassetid://12558442813", 400, 1.2, 0.5, SlayLib.Theme.MainColor)
+    local Ring4 = CreateComplexRing("rbxassetid://13214152549", 300, -2.0, 0.4, Color3.fromRGB(150, 255, 255)) -- Different asset for variety
+
+    -- Logo with Energy Aura
+    local Aura = Create("ImageLabel", {
+        Size = UDim2.new(0, 0, 0, 0), -- Starts invisible
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Image = "rbxassetid://6015266835",
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 1,
+        BackgroundTransparency = 1,
+        Parent = CoreHub
+    })
+
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 250, 0, 250),
-        Position = UDim2.new(0.5, -125, 0.5, -125),
+        Size = UDim2.new(0, 0, 0, 0), -- Starts invisible
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
         BackgroundTransparency = 1,
         ZIndex = 10,
-        Parent = Hub
+        Parent = CoreHub
     })
 
-    -- เรืองแสงรอบโลโก้ (Aura Blast)
-    local Aura = Create("ImageLabel", {
-        Size = UDim2.new(0, 600, 0, 600),
-        Position = UDim2.new(0.5, -300, 0.5, -300),
-        Image = "rbxassetid://6015266835",
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.5,
+    -- [3] DATA STREAM & PROGRESS BAR (Dynamic Visuals)
+    local ConsoleFrame = Create("Frame", {
+        Size = UDim2.new(0, 450, 0, 150),
+        Position = UDim2.new(0.5, -225, 0.85, -75),
         BackgroundTransparency = 1,
-        Parent = Hub
-    })
-
-    -- [3] PROGRESS HUD (Modern Minimal)
-    local BarContainer = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 2),
-        Position = UDim2.new(0.5, -200, 0.8, 0),
-        BackgroundColor3 = Color3.fromRGB(50, 50, 50),
-        BorderSizePixel = 0,
         Parent = MainCanvas
     })
-    local Fill = Create("Frame", {
+    Create("UIListLayout", {Parent = ConsoleFrame, VerticalAlignment = "Bottom", Padding = UDim.new(0, 5)})
+
+    local function AddLog(text)
+        local Log = Create("TextLabel", {
+            Text = ">> " .. text, Size = UDim2.new(1, 0, 0, 18),
+            Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
+            TextXAlignment = "Left", BackgroundTransparency = 1, Parent = ConsoleFrame
+        })
+        Tween(Log, {TextTransparency = 0}, 0.2):Play()
+        if #ConsoleFrame:GetChildren() > 6 then ConsoleFrame:GetChildren()[2]:Destroy() end
+    end
+
+    local ProgressBar = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 4),
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BorderSizePixel = 0,
+        Parent = ConsoleFrame
+    })
+    local ProgressFill = Create("Frame", {
         Size = UDim2.new(0, 0, 1, 0),
         BackgroundColor3 = SlayLib.Theme.MainColor,
         BorderSizePixel = 0,
-        Parent = BarContainer
+        Parent = ProgressBar
     })
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.5, Parent = ProgressFill})
 
-    -- --- ANIMATION START ---
-    Tween(Blur, {Size = 40}, 2):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
+    -- --- SEQUENCE START (Dimensional Breach) ---
+    Tween(Blur, {Size = 60}, 2):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 1.5):Play()
     
-    -- Loop แสงพุ่ง (Warp)
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            SpawnWarpLine()
-            task.wait(0.05)
-        end
-    end)
+    -- Rift Lines appearing
+    for i = 1, 10 do CreateRiftLine(i * 36, 0) end
+    
+    -- Core Hub emerges and Logo forms
+    Tween(CoreHub, {Size = UDim2.new(0, 600, 0, 600), Position = UDim2.new(0.5, -300, 0.5, -300)}, 1.5, Enum.EasingStyle.Quart):Play()
+    Tween(Aura, {Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225), ImageTransparency = 0.2}, 1.5):Play()
+    Tween(Logo, {Size = UDim2.new(0, 250, 0, 250), Position = UDim2.new(0.5, -125, 0.5, -125), ImageTransparency = 0}, 1.5, Enum.EasingStyle.Elastic):Play()
+    
+    local Steps = {
+        "INITIATING QUANTUM LINKAGE...",
+        "DECRYPTING MULTIVERSAL DATASTREAM...",
+        "CALIBRATING TEMPORAL ANCHORS...",
+        "SYNCHRONIZING GRAVITY DRIVES...",
+        "ESTABLISHING SECURE DIMENSIONAL TUNNEL...",
+        "QUANTUM SINGULARITY ONLINE."
+    }
 
-    -- กระตุกหน้าจอเบาๆ (Pulse)
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            Tween(Aura, {Size = UDim2.new(0, 700, 0, 700), Position = UDim2.new(0.5, -350, 0.5, -350), ImageTransparency = 0.8}, 0.5):Play()
-            task.wait(0.5)
-            Tween(Aura, {Size = UDim2.new(0, 600, 0, 600), Position = UDim2.new(0.5, -300, 0.5, -300), ImageTransparency = 0.5}, 0.5):Play()
-            task.wait(0.5)
-        end
-    end)
+    local currentProgress = 0
+    for i, step in ipairs(Steps) do
+        AddLog(step)
+        currentProgress = (i / #Steps)
+        Tween(ProgressFill, {Size = UDim2.new(currentProgress, 0, 1, 0)}, 0.5):Play()
+        
+        -- Aura Pulse & Glitch Effect
+        Tween(Aura, {Size = UDim2.new(0, 500, 0, 500), Position = UDim2.new(0.5, -250, 0.5, -250), ImageTransparency = 0.0}, 0.2):Play()
+        task.wait(0.2)
+        Tween(Aura, {Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225), ImageTransparency = 0.2}, 0.3):Play()
+        
+        -- Small Screen Shake for impact
+        MainCanvas.Position = UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+        task.wait(0.05)
+        MainCanvas.Position = UDim2.new(0, 0, 0, 0)
 
-    -- โหลด Progress
-    for i = 1, 100 do
-        Fill.Size = UDim2.new(i/100, 0, 1, 0)
-        task.wait(math.random(1, 5) / 100)
+        task.wait(math.random(8, 15) / 10)
     end
 
-    -- --- THE SUPERNOVA EXIT (อลังการที่สุด) ---
-    task.wait(0.5)
+    -- --- THE APOCALYPSE EXIT (Total System Meltdown) ---
+    AddLog("WELCOME TO THE SLAYLIB X UNIVERSE.")
+    task.wait(0.8)
+
+    -- 1. Final Charge: ทุกอย่างหดตัวเข้าสู่จุดศูนย์กลางอย่างรุนแรง
+    local FinalCharge = Tween(CoreHub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.6, Enum.EasingStyle.BackIn)
+    FinalCharge:Play()
+    Tween(ConsoleFrame, {GroupTransparency = 1}, 0.4):Play()
     
-    -- 1. ชาร์จพลัง (หดตัวจนเกือบเป็นศูนย์)
-    local Charge = Tween(Hub, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.5, Enum.EasingStyle.BackIn)
-    Charge:Play()
-    Tween(Fill, {BackgroundTransparency = 1}, 0.3):Play()
-    Tween(BarContainer, {BackgroundTransparency = 1}, 0.3):Play()
-    
-    Charge.Completed:Connect(function()
-        -- 2. ระเบิดแสงสีขาวเต็มจอ (Shockwave)
-        local Flash = Create("Frame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            ZIndex = 9999,
-            Parent = Screen
-        })
-        
-        -- 3. หน้าจอสั่นสะเทือน (Screen Shake)
+    FinalCharge.Completed:Connect(function()
+        -- 2. Massive Screen Shake + Flash Bang
         task.spawn(function()
-            for i = 1, 10 do
-                Screen.AbsoluteSize = Screen.AbsoluteSize -- Trick to force update
-                MainCanvas.Position = UDim2.new(0, math.random(-20, 20), 0, math.random(-20, 20))
-                task.wait(0.02)
+            for i = 1, 20 do
+                MainCanvas.Position = UDim2.new(0, math.random(-50, 50), 0, math.random(-50, 50))
+                task.wait(0.01)
             end
             MainCanvas.Position = UDim2.new(0, 0, 0, 0)
         end)
-
-        -- 4. สลายตัวพร้อมกัน
-        Tween(MainCanvas, {GroupTransparency = 1}, 0.6):Play()
+        
+        local Flash = Create("Frame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            ZIndex = 9999999,
+            Parent = Screen
+        })
+        
+        -- 3. สลายหายไปพร้อมกันอย่างสมบูรณ์แบบ
+        Tween(MainCanvas, {GroupTransparency = 1}, 0.5):Play()
         Tween(Blur, {Size = 0}, 1):Play()
         
-        local FinalFade = Tween(Flash, {BackgroundTransparency = 1}, 0.8)
+        local FinalFade = Tween(Flash, {BackgroundTransparency = 1}, 1)
         FinalFade:Play()
         
         FinalFade.Completed:Connect(function()
