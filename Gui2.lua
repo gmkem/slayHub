@@ -229,163 +229,149 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- ตั้งค่าให้เต็มจอ 100% ทับทุกอย่าง
+    -- ตั้งค่าเต็มจอ 100% และ IgnoreGuiInset
     local Screen = Create("ScreenGui", {
-        Name = "SlaySingularity",
+        Name = "SlayEventHorizon",
         Parent = Parent,
-        DisplayOrder = 99999,
+        DisplayOrder = 999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- พื้นหลังมืดสนิทที่มีความลึก
-    local Background = Create("Frame", {
+    -- Background ชั้นลึกที่สุด
+    local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BorderSizePixel = 0,
         Parent = Screen
     })
 
-    -- [1] STARFIELD EFFECT (จุดแสงเล็กๆ กระจายเต็มจอ)
-    for i = 1, 50 do
-        local Star = Create("Frame", {
-            Size = UDim2.new(0, 2, 0, 2),
-            Position = UDim2.new(math.random(), 0, math.random(), 0),
-            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BackgroundTransparency = 0.8,
-            Parent = Background
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Star})
-    end
-
-    -- [2] THE CORE HUB
-    local Core = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 0), -- เริ่มจากจุดเดียว
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+    -- [1] เติม "เส้นแสง" วิ่งผ่านหน้าจอ (Anamorphic Lens Flare)
+    local Flare = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 2),
+        Position = UDim2.new(0, 0, 0.5, 0),
         BackgroundColor3 = SlayLib.Theme.MainColor,
         BackgroundTransparency = 0.5,
-        Parent = Background
+        Parent = Bg
     })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Core})
-    
-    local CoreGlow = Create("ImageLabel", {
-        Size = UDim2.new(2, 0, 2, 0),
-        Position = UDim2.new(-0.5, 0, -0.5, 0),
-        Image = "rbxassetid://6015266835",
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.6,
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 4, Transparency = 0.5, Parent = Flare})
+
+    -- [2] ระบบ Core ปฏิกรณ์ (The Reactor)
+    local MainHub = Create("Frame", {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1,
-        Parent = Core
+        Parent = Bg
     })
 
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 250, 0, 250),
-        Position = UDim2.new(0.5, -125, 0.5, -125),
+        Size = UDim2.new(0, 280, 0, 280),
+        Position = UDim2.new(0.5, -140, 0.5, -140),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
-        ImageTransparency = 1, -- เริ่มจากโปร่งใส
+        ImageTransparency = 1,
         BackgroundTransparency = 1,
-        ZIndex = 5,
-        Parent = Background
+        ZIndex = 10,
+        Parent = MainHub
     })
 
-    -- [3] SCANNING RINGS (วงแหวนหมุนซ้อนกัน 3 ชั้น)
-    local function CreateRing(size, speed, reverse)
+    -- วงแหวนพลังงาน (Energy Rings)
+    local function CreateEnergyRing(id, size, rotationSpeed)
         local Ring = Create("ImageLabel", {
             Size = UDim2.new(0, size, 0, size),
             Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            Image = "rbxassetid://12558442813",
+            Image = id, -- ใช้ Asset ID สำหรับวงแหวนแสง
             ImageColor3 = SlayLib.Theme.MainColor,
             ImageTransparency = 1,
             BackgroundTransparency = 1,
-            Parent = Background
+            Parent = MainHub
         })
         task.spawn(function()
             while Screen.Parent do
-                Ring.Rotation = Ring.Rotation + (reverse and -speed or speed)
+                Ring.Rotation = Ring.Rotation + rotationSpeed
                 task.wait()
             end
         end)
         return Ring
     end
 
-    local R1 = CreateRing(400, 0.5, false)
-    local R2 = CreateRing(350, 1, true)
-    local R3 = CreateRing(450, 0.3, false)
+    local R1 = CreateEnergyRing("rbxassetid://12558442813", 450, 0.4)
+    local R2 = CreateEnergyRing("rbxassetid://12558442813", 400, -0.8)
 
-    -- [4] INFO & PERCENTAGE
-    local ProgressText = Create("TextLabel", {
-        Text = "SYSTEM_INITIALIZING",
-        Size = UDim2.new(0, 400, 0, 20),
-        Position = UDim2.new(0.5, -200, 0.8, 0),
-        Font = "Code",
-        TextSize = 16,
-        TextColor3 = SlayLib.Theme.MainColor,
-        TextTransparency = 1,
+    -- [3] หน้าจอ Log แบบ HUD ทหาร (Military HUD)
+    local HUD = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 200),
+        Position = UDim2.new(0.05, 0, 0.05, 0),
         BackgroundTransparency = 1,
-        Parent = Background
+        Parent = Bg
+    })
+    local HUDTitle = Create("TextLabel", {
+        Text = "SYSTEM STATUS: RECOVERING",
+        Size = UDim2.new(1, 0, 0, 20),
+        Font = "Code", TextSize = 14, TextColor3 = SlayLib.Theme.MainColor,
+        TextXAlignment = "Left", BackgroundTransparency = 1, Parent = HUD
     })
 
-    -- --- อลังการตอนเข้า (The Big Bang Entrance) ---
-    Tween(Blur, {Size = 25}, 2):Play()
-    -- Core พุ่งออกมาจากจุดศูนย์กลาง
-    Tween(Core, {Size = UDim2.new(0, 10, 0, 10), Position = UDim2.new(0.5, -5, 0.5, -5)}, 0.5, Enum.EasingStyle.Quart):Play()
-    task.wait(0.5)
-    -- โลโก้และวงแหวนค่อยๆ ปรากฏพร้อม Glitch
-    Tween(Logo, {ImageTransparency = 0}, 1):Play()
-    Tween(R1, {ImageTransparency = 0.7}, 1):Play()
-    Tween(R2, {ImageTransparency = 0.8}, 1):Play()
-    Tween(R3, {ImageTransparency = 0.9}, 1):Play()
-    Tween(ProgressText, {TextTransparency = 0}, 1):Play()
+    -- --- อลังการตอนเข้า (The Breach Sequence) ---
+    Tween(Blur, {Size = 30}, 2):Play()
+    
+    -- เสียงสะท้อนของภาพ (Logo Entrance)
+    task.spawn(function()
+        for i = 1, 3 do
+            Logo.ImageTransparency = 0.5
+            Logo.Size = UDim2.new(0, 350, 0, 350)
+            Logo.Position = UDim2.new(0.5, -175, 0.5, -175)
+            task.wait(0.05)
+            Logo.ImageTransparency = 1
+            Logo.Size = UDim2.new(0, 280, 0, 280)
+            Logo.Position = UDim2.new(0.5, -140, 0.5, -140)
+            task.wait(0.05)
+        end
+        Tween(Logo, {ImageTransparency = 0}, 0.5):Play()
+        Tween(R1, {ImageTransparency = 0.6}, 1):Play()
+        Tween(R2, {ImageTransparency = 0.6}, 1):Play()
+        Tween(Flare, {Size = UDim2.new(1, 0, 0, 1)}, 1):Play()
+    end)
 
-    -- ขั้นตอนการโหลด
-    local Steps = {
-        "LOADING_CORE_MODULES",
-        "SYNCING_USER_DATA",
-        "BYPASSING_ANTicheat",
-        "FINALIZING_INTERFACE"
-    }
-
+    -- ขั้นตอนการโหลดแบบสมจริง
+    local Steps = {"MEM_READ", "SEC_BYPASS", "UI_SYNC", "STABLE"}
     for i, step in ipairs(Steps) do
-        ProgressText.Text = step .. " [" .. math.floor((i/#Steps)*100) .. "%]"
-        -- Core Pulse Effect
-        Tween(CoreGlow, {ImageTransparency = 0.2}, 0.2):Play()
-        task.delay(0.2, function() Tween(CoreGlow, {ImageTransparency = 0.6}, 0.4):Play() end)
-        task.wait(math.random(8, 15) / 10)
+        HUDTitle.Text = "EXE: " .. step .. " >> " .. math.random(1000, 9999)
+        -- กระตุกหน้าจอเบาๆ ทุกครั้งที่โหลด
+        MainHub.Position = UDim2.new(0, math.random(-5, 5), 0, math.random(-5, 5))
+        task.wait(0.8)
+        MainHub.Position = UDim2.new(0, 0, 0, 0)
     end
 
-    -- --- อลังการตอนออก (The Supernova Exit) ---
-    ProgressText.Text = "ACCESS_GRANTED"
+    -- --- อลังการตอนออก (The Singularity Collapse) ---
+    HUDTitle.Text = "CRITICAL: COLLAPSING INTERFACE"
     task.wait(0.5)
 
-    -- ชาร์จพลัง (หดตัวก่อนระเบิด)
-    Tween(Logo, {Size = UDim2.new(0, 150, 0, 150), Position = UDim2.new(0.5, -75, 0.5, -75)}, 0.4, Enum.EasingStyle.BackIn):Play()
-    Tween(R1, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
-    Tween(R2, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
-    Tween(R3, {Size = UDim2.new(0, 0, 0, 0), Position = UDim2.new(0.5, 0, 0.5, 0)}, 0.4):Play()
-    task.wait(0.4)
+    -- 1. หดทุกอย่างเป็นเส้นเดียว (Anamorphic Collapse)
+    local Collapse = Tween(MainHub, {Size = UDim2.new(1, 0, 0, 0), Position = UDim2.new(0, 0, 0.5, 0)}, 0.5, Enum.EasingStyle.Quart)
+    Collapse:Play()
+    Tween(Logo, {ImageTransparency = 1}, 0.3):Play()
+    Tween(R1, {ImageTransparency = 1}, 0.3):Play()
+    Tween(R2, {ImageTransparency = 1}, 0.3):Play()
 
-    -- การระเบิด (Supernova)
+    -- 2. ระเบิดแสงสีขาวแบบเต็มจอ
+    Collapse.Completed:Wait()
     local Flash = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
-        ZIndex = 100,
-        Parent = Screen
+        Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        ZIndex = 999, Parent = Screen, BackgroundTransparency = 1
     })
     
-    Tween(Flash, {BackgroundTransparency = 0}, 0.1):Play() -- แฟลชขาววาบ
-    task.wait(0.1)
-    
-    -- สลายตัวทุกอย่างออกไปแบบรวดเร็ว
-    Logo.Visible = false
-    Core.Visible = false
-    Tween(Background, {BackgroundTransparency = 1}, 0.8):Play()
+    local FinalTween = Tween(Flash, {BackgroundTransparency = 0}, 0.15)
+    FinalTween:Play()
+    FinalTween.Completed:Wait()
+
+    -- 3. สลายตัวและทำลาย Gui
     Tween(Blur, {Size = 0}, 1):Play()
     Tween(Flash, {BackgroundTransparency = 1}, 0.8):Play()
-
-    task.wait(1)
+    Tween(Bg, {BackgroundTransparency = 1}, 0.8):Play()
+    
+    task.wait(0.8)
     Screen:Destroy()
     Blur:Destroy()
 end
