@@ -231,9 +231,9 @@ end
 local function ExecuteLoadingSequence()
     local Lighting = game:GetService("Lighting")
 
-    -- 🩶 เตรียม Environment
+    -- [ENVIRONMENT]
     local Screen = Create("ScreenGui", {
-        Name = "SlayQuantumOrigin",
+        Name = "SLAY_ENGINE_ZERO",
         Parent = Parent,
         DisplayOrder = 999999,
         IgnoreGuiInset = true,
@@ -242,139 +242,100 @@ local function ExecuteLoadingSequence()
 
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
 
-    -- 🌌 Background
+    -- [BACKGROUND LAYER]
     local Background = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(6, 8, 12),
+        BackgroundColor3 = Color3.fromRGB(3, 3, 6),
         BorderSizePixel = 0,
         Parent = Screen
     })
 
-    local Gradient = Create("UIGradient", {
-        Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, SlayLib.Theme.MainColor),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 0))
-        },
-        Rotation = 45,
+    local Grid = Create("ImageLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        Image = "rbxassetid://6881188100", -- grid blueprint texture
+        ImageTransparency = 0.9,
+        ImageColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        ZIndex = 1,
         Parent = Background
     })
 
-    -- เคลื่อนไหว gradient ให้ดูเหมือนพลังงานเคลื่อน
-    task.spawn(function()
-        while Screen.Parent do
-            Tween(Gradient, {Rotation = Gradient.Rotation + 180}, 8, Enum.EasingStyle.Linear):Play()
-            task.wait(8)
-        end
-    end)
-
-    -- 🔲 Vignette (ความลึก)
     local Vignette = Create("ImageLabel", {
         Size = UDim2.new(1, 0, 1, 0),
         Image = "rbxassetid://13215234567",
-        ImageColor3 = Color3.new(0, 0, 0),
-        ImageTransparency = 0.2,
+        ImageTransparency = 0.15,
         BackgroundTransparency = 1,
         Parent = Background
     })
 
-    -- ⚛️ Particle Energy Field
-    local function SpawnParticle()
+    -- [NETWORK PARTICLES]
+    local function SpawnEnergy()
         local p = Create("Frame", {
-            Size = UDim2.new(0, math.random(2, 7), 0, math.random(60, 140)),
-            Position = UDim2.new(math.random(), 0, 1.1, 0),
+            Size = UDim2.new(0, math.random(3, 6), 0, math.random(20, 70)),
+            Position = UDim2.new(math.random(), 0, 1.05, 0),
             BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.8,
-            Rotation = math.random(-45, 45),
+            BackgroundTransparency = 0.7,
+            Rotation = math.random(-25, 25),
             Parent = Background
         })
-        Tween(p, {
-            Position = UDim2.new(p.Position.X.Scale, 0, -0.2, 0),
-            BackgroundTransparency = 1
-        }, math.random(3, 6), Enum.EasingStyle.Linear):Play()
-        task.delay(6, function() if p then p:Destroy() end end)
+        Tween(p, {Position = UDim2.new(p.Position.X.Scale, 0, -0.1, 0), BackgroundTransparency = 1}, math.random(3, 5), Enum.EasingStyle.Linear):Play()
+        task.delay(5, function() if p then p:Destroy() end end)
     end
 
     task.spawn(function()
         while Screen.Parent do
-            SpawnParticle()
-            task.wait(0.08)
+            SpawnEnergy()
+            task.wait(0.05)
         end
     end)
 
-    -- 🌐 Core Hub
+    -- [CORE]
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 600, 0, 600),
-        Position = UDim2.new(0.5, -300, 0.5, -300),
+        Size = UDim2.new(0, 640, 0, 640),
+        Position = UDim2.new(0.5, -320, 0.5, -320),
         BackgroundTransparency = 1,
         Parent = Background
     })
 
-    -- วงพลังสามชั้น
-    local RingA = Create("ImageLabel", {
-        Size = UDim2.new(0, 400, 0, 400),
-        Position = UDim2.new(0.5, -200, 0.5, -200),
+    local CoreGlow = Create("ImageLabel", {
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
         Image = "rbxassetid://12889674374",
         ImageColor3 = SlayLib.Theme.MainColor,
         ImageTransparency = 1,
         BackgroundTransparency = 1,
         Parent = Hub
     })
-    local RingB = Create("ImageLabel", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+
+    local CoreRing = Create("ImageLabel", {
+        Size = UDim2.new(0, 480, 0, 480),
+        Position = UDim2.new(0.5, -240, 0.5, -240),
         Image = "rbxassetid://12889674374",
-        ImageColor3 = Color3.fromRGB(150, 255, 255),
-        ImageTransparency = 1,
-        BackgroundTransparency = 1,
-        Parent = Hub
-    })
-    local RingC = Create("ImageLabel", {
-        Size = UDim2.new(0, 200, 0, 200),
-        Position = UDim2.new(0.5, -100, 0.5, -100),
-        Image = "rbxassetid://12889674374",
-        ImageColor3 = Color3.fromRGB(255, 255, 255),
+        ImageColor3 = Color3.fromRGB(255,255,255),
         ImageTransparency = 1,
         BackgroundTransparency = 1,
         Parent = Hub
     })
 
-    -- โลโก้
     local Logo = Create("ImageLabel", {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Image = SlayLib.Icons.Logofull,
         ImageColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 1,
         ImageTransparency = 1,
+        BackgroundTransparency = 1,
         Parent = Hub
     })
 
-    -- Scanline
-    local ScanLine = Create("Frame", {
-        Size = UDim2.new(1.3, 0, 0, 2),
-        Position = UDim2.new(-0.15, 0, 0, 0),
-        BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 0.8,
-        ZIndex = 50,
-        Parent = Background
-    })
-
-    task.spawn(function()
-        while Screen.Parent do
-            ScanLine.Position = UDim2.new(-0.15, 0, 0, 0)
-            Tween(ScanLine, {Position = UDim2.new(-0.15, 0, 1, 0)}, 2.2, Enum.EasingStyle.Linear):Play()
-            task.wait(2.2)
-        end
-    end)
-
-    -- ข้อความ
+    -- [TEXT]
     local Title = Create("TextLabel", {
-        Text = "SLAYLIB X // ORIGIN PROTOCOL",
-        Size = UDim2.new(0, 400, 0, 25),
-        Position = UDim2.new(0.5, -200, 0.3, 0),
+        Text = "SLAY ENGINE // ZERO PROTOCOL",
+        Size = UDim2.new(0, 420, 0, 25),
+        Position = UDim2.new(0.5, -210, 0.3, 0),
         Font = Enum.Font.Code,
-        TextSize = 16,
+        TextSize = 15,
         TextColor3 = SlayLib.Theme.MainColor,
         TextTransparency = 1,
         BackgroundTransparency = 1,
@@ -382,54 +343,47 @@ local function ExecuteLoadingSequence()
     })
 
     local Subtitle = Create("TextLabel", {
-        Text = "Initializing Core Intelligence...",
-        Size = UDim2.new(0, 400, 0, 20),
-        Position = UDim2.new(0.5, -200, 0.65, 120),
+        Text = "Initializing Engine Layers...",
+        Size = UDim2.new(0, 420, 0, 20),
+        Position = UDim2.new(0.5, -210, 0.68, 140),
         Font = Enum.Font.Code,
         TextSize = 12,
-        TextColor3 = Color3.fromRGB(180, 180, 180),
+        TextColor3 = Color3.fromRGB(200, 200, 200),
         TextTransparency = 1,
         BackgroundTransparency = 1,
         Parent = Hub
     })
 
-    -- 🎬 เปิดฉาก
-    Tween(Blur, {Size = 35}, 1.5):Play()
-    Tween(Logo, {Size = UDim2.new(0, 240, 0, 240), ImageTransparency = 0}, 1.4, Enum.EasingStyle.Elastic):Play()
+    -- [ANIMATION SEQUENCE]
+    Tween(Blur, {Size = 30}, 1.2):Play()
+    Tween(CoreGlow, {Size = UDim2.new(0, 600, 0, 600), ImageTransparency = 0.3}, 1.5, Enum.EasingStyle.Elastic):Play()
+    Tween(CoreRing, {ImageTransparency = 0.1}, 1.5):Play()
+    Tween(Logo, {Size = UDim2.new(0, 280, 0, 280), ImageTransparency = 0}, 1.5, Enum.EasingStyle.Elastic):Play()
     Tween(Title, {TextTransparency = 0}, 1.2):Play()
     Tween(Subtitle, {TextTransparency = 0}, 1.2):Play()
-    Tween(RingA, {ImageTransparency = 0.2}, 1.2):Play()
-    Tween(RingB, {ImageTransparency = 0.4}, 1.2):Play()
-    Tween(RingC, {ImageTransparency = 0.6}, 1.2):Play()
 
-    -- วงพลังหมุนสามชั้น
+    -- Core Rotation
     task.spawn(function()
         while Screen.Parent do
-            RingA.Rotation += 0.6
-            RingB.Rotation -= 0.9
-            RingC.Rotation += 1.2
+            CoreRing.Rotation += 1.4
             task.wait(0.02)
         end
     end)
 
-    -- เอฟเฟกต์ Pulse
+    -- Pulse Loop
     task.spawn(function()
         while Screen.Parent do
-            Tween(RingA, {Size = UDim2.new(0, 420, 0, 420)}, 1, Enum.EasingStyle.Sine):Play()
-            Tween(RingB, {Size = UDim2.new(0, 320, 0, 320)}, 1, Enum.EasingStyle.Sine):Play()
-            Tween(RingC, {Size = UDim2.new(0, 220, 0, 220)}, 1, Enum.EasingStyle.Sine):Play()
+            Tween(CoreGlow, {ImageTransparency = 0.1}, 1, Enum.EasingStyle.Sine):Play()
             task.wait(1)
-            Tween(RingA, {Size = UDim2.new(0, 400, 0, 400)}, 1):Play()
-            Tween(RingB, {Size = UDim2.new(0, 300, 0, 300)}, 1):Play()
-            Tween(RingC, {Size = UDim2.new(0, 200, 0, 200)}, 1):Play()
+            Tween(CoreGlow, {ImageTransparency = 0.5}, 1):Play()
             task.wait(1)
         end
     end)
 
-    -- Glitch Pulse โลโก้
+    -- Glitch Pulse
     task.spawn(function()
         while Screen.Parent do
-            task.wait(math.random(2, 4))
+            task.wait(math.random(2, 5))
             for i = 1, 3 do
                 Logo.ImageColor3 = Color3.fromRGB(math.random(120, 255), math.random(120, 255), 255)
                 Logo.Position = UDim2.new(0.5, math.random(-3, 3), 0.5, math.random(-3, 3))
@@ -440,34 +394,34 @@ local function ExecuteLoadingSequence()
         end
     end)
 
-    -- ลำดับโหลด
+    -- Step Loading
     local Steps = {
-        "Linking Neural Systems...",
-        "Activating Quantum Layers...",
-        "Synchronizing Data Stream...",
-        "Stabilizing Runtime Core...",
-        "Deploying User Environment...",
-        "System Access Authorized."
+        "Activating Core Systems...",
+        "Mapping Quantum Threads...",
+        "Synchronizing Submodules...",
+        "Compiling Runtime Environment...",
+        "Deploying Interface Kernel...",
+        "Engine Online."
     }
 
     for _, step in ipairs(Steps) do
         Subtitle.Text = step
-        task.wait(math.random(6, 10) / 10)
+        task.wait(math.random(6, 9) / 10)
     end
 
-    Subtitle.Text = "SYSTEM ONLINE ✓"
+    Subtitle.Text = "ACCESS GRANTED ✓"
     Tween(Subtitle, {TextColor3 = Color3.fromRGB(120, 255, 120)}, 0.4):Play()
     task.wait(0.6)
 
-    -- 🌠 Fade Out “พร้อมกันทุกชิ้น”
-    local duration = 1.4
+    -- [FINAL FADE OUT - Simultaneous]
+    local duration = 1.3
     Tween(Logo, {ImageTransparency = 1}, duration):Play()
-    Tween(RingA, {ImageTransparency = 1}, duration):Play()
-    Tween(RingB, {ImageTransparency = 1}, duration):Play()
-    Tween(RingC, {ImageTransparency = 1}, duration):Play()
-    Tween(Subtitle, {TextTransparency = 1}, duration):Play()
+    Tween(CoreRing, {ImageTransparency = 1}, duration):Play()
+    Tween(CoreGlow, {ImageTransparency = 1}, duration):Play()
     Tween(Title, {TextTransparency = 1}, duration):Play()
+    Tween(Subtitle, {TextTransparency = 1}, duration):Play()
     Tween(Vignette, {ImageTransparency = 1}, duration):Play()
+    Tween(Grid, {ImageTransparency = 1}, duration):Play()
     Tween(Background, {BackgroundTransparency = 1}, duration):Play()
     Tween(Blur, {Size = 0}, duration):Play()
 
