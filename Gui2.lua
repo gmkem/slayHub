@@ -228,7 +228,7 @@ function SlayLib:Notify(Config)
 end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
-local function ExecuteUltimateLoadingSequence()
+local function ExecuteLoadingSequence()  ()
     local TweenService = game:GetService("TweenService")
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
