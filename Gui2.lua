@@ -229,16 +229,15 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- [1] Pure Setup (No CanvasGroup to avoid Roblox Bugs)
+    local RunService = game:GetService("RunService")
     local Screen = Create("ScreenGui", {
-        Name = "SlaySingularity",
+        Name = "SlayGodCore",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
     local MainFrame = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -246,113 +245,124 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- [2] QUANTUM CORE DESIGN (สร้างชิ้นส่วนเองทั้งหมด)
+    -- [1] THE OMNIVERSE BACKGROUND (ฝุ่นละอองควอนตัม)
+    local Particles = {}
+    for i = 1, 50 do
+        local p = Create("Frame", {
+            Size = UDim2.new(0, 2, 0, 2),
+            Position = UDim2.new(math.random(), 0, math.random(), 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 1,
+            BorderSizePixel = 0,
+            Parent = MainFrame
+        })
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = p})
+        table.insert(Particles, {obj = p, speed = math.random(10, 50) / 1000})
+    end
+
+    -- [2] THE CORE ARCHITECTURE (ปฏิกรณ์ 5 ชั้น)
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+        Size = UDim2.new(0, 0, 0, 0), -- เริ่มจากจุดเดียว
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         BackgroundTransparency = 1,
         Parent = MainFrame
     })
 
-    -- โลโก้ (The Center of Gravity)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(0, 180, 0, 180),
+        Position = UDim2.new(0.5, -90, 0.5, -90),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
         ImageTransparency = 1,
+        ZIndex = 10,
         Parent = Hub
     })
 
-    -- สร้าง "Quantum Orbits" (วงโคจรที่หมุนวน)
-    local function CreateOrbit(size, speed, transparency)
-        local Orbit = Create("Frame", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+    -- สร้างวงแหวน Fractal (รายละเอียดขั้นสุด)
+    local Rings = {}
+    for i = 1, 5 do
+        local r = Create("Frame", {
+            Size = UDim2.new(0, 200 + (i * 40), 0, 200 + (i * 40)),
+            Position = UDim2.new(0.5, -(100 + i * 20), 0.5, -(100 + i * 20)),
             BackgroundTransparency = 1,
             Parent = Hub
         })
-        local Stroke = Create("UIStroke", {
+        Create("UIStroke", {
             Color = SlayLib.Theme.MainColor,
-            Thickness = 2,
-            Transparency = transparency,
-            Parent = Orbit
+            Thickness = (6 - i) * 0.5,
+            Transparency = 0.4 + (i * 0.1),
+            DashPattern = {i * 2, i * 5},
+            Parent = r
         })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Orbit})
-        return {Obj = Orbit, Speed = speed}
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = r})
+        table.insert(Rings, {obj = r, speed = (i % 2 == 0 and 1 or -1) * (i * 0.8)})
     end
 
-    local Orbits = {
-        CreateOrbit(240, 200, 0.3),
-        CreateOrbit(280, -150, 0.5),
-        CreateOrbit(320, 100, 0.7)
-    }
-
-    -- [3] THE MASTER TIMELINE (3 SECONDS)
-    task.spawn(function()
-        local StartTime = tick()
-        local TotalTime = 3.0
+    -- [3] THE GOD-THREAD (RENDER ENGINE)
+    local StartTime = tick()
+    local Duration = 3.0
+    local Connection
+    
+    Connection = RunService.RenderStepped:Connect(function()
+        local Now = tick()
+        local Elapsed = Now - StartTime
+        local Alpha = math.clamp(Elapsed / 0.5, 0, 1) -- Fade In
         
-        -- Loop แอนิเมชันหลัก (รันด้วยความเร็ว 60 FPS)
-        while tick() - StartTime < TotalTime + 0.5 do
-            local Elapsed = tick() - StartTime
-            local Delta = Elapsed / TotalTime -- 0 ถึง 1
-            
-            -- PHASE 1: FADE IN & OPENING (0.0s - 0.5s)
-            if Elapsed <= 0.5 then
-                local alpha = Elapsed / 0.5
-                MainFrame.BackgroundTransparency = 1 - (alpha * 0.9) -- พื้นหลังมืดลง
-                Logo.ImageTransparency = 1 - alpha
-                Blur.Size = 30 * alpha
-            end
-
-            -- PHASE 2: ACTIVE CORE (หมุนและเต้น)
-            for _, orb in ipairs(Orbits) do
-                orb.Obj.Rotation = tick() * orb.Speed
-            end
-            
-            -- Quantum Pulse (จังหวะการเต้นของ Core)
-            local pulse = 1 + (math.sin(tick() * 10) * 0.04)
-            Hub.Size = UDim2.new(0, 300 * pulse, 0, 300 * pulse)
-            Hub.Position = UDim2.new(0.5, -(150 * pulse), 0.5, -(150 * pulse))
-
-            -- PHASE 3: THE SINGULARITY COLLAPSE (2.5s - 3.0s)
-            if Elapsed >= 2.5 then
-                local collapseAlpha = (Elapsed - 2.5) / 0.5
-                local inv = 1 - collapseAlpha
-                
-                -- ทุกอย่างจะบีบเล็กลงและหมุนเร็วขึ้นจนหายไป
-                Hub.Size = UDim2.new(0, 300 * inv, 0, 300 * inv)
-                Hub.Position = UDim2.new(0.5, -(150 * inv), 0.5, -(150 * inv))
-                Hub.Rotation = Hub.Rotation + (collapseAlpha * 50)
-                
-                MainFrame.BackgroundTransparency = 0.1 + (collapseAlpha * 0.9)
-                Logo.ImageTransparency = collapseAlpha
-                Blur.Size = 30 * inv
-                
-                for _, orb in ipairs(Orbits) do
-                    orb.Obj.BackgroundTransparency = collapseAlpha
-                end
-            end
-
-            -- จบแอนิเมชันและลบทิ้ง
-            if Elapsed >= TotalTime then
-                break
-            end
-            
-            task.wait()
+        -- แอนิเมชันอนุภาคพื้นหลัง
+        for _, p in ipairs(Particles) do
+            p.obj.Position = p.obj.Position + UDim2.new(0, 0, p.speed, 0)
+            if p.obj.Position.Y.Scale > 1 then p.obj.Position = UDim2.new(math.random(), 0, -0.05, 0) end
+            p.obj.BackgroundTransparency = 0.5 + (math.sin(Now * 2) * 0.5)
         end
 
-        -- [4] ABSOLUTE CLEANUP (ลบแบบถอนรากถอนโคน)
-        Screen:Destroy()
-        if Blur then Blur:Destroy() end
+        -- แอนิเมชันหลัก (Core)
+        if Elapsed < Duration then
+            -- ปรากฏตัวแบบขยาย
+            MainFrame.BackgroundTransparency = 1 - (Alpha * 0.9)
+            Logo.ImageTransparency = 1 - Alpha
+            Blur.Size = Alpha * 35
+            Hub.Size = UDim2.new(0, 400 * Alpha, 0, 400 * Alpha)
+            Hub.Position = UDim2.new(0.5, -200 * Alpha, 0.5, -200 * Alpha)
+            
+            -- หมุนวงแหวนแบบฟิสิกส์
+            for i, r in ipairs(Rings) do
+                r.obj.Rotation = Now * (r.speed * 50)
+                local pulse = 1 + (math.sin(Now * (3 + i)) * 0.05)
+                r.obj.Size = UDim2.new(0, (200 + i*40) * pulse, 0, (200 + i*40) * pulse)
+            end
+            
+            -- Glitch effect ระดับสูง (No Flash)
+            if math.random() > 0.95 then
+                Hub.Position = Hub.Position + UDim2.new(0, math.random(-10,10), 0, math.random(-10,10))
+            end
+        else
+            -- [4] THE OMNI-COLLAPSE (การหายระดับพระเจ้า)
+            local OutElapsed = Elapsed - Duration
+            local OutAlpha = math.clamp(OutElapsed / 0.6, 0, 1)
+            local Inv = 1 - OutAlpha
+            
+            if OutAlpha >= 1 then
+                Connection:Disconnect()
+                Screen:Destroy()
+                Blur:Destroy()
+                return
+            end
+
+            -- ทุกอย่างยุบตัวลงเป็นเส้นตั้งที่บางเฉียบและหายไป
+            Hub.Size = UDim2.new(0, 1, 0, 800 * Inv)
+            Hub.Position = UDim2.new(0.5, 0, 0.5, -400 * Inv)
+            MainFrame.BackgroundTransparency = 0.1 + (OutAlpha * 0.9)
+            Logo.ImageTransparency = OutAlpha
+            Blur.Size = 35 * Inv
+            for _, r in ipairs(Rings) do r.obj.BackgroundTransparency = 1 end
+        end
     end)
 
-    -- EMERGENCY SAFETY KILL (ถ้า 5 วินาทียังไม่หาย ให้ฆ่าทิ้งทันที)
+    -- [5] ABSOLUTE FAILSAFE (กันค้าง 1000%)
     task.delay(5, function()
-        if Screen and Screen.Parent then
-            Screen:Destroy()
-            if Blur then Blur:Destroy() end
-        end
+        if Connection then Connection:Disconnect() end
+        if Screen and Screen.Parent then Screen:Destroy() end
+        if Blur then Blur:Destroy() end
     end)
 end
 
