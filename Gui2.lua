@@ -347,7 +347,7 @@ function SlayLib:CreateWindow(Config)
 Config = Config or {Name = "SlayLib Ultimate"}
 
 -- Force Loading  
-ExecuteUltimateLoadingSequence()  
+ExecuteFinalSovereign()  
 
 local Window = {  
     Enabled = true,  
