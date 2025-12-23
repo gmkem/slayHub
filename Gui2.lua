@@ -229,140 +229,133 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local RunService = game:GetService("RunService")
+    local RS = game:GetService("RunService")
+    
+    -- 1. ล้างกระดาษสร้างใหม่ (Clean Setup)
     local Screen = Create("ScreenGui", {
-        Name = "SlayGodCore",
+        Name = "SlayNova",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
     })
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    local MainFrame = Create("Frame", {
+    
+    -- ใช้ Frame ธรรมดา (ไม่ใช้ CanvasGroup เพื่อตัดปัญหาบั๊กค้าง)
+    local Main = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
         Parent = Screen
     })
 
-    -- [1] THE OMNIVERSE BACKGROUND (ฝุ่นละอองควอนตัม)
-    local Particles = {}
-    for i = 1, 50 do
-        local p = Create("Frame", {
-            Size = UDim2.new(0, 2, 0, 2),
-            Position = UDim2.new(math.random(), 0, math.random(), 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 1,
-            BorderSizePixel = 0,
-            Parent = MainFrame
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = p})
-        table.insert(Particles, {obj = p, speed = math.random(10, 50) / 1000})
-    end
-
-    -- [2] THE CORE ARCHITECTURE (ปฏิกรณ์ 5 ชั้น)
+    -- 2. CORE CENTER (ดีไซน์ใหม่: Nova Reactor)
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 0, 0, 0), -- เริ่มจากจุดเดียว
-        Position = UDim2.new(0.5, 0, 0.5, 0),
+        Size = UDim2.new(0, 300, 0, 300),
+        Position = UDim2.new(0.5, -150, 0.5, -150),
         BackgroundTransparency = 1,
-        Parent = MainFrame
+        Parent = Main
     })
 
+    -- โลโก้ (หัวใจสำคัญ)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 180, 0, 180),
-        Position = UDim2.new(0.5, -90, 0.5, -90),
+        Size = UDim2.new(1, 0, 1, 0),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
         ImageTransparency = 1,
-        ZIndex = 10,
         Parent = Hub
     })
 
-    -- สร้างวงแหวน Fractal (รายละเอียดขั้นสุด)
-    local Rings = {}
-    for i = 1, 5 do
-        local r = Create("Frame", {
-            Size = UDim2.new(0, 200 + (i * 40), 0, 200 + (i * 40)),
-            Position = UDim2.new(0.5, -(100 + i * 20), 0.5, -(100 + i * 20)),
-            BackgroundTransparency = 1,
-            Parent = Hub
+    -- เส้นวงโคจรแบบเส้นบาง (Sleek Orbitals)
+    local function CreateNovaRing(size, thickness)
+        local R = Create("Frame", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            BackgroundTransparency = 1, Parent = Hub
         })
         Create("UIStroke", {
             Color = SlayLib.Theme.MainColor,
-            Thickness = (6 - i) * 0.5,
-            Transparency = 0.4 + (i * 0.1),
-            DashPattern = {i * 2, i * 5},
-            Parent = r
+            Thickness = thickness,
+            Transparency = 0.6,
+            Parent = R
         })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = r})
-        table.insert(Rings, {obj = r, speed = (i % 2 == 0 and 1 or -1) * (i * 0.8)})
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = R})
+        return R
     end
 
-    -- [3] THE GOD-THREAD (RENDER ENGINE)
+    local Ring1 = CreateNovaRing(250, 3)
+    local Ring2 = CreateNovaRing(350, 1)
+
+    -- 3. MASTER CONTROLLER (ระบบควบคุมเดียว ไม่พึ่ง Tween ค้างๆ)
     local StartTime = tick()
     local Duration = 3.0
+    local IsClosing = false
+
     local Connection
-    
-    Connection = RunService.RenderStepped:Connect(function()
-        local Now = tick()
-        local Elapsed = Now - StartTime
-        local Alpha = math.clamp(Elapsed / 0.5, 0, 1) -- Fade In
-        
-        -- แอนิเมชันอนุภาคพื้นหลัง
-        for _, p in ipairs(Particles) do
-            p.obj.Position = p.obj.Position + UDim2.new(0, 0, p.speed, 0)
-            if p.obj.Position.Y.Scale > 1 then p.obj.Position = UDim2.new(math.random(), 0, -0.05, 0) end
-            p.obj.BackgroundTransparency = 0.5 + (math.sin(Now * 2) * 0.5)
+    Connection = RS.RenderStepped:Connect(function()
+        if not Screen or not Screen.Parent then 
+            Connection:Disconnect() 
+            return 
         end
 
-        -- แอนิเมชันหลัก (Core)
+        local Elapsed = tick() - StartTime
+        
+        -- ช่วงเปิดและรัน (0 - 3 วินาที)
         if Elapsed < Duration then
-            -- ปรากฏตัวแบบขยาย
-            MainFrame.BackgroundTransparency = 1 - (Alpha * 0.9)
+            local Alpha = math.clamp(Elapsed / 0.8, 0, 1) -- Smooth Fade In
+            Main.BackgroundTransparency = 1 - (Alpha * 0.95)
             Logo.ImageTransparency = 1 - Alpha
-            Blur.Size = Alpha * 35
-            Hub.Size = UDim2.new(0, 400 * Alpha, 0, 400 * Alpha)
-            Hub.Position = UDim2.new(0.5, -200 * Alpha, 0.5, -200 * Alpha)
+            Blur.Size = Alpha * 25
             
-            -- หมุนวงแหวนแบบฟิสิกส์
-            for i, r in ipairs(Rings) do
-                r.obj.Rotation = Now * (r.speed * 50)
-                local pulse = 1 + (math.sin(Now * (3 + i)) * 0.05)
-                r.obj.Size = UDim2.new(0, (200 + i*40) * pulse, 0, (200 + i*40) * pulse)
-            end
+            -- การหมุนและ Pulsing
+            local T = tick()
+            Ring1.Rotation = T * 120
+            Ring2.Rotation = T * -80
             
-            -- Glitch effect ระดับสูง (No Flash)
-            if math.random() > 0.95 then
-                Hub.Position = Hub.Position + UDim2.new(0, math.random(-10,10), 0, math.random(-10,10))
-            end
-        else
-            -- [4] THE OMNI-COLLAPSE (การหายระดับพระเจ้า)
-            local OutElapsed = Elapsed - Duration
-            local OutAlpha = math.clamp(OutElapsed / 0.6, 0, 1)
-            local Inv = 1 - OutAlpha
+            local Pulse = 1 + (math.sin(T * 5) * 0.04)
+            Hub.Size = UDim2.new(0, 300 * Pulse, 0, 300 * Pulse)
+            Hub.Position = UDim2.new(0.5, -(150 * Pulse), 0.5, -(150 * Pulse))
             
-            if OutAlpha >= 1 then
-                Connection:Disconnect()
-                Screen:Destroy()
-                Blur:Destroy()
-                return
-            end
-
-            -- ทุกอย่างยุบตัวลงเป็นเส้นตั้งที่บางเฉียบและหายไป
-            Hub.Size = UDim2.new(0, 1, 0, 800 * Inv)
-            Hub.Position = UDim2.new(0.5, 0, 0.5, -400 * Inv)
-            MainFrame.BackgroundTransparency = 0.1 + (OutAlpha * 0.9)
-            Logo.ImageTransparency = OutAlpha
-            Blur.Size = 35 * Inv
-            for _, r in ipairs(Rings) do r.obj.BackgroundTransparency = 1 end
+        -- ช่วงปิด (หลัง 3 วินาที)
+        elseif not IsClosing then
+            IsClosing = true
+            
+            -- แอนิเมชันตอนหาย: "The Nova Burst" (หดแล้วระเบิดหาย)
+            local ExitStart = tick()
+            local CloseConn
+            CloseConn = RS.RenderStepped:Connect(function()
+                local OutElapsed = tick() - ExitStart
+                local OutAlpha = math.clamp(OutElapsed / 0.5, 0, 1)
+                local Inv = 1 - OutAlpha
+                
+                if OutAlpha >= 1 then
+                    CloseConn:Disconnect()
+                    Connection:Disconnect()
+                    Screen:Destroy()
+                    Blur:Destroy()
+                    return
+                end
+                
+                -- ยุบทุกอย่างเป็นเส้นแนวนอน (Sleek Collapse)
+                Hub.Size = UDim2.new(0, 500 * OutAlpha + 300, 0, 2 * Inv)
+                Hub.Position = UDim2.new(0.5, -(250 * OutAlpha + 150), 0.5, -1)
+                
+                Logo.ImageTransparency = OutAlpha
+                Main.BackgroundTransparency = 0.05 + (OutAlpha * 0.95)
+                Blur.Size = 25 * Inv
+                Ring1.BackgroundTransparency = 1
+                Ring2.BackgroundTransparency = 1
+            end)
         end
     end)
 
-    -- [5] ABSOLUTE FAILSAFE (กันค้าง 1000%)
+    -- 4. ULTIMATE FAILSAFE (ถ้า 5 วินาทียังไม่ตาย ให้บังคับลบ)
     task.delay(5, function()
-        if Connection then Connection:Disconnect() end
-        if Screen and Screen.Parent then Screen:Destroy() end
-        if Blur then Blur:Destroy() end
+        if Screen and Screen.Parent then
+            if Connection then Connection:Disconnect() end
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end
     end)
 end
 
