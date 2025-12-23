@@ -230,42 +230,34 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteUltimateLoadingSequence()
     local TweenService = game:GetService("TweenService")
-    local Debris = game:GetService("Debris")
     local Lighting = game:GetService("Lighting")
+    local Debris = game:GetService("Debris")
 
-    -- [1] FULLSCREEN SETUP (แก้ปัญหาไม่เต็มจอ)
+    -- [1] ABSOLUTE FULLSCREEN SETUP (แก้ปัญหาขอบจอ 100%)
     local Screen = Instance.new("ScreenGui")
-    Screen.Name = "SLAY_ABSOLUTE_VOID"
-    Screen.IgnoreGuiInset = true -- ล็อคให้ทะลุแถบ Topbar
+    Screen.Name = "SLAY_ETERNAL_VOID"
+    Screen.IgnoreGuiInset = true -- บังคับทะลุทุกขอบจอ
     Screen.DisplayOrder = 999999
+    Screen.ScreenInsets = Enum.ScreenInsets.None -- ปิดระบบ Safe Zone ทุกชนิด
     Screen.Parent = game:GetService("CoreGui")
 
     local Blur = Instance.new("BlurEffect", Lighting)
     Blur.Size = 0
 
-    -- Main Container (ล็อคให้เต็มจอทุก Device)
+    -- พื้นหลังหลัก (Lock Full)
     local MainFrame = Instance.new("Frame", Screen)
     MainFrame.Size = UDim2.new(1, 0, 1, 0)
-    MainFrame.Position = UDim2.new(0, 0, 0, 0)
     MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
     MainFrame.BackgroundTransparency = 1
     MainFrame.BorderSizePixel = 0
 
-    -- ฉากหลังบน-ล่าง สำหรับการฉีกหน้าจอ
-    local Top = Instance.new("Frame", MainFrame)
-    Top.Size = UDim2.new(1, 0, 0.5, 0)
-    Top.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Top.BorderSizePixel = 0
-    Top.BackgroundTransparency = 1
+    -- สร้างฉากหลัง 2 ชั้นเพื่อทำเอฟเฟกต์ "การฉีกที่ไร้รอยต่อ"
+    local ContentFrame = Instance.new("Frame", MainFrame)
+    ContentFrame.Size = UDim2.new(1, 0, 1, 0)
+    ContentFrame.BackgroundTransparency = 1
+    ContentFrame.BorderSizePixel = 0
 
-    local Bottom = Instance.new("Frame", MainFrame)
-    Bottom.Size = UDim2.new(1, 0, 0.5, 0)
-    Bottom.Position = UDim2.new(0, 0, 0.5, 0)
-    Bottom.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Bottom.BorderSizePixel = 0
-    Bottom.BackgroundTransparency = 1
-
-    local Logo = Instance.new("ImageLabel", MainFrame)
+    local Logo = Instance.new("ImageLabel", ContentFrame)
     Logo.AnchorPoint = Vector2.new(0.5, 0.5)
     Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
     Logo.Size = UDim2.new(0, 0, 0, 0)
@@ -273,74 +265,86 @@ local function ExecuteUltimateLoadingSequence()
     Logo.BackgroundTransparency = 1
     Logo.ImageTransparency = 1
 
-    -- --- 💥 [ฉากเปิด] 💥 ---
+    -- --- 💥 [ฉากเปิด: THE IGNITION] 💥 ---
     task.spawn(function()
-        TweenService:Create(Top, TweenInfo.new(0.5), {BackgroundTransparency = 0.05}):Play()
-        TweenService:Create(Bottom, TweenInfo.new(0.5), {BackgroundTransparency = 0.05}):Play()
+        -- พื้นหลังจางเข้า
+        TweenService:Create(MainFrame, TweenInfo.new(0.6), {BackgroundTransparency = 0.02}):Play()
         TweenService:Create(Blur, TweenInfo.new(1), {Size = 35}):Play()
         
-        -- ระเบิด Shockwave
-        for i = 1, 2 do
-            local sw = Instance.new("Frame", MainFrame)
+        -- ระเบิด Shockwave (สร้างมิติ)
+        for i = 1, 3 do
+            local sw = Instance.new("Frame", ContentFrame)
             sw.AnchorPoint = Vector2.new(0.5, 0.5)
             sw.Position = UDim2.new(0.5, 0, 0.5, 0)
             sw.Size = UDim2.new(0, 0, 0, 0)
             sw.BackgroundColor3 = SlayLib.Theme.MainColor
-            sw.BackgroundTransparency = 0.5
-            Instance.new("UICorner", sw).CornerRadius = UDim.new(1,0)
-            TweenService:Create(sw, TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 800, 0, 800), BackgroundTransparency = 1}):Play()
-            Debris:AddItem(sw, 0.8)
-            task.wait(0.1)
+            sw.BackgroundTransparency = 0.4
+            Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
+            
+            TweenService:Create(sw, TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 1000, 0, 1000),
+                BackgroundTransparency = 1
+            }):Play()
+            Debris:AddItem(sw, 1)
+            task.wait(0.15)
         end
 
-        TweenService:Create(Logo, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 260, 0, 260), ImageTransparency = 0}):Play()
+        TweenService:Create(Logo, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 280, 0, 280),
+            ImageTransparency = 0
+        }):Play()
     end)
 
-    -- [2] PROGRESSION
-    local Status = Instance.new("TextLabel", MainFrame)
+    -- [2] DYNAMIC STATUS
+    local Status = Instance.new("TextLabel", ContentFrame)
     Status.AnchorPoint = Vector2.new(0.5, 0.5)
-    Status.Position = UDim2.new(0.5, 0, 0.85, 0)
+    Status.Position = UDim2.new(0.5, 0, 0.82, 0)
     Status.Size = UDim2.new(0, 500, 0, 20)
     Status.Font = Enum.Font.Code
     Status.TextColor3 = SlayLib.Theme.MainColor
-    Status.TextSize = 15
+    Status.TextSize = 16
     Status.BackgroundTransparency = 1
     Status.TextTransparency = 1
-    Status.Text = "SYSTEMS_ONLINE"
+    Status.Text = "SYSTEM_INITIALIZING..."
 
     TweenService:Create(Status, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
-    task.wait(2.5) -- ระยะเวลาโหลดรวม
+    task.wait(2.5)
 
-    -- --- ⚡ [ฉากปิด: THE BREACH FIX] ⚡ ---
-    -- บังคับลบแอนิเมชันเก่าทั้งหมดก่อนเริ่มฉากปิดเพื่อกันค้าง
-    Status:Destroy()
-    
-    local OutInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
-    
-    -- 1. ลำดับการปิด (Sequence)
+    -- --- 🌪️ [ฉากปิด: THE SINGULARITY RIFT] 🌪️ ---
+    -- ฉากปิดนี้จะล้อกับฉากเปิด โดยการ "ดูด" ทุกอย่างกลับเข้าสู่ความว่างเปล่า
     task.spawn(function()
-        -- ฉีกหน้าจอ (บนพุ่งขึ้น ล่างพุ่งลง)
-        TweenService:Create(Top, OutInfo, {Position = UDim2.new(0, 0, -0.6, 0)}):Play()
-        TweenService:Create(Bottom, OutInfo, {Position = UDim2.new(0, 0, 1.1, 0)}):Play()
+        local OutInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
         
-        -- โลโก้หมุนควงและบีบหาย
-        local FinalTween = TweenService:Create(Logo, OutInfo, {
+        -- 1. ดูดโลโก้และข้อความ (Singularity Pull)
+        TweenService:Create(Logo, OutInfo, {
+            Size = UDim2.new(0, 0, 0, 0),
             Rotation = 180,
-            Size = UDim2.new(2, 0, 0, 0), -- ยืดออกแนวนอนแล้วหาย
-            ImageTransparency = 1
+            ImageColor3 = SlayLib.Theme.MainColor
+        }):Play()
+        TweenService:Create(Status, TweenInfo.new(0.4), {TextTransparency = 1}):Play()
+        
+        task.wait(0.2) -- หน่วงเวลาเล็กน้อยให้ดูเหมือนมีแรงดูด
+        
+        -- 2. กระชากมิติ (The Great Split)
+        -- แทนที่จะแค่จางหาย เราจะใช้การ "วาร์ป" พื้นหลังออกจากกัน
+        local FinalCollapse = TweenService:Create(MainFrame, OutInfo, {
+            Size = UDim2.new(1.5, 0, 0, 0), -- ยืดออกแนวนอนพร้อมบีบแนวตั้งจนหายไป
+            Position = UDim2.new(-0.25, 0, 0.5, 0),
+            BackgroundTransparency = 1
         })
         
-        FinalTween:Play()
-        TweenService:Create(Blur, TweenInfo.new(0.7), {Size = 0}):Play()
+        FinalCollapse:Play()
+        TweenService:Create(Blur, TweenInfo.new(0.8), {Size = 0}):Play()
 
-        -- [หัวใจสำคัญ] บังคับลบเมื่อ Tween จบแน่นอน
-        FinalTween.Completed:Wait()
-        Screen:Destroy()
-        if Blur then Blur:Destroy() end
+        -- 3. มั่นใจว่าลบทิ้งแน่นอน
+        FinalCollapse.Completed:Connect(function()
+            Screen:Destroy()
+            Blur:Destroy()
+        end)
     end)
 
-    -- [3] EMERGENCY KILL (กันเหนียวถ้าเครื่องแลคจน Tween ไม่จบ)
-    task.delay(5, function()
+    -- Emergency Exit
+    task.delay(6, function()
         if Screen and Screen.Parent then Screen:Destroy() end
         if Blur then Blur:Destroy() end
     end)
