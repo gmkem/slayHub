@@ -377,7 +377,6 @@ end
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib Ultimate"}
 
-    -- 1. ล้างค่า UI เก่า
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
@@ -388,20 +387,19 @@ function SlayLib:CreateWindow(Config)
         CurrentTab = nil,
     }
 
-    -- 2. สร้าง ScreenGui
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. [MAIN CONTAINER] ใช้ CanvasGroup เพื่อคุมความใสพร้อมกันทั้งกลุ่ม
+    -- 3. [MAIN FRAME] ปรับ BackgroundColor3 ให้สว่างขึ้นเล็กน้อย (จาก 15 เป็น 28)
     local MainFrame = Create("CanvasGroup", {
         Name = "MainFrame",
         Size = UDim2.new(0, 620, 0, 440),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(28, 28, 30),
+        BackgroundColor3 = Color3.fromRGB(28, 28, 30), -- สว่างขึ้นเพื่อให้เห็น Element ข้างใน
         GroupTransparency = 0, 
         Parent = CoreGuiFrame,
         ZIndex = 5,
@@ -409,41 +407,39 @@ function SlayLib:CreateWindow(Config)
         Visible = true
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
-    
-    -- ลบ Shadow ออกแล้ว (สะอาดตาขึ้น)
 
-    -- Glass Effect (Gradient)
+    -- ปรับ Gradient ให้สว่างขึ้น (จุดนี้สำคัญมากเพื่อให้ UI ไม่มืดเป็นแผ่น)
     Create("UIGradient", {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(35, 35, 35)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 50)), -- ส่วนบนที่สว่างขึ้น
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 28))  -- ส่วนล่าง
         }),
         Rotation = 45,
         Parent = MainFrame
     })
 
-    -- ขอบหน้าต่าง
+    -- เพิ่มความเด่นให้ขอบ (Stroke)
     local MainStroke = Create("UIStroke", {
         Color = SlayLib.Theme.MainColor,
-        Thickness = 1.2,
-        Transparency = 0.5,
+        Thickness = 1.4,
+        Transparency = 0.2, -- ลดความใสลงเพื่อให้ขอบชัดตัดกับความมืดในเกม
         Parent = MainFrame
     })
 
-    -- 4. [FLOATING TOGGLE] - ทรงกลม (ไม่มีเงา)
+    -- 4. [FLOATING TOGGLE] ปรับให้สว่างกว่าพื้นหลังหลัก
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
         Size = UDim2.new(0, 52, 0, 52),
         Position = UDim2.new(0.05, 0, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+        BackgroundColor3 = Color3.fromRGB(40, 40, 45), -- สว่างกว่าเดิม
         Parent = CoreGuiFrame,
         ZIndex = 100 
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2.5, Parent = FloatingToggle}) -- ขอบหนาขึ้น
 
     local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 26, 0, 26), 
+        Size = UDim2.new(0, 28, 0, 28), 
         Position = UDim2.new(0.5, 0, 0.5, 0), 
         AnchorPoint = Vector2.new(0.5, 0.5),
         Image = SlayLib.Icons.Logo, 
@@ -466,19 +462,18 @@ function SlayLib:CreateWindow(Config)
         RegisterDrag(FloatingToggle, FloatingToggle)
     end)
 
-    -- 6. [ANIMATION LOGIC] - ปิดแล้วหายวับพร้อมกันแบบเนียนๆ
+    -- 6. [ANIMATION LOGIC]
     local function ToggleUI(State)
         if State then
             MainFrame.Visible = true
-            -- ขยายตัวจากจุดศูนย์กลาง
             MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.4, true)
             Tween(MainFrame, {GroupTransparency = 0}, 0.3)
         else
-            -- หายวับ: ย่อขนาดพร้อม Fade Out (GroupTransparency ทำให้ลูกๆ หายไปพร้อมกัน)
-            MainFrame:TweenSize(UDim2.new(0, 500, 0, 320), "In", "Quart", 0.3, true)
+            -- หายวับไปพร้อมกัน 100%
+            MainFrame:TweenSize(UDim2.new(0, 580, 0, 400), "In", "Quart", 0.25, true)
             Tween(MainFrame, {GroupTransparency = 1}, 0.2)
             
-            task.delay(0.3, function() 
+            task.delay(0.25, function() 
                 if not Window.Toggled then 
                     MainFrame.Visible = false 
                 end 
@@ -490,10 +485,10 @@ function SlayLib:CreateWindow(Config)
         Window.Toggled = not Window.Toggled
         ToggleUI(Window.Toggled)
         
-        -- Effect ปุ่มกด
-        Tween(ToggleIcon, {Size = UDim2.new(0, 20, 0, 20)}, 0.1)
+        -- Effect ปุ่มกด (เด้งเบาๆ)
+        Tween(ToggleIcon, {Size = UDim2.new(0, 22, 0, 22)}, 0.1)
         task.delay(0.1, function()
-            Tween(ToggleIcon, {Size = UDim2.new(0, 26, 0, 26)}, 0.1)
+            Tween(ToggleIcon, {Size = UDim2.new(0, 28, 0, 28)}, 0.1)
         end)
     end)
 
