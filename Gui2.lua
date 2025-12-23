@@ -401,7 +401,7 @@ function SlayLib:CreateWindow(Config)
         Size = UDim2.new(0, 620, 0, 440),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = SlayLib.Theme.Background,
+        BackgroundColor3 = Color3.fromRGB(28, 28, 30),
         GroupTransparency = 0, 
         Parent = CoreGuiFrame,
         ZIndex = 5,
