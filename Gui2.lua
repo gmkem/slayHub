@@ -376,120 +376,113 @@ end
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib X Ultimate"}
-    
-    -- 1. Anti Re-execute & Loading Effects
-    ExecuteFinalSovereign()
+
+    -- 1. Cleanup Old UI
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
     local Window = { Toggled = true, Tabs = {}, CurrentTab = nil }
 
-    -- 2. Core GUI Root
+    -- 2. Root Setup
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. [MAIN FRAME]
+    -- 3. [MAIN FRAME] - ปรับพื้นหลังให้ดูโปร่งแต่ชัดเจน
     local MainFrame = Create("Frame", {
         Name = "MainFrame",
         Size = UDim2.new(0, 620, 0, 440),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = SlayLib.Theme.Background,
+        BackgroundColor3 = Color3.fromRGB(18, 18, 20), -- เข้มขึ้นเล็กน้อยเพื่อให้ Element ลอย
         Parent = CoreGuiFrame,
         ZIndex = 5,
         ClipsDescendants = true,
         Visible = true
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
-    local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.5, Parent = MainFrame})
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
+    local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = MainFrame})
 
-    -- 4. [SIDEBAR] - ความกว้าง 155 ตามสั่ง และ ZIndex ต่ำกว่า Content เพื่อป้องกันการทับขอบ
-    local SidebarWidth = 155
+    -- 4. [SIDEBAR] - แก้ไขความกว้างและจัด Title ให้ตรงกลางเป๊ะ
+    local SidebarWidth = 155 -- ปรับลดความกว้างลงตามที่คุณแจ้ง
     local Sidebar = Create("Frame", {
         Name = "Sidebar",
         Size = UDim2.new(0, SidebarWidth, 1, 0),
-        BackgroundColor3 = SlayLib.Theme.Sidebar,
+        BackgroundColor3 = Color3.fromRGB(22, 22, 24),
         BorderSizePixel = 0,
         Parent = MainFrame,
-        ZIndex = 6 -- อยู่ชั้นล่างกว่า Content
+        ZIndex = 6 -- อยู่เหนือ MainFrame เล็กน้อย
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Sidebar})
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Sidebar})
 
-    -- Title: จัดวางกึ่งกลาง Sidebar เป๊ะๆ ไม่เอียง
-    local SideHeader = Create("Frame", {
-        Size = UDim2.new(1, 0, 0, 65),
-        BackgroundTransparency = 1,
-        Parent = Sidebar,
-        ZIndex = 10
-    })
-
+    -- Title: ปรับแก้ให้อยู่กึ่งกลาง Sidebar ไม่เบี้ยวไปฝั่งใดฝั่งหนึ่ง
     local Title = Create("TextLabel", {
         Text = Config.Name,
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 0, 65), -- ความกว้างเต็ม Sidebar 100%
+        Position = UDim2.new(0, 0, 0, 0),
         Font = "GothamBold",
         TextSize = 14,
-        TextColor3 = SlayLib.Theme.Text,
-        TextXAlignment = "Center", -- กึ่งกลางเป๊ะ
+        TextColor3 = Color3.fromRGB(255, 255, 255),
+        TextXAlignment = "Center", -- บังคับจัดกึ่งกลางแนวนอน
         BackgroundTransparency = 1,
-        Parent = SideHeader,
-        ZIndex = 11
+        Parent = Sidebar
     })
 
-    -- Tab Scroll Area
-    local TabScroll = Create("ScrollingFrame", {
-        Size = UDim2.new(1, -10, 1, -75),
-        Position = UDim2.new(0, 5, 0, 70),
+    -- 5. [CONTENT AREA] - แก้ปัญหาขอบโมดูลโดนทับ (Padding Fix)
+    local ContainerHolder = Create("Frame", {
+        Name = "ContainerHolder",
+        -- ขยายพื้นที่ฝั่งขวา และเว้นระยะห่าง (Gutter) 10px ไม่ให้ชิด Sidebar เกินไป
+        Size = UDim2.new(1, -SidebarWidth - 15, 1, -20), 
+        Position = UDim2.new(0, SidebarWidth + 10, 0, 10),
         BackgroundTransparency = 1,
-        ScrollBarThickness = 0,
-        CanvasSize = UDim2.new(0, 0, 0, 0),
-        AutomaticCanvasSize = "Y",
-        Parent = Sidebar,
-        ZIndex = 10
-    })
-    Create("UIListLayout", {Parent = TabScroll, Padding = UDim.new(0, 5), HorizontalAlignment = "Center"})
-
-    -- 5. [PAGE CONTAINER] - แก้ปัญหาขอบโดนกิน
-    local PageContainer = Create("Frame", {
-        Name = "PageContainer",
-        -- เว้นระยะห่างจาก Sidebar 12px เพื่อให้ Stroke มีที่ว่าง ไม่โดนตัด
-        Size = UDim2.new(1, -SidebarWidth - 25, 1, -20),
-        Position = UDim2.new(0, SidebarWidth + 12, 0, 10),
-        BackgroundTransparency = 1,
-        ClipsDescendants = false, -- ปิดเพื่อให้ขอบโมดูล (Stroke) แสดงผลได้ครบไม่โดน Clip
-        ZIndex = 20, -- อยู่ชั้นบนสุดของ MainFrame เสมอ
-        Parent = MainFrame
+        Parent = MainFrame,
+        ZIndex = 7
     })
 
-    -- เส้นแบ่ง (Divider) ขยับตำแหน่งไม่ให้ทับกับขอบโมดูล
+    -- เส้นแบ่ง Sidebar (Divider) จัดวางให้สวยงามไม่ทับซ้อน
     local Divider = Create("Frame", {
         Size = UDim2.new(0, 1, 1, -40),
-        Position = UDim2.new(0, -6, 0, 20),
+        Position = UDim2.new(0, -5, 0, 20),
         BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 0.8,
-        ZIndex = 15,
-        Parent = PageContainer
+        BackgroundTransparency = 0.85,
+        BorderSizePixel = 0,
+        Parent = ContainerHolder
     })
 
-    -- 6. [FLOATING TOGGLE]
+    -- 6. [FLOATING TOGGLE] - ทรงกลมเนียนๆ
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
         Size = UDim2.new(0, 50, 0, 50),
         Position = UDim2.new(0.05, 0, 0.15, 0),
-        BackgroundColor3 = SlayLib.Theme.Element,
+        BackgroundColor3 = Color3.fromRGB(25, 25, 27),
         Parent = CoreGuiFrame,
         ZIndex = 100
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
     Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
 
-    local ToggleButton = Create("TextButton", {Size = UDim2.new(1,0,1,0), BackgroundTransparency = 1, Text = "", Parent = FloatingToggle})
-    
-    -- 7. Systems (Drag & Visibility)
-    RegisterDrag(MainFrame, SideHeader)
+    local ToggleIcon = Create("ImageLabel", {
+        Size = UDim2.new(0, 26, 0, 26),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Image = SlayLib.Icons.Logo,
+        ImageColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        Parent = FloatingToggle
+    })
+
+    local ToggleButton = Create("TextButton", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        Parent = FloatingToggle
+    })
+
+    -- 7. Systems (Drag & Animation)
     RegisterDrag(FloatingToggle, FloatingToggle)
+    RegisterDrag(MainFrame, Sidebar) -- ลากได้จากแผง Sidebar ทั้งแผง
 
     ToggleButton.MouseButton1Click:Connect(function()
         Window.Toggled = not Window.Toggled
@@ -498,10 +491,12 @@ function SlayLib:CreateWindow(Config)
             MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.35, true)
         else
             MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quart", 0.3, true)
-            task.delay(0.3, function() if not Window.Toggled then MainFrame.Visible = false end end)
+            task.delay(0.3, function() 
+                if not Window.Toggled then MainFrame.Visible = false end 
+            end)
         end
     end)
-            
+
     -- [1] SIDEBAR (จัดตำแหน่งให้มีช่องว่าง Margin เล็กน้อยเพื่อให้ดูโมเดิร์น)
     local Sidebar = Create("Frame", {  
         Name = "Sidebar",
@@ -611,19 +606,36 @@ function SlayLib:CreateWindow(Config)
             Parent = TabBtn
         })
 
-        local Page = Create("ScrollingFrame", {
-            Size = UDim2.new(1, 0, 1, 0),
-            BackgroundTransparency = 1,
-            Visible = false,
-            ScrollBarThickness = 2,
-            ScrollBarImageColor3 = SlayLib.Theme.MainColor,
-            CanvasSize = UDim2.new(0,0,0,0),
-            AutomaticCanvasSize = "Y",
-            ZIndex = 25,
-            Parent = PageContainer
-        })
-        Create("UIListLayout", {Parent = Page, Padding = UDim.new(0, 10)})
-        Create("UIPadding", {Parent = Page, PaddingRight = UDim.new(0, 5), PaddingTop = UDim.new(0, 2)})
+local Page = Create("ScrollingFrame", {  
+    Name = Name .. "_Page",
+    Size = UDim2.new(1, 0, 1, 0), 
+    BackgroundTransparency = 1,  
+    Visible = false, 
+    ScrollBarThickness = 2, 
+    ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
+    CanvasSize = UDim2.new(0, 0, 0, 0), 
+    AutomaticCanvasSize = "Y", 
+    ZIndex = 20,
+    -- สำคัญ: ปิด ClipsDescendants ตรงนี้เพื่อให้ Stroke ไม่แหว่ง
+    ClipsDescendants = false, 
+    Parent = PageContainer  
+})  
+
+-- เพิ่ม UIPadding เพื่อสร้าง "พื้นที่หายใจ" ให้เส้นขอบโมดูล
+-- ขยับ PaddingLeft เป็น 2 หรือ 3 เพื่อไม่ให้โมดูลชิดขอบซ้ายจนเกินไป
+local PagePadding = Create("UIPadding", {
+    PaddingLeft = UDim.new(0, 4), -- ขยับออกมาจากขอบซ้าย 4 พิกเซล
+    PaddingRight = UDim.new(0, 8), 
+    PaddingTop = UDim.new(0, 5),
+    PaddingBottom = UDim.new(0, 5),
+    Parent = Page
+})
+
+local PageList = Create("UIListLayout", {
+    Parent = Page, 
+    Padding = UDim.new(0, 12), 
+    SortOrder = Enum.SortOrder.LayoutOrder
+})  
 
         TabBtn.MouseButton1Click:Connect(function()
             if Window.CurrentTab then
