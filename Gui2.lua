@@ -138,65 +138,89 @@ end
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
 function SlayLib:Notify(Config)
     Config = Config or {Title = "SYSTEM", Content = "Message Content", Duration = 6, Type = "Neutral"}
-    
+
     local NotifColor = SlayLib.Theme.MainColor
     if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
     elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
     elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
 
-    -- Container Setup
-    local NotifGui = Parent:FindFirstChild("SlayNotifFinal") or Create("ScreenGui", {Name = "SlayNotifFinal", Parent = Parent, DisplayOrder = 9999})
-    local Holder = NotifGui:FindFirstChild("Holder") or Create("Frame", {
-        Name = "Holder", Parent = NotifGui, BackgroundTransparency = 1,
-        Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -340, 0, 20)
-    })
-    if not Holder:FindFirstChild("UIListLayout") then
-        Create("UIListLayout", {Parent = Holder, VerticalAlignment = "Bottom", HorizontalAlignment = "Right", Padding = UDim.new(0, 10), SortOrder = "LayoutOrder"})
+    -- 1. Container Setup (ZIndex สูงสุดเพื่อให้ทับหน้าต่างหลัก)
+    local ParentGui = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine") or game:GetService("CoreGui"):FindFirstChild("SlayNotifFinal")
+    if not ParentGui then
+        ParentGui = Create("ScreenGui", {Name = "SlayNotifFinal", Parent = game:GetService("CoreGui"), DisplayOrder = 9999})
     end
 
-    -- Main Frame
-    local NotifFrame = Create("CanvasGroup", {
-        Size = UDim2.new(1, 0, 0, 0), BackgroundColor3 = Color3.fromRGB(15, 15, 15),
-        BackgroundTransparency = 0.1, GroupTransparency = 1, ClipsDescendants = true, Parent = Holder
+    local Holder = ParentGui:FindFirstChild("NotifHolder") or Create("Frame", {
+        Name = "NotifHolder", Parent = ParentGui, BackgroundTransparency = 1,
+        Size = UDim2.new(0, 320, 1, -40), Position = UDim2.new(1, -330, 0, 20)
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
-    local Stroke = Create("UIStroke", {Color = NotifColor, Transparency = 0.5, Thickness = 2, Parent = NotifFrame})
+    
+    if not Holder:FindFirstChild("UIListLayout") then
+        Create("UIListLayout", {
+            Parent = Holder, 
+            VerticalAlignment = "Bottom", 
+            HorizontalAlignment = "Right", 
+            Padding = UDim.new(0, 10), 
+            SortOrder = "LayoutOrder"
+        })
+    end
 
-    -- Text Area (เว้นระยะด้านล่างเพิ่มขึ้นเพื่อวางหลอดแบบ Floating)
+    -- 2. Main Frame (ใช้ CanvasGroup เพื่อความเนียนในการ Fade)
+    local NotifFrame = Create("CanvasGroup", {
+        Size = UDim2.new(1, 0, 0, 0), 
+        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+        GroupTransparency = 1, 
+        ClipsDescendants = true, 
+        Parent = Holder
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
+    
+    -- ขอบเรืองแสงจางๆ ตามประเภทของการแจ้งเตือน
+    local Stroke = Create("UIStroke", {
+        Color = NotifColor, 
+        Transparency = 0.6, 
+        Thickness = 1.4, 
+        Parent = NotifFrame
+    })
+
+    -- 3. Content Area
     local TextArea = Create("Frame", {
-        Size = UDim2.new(1, -45, 0, 0), Position = UDim2.new(0, 30, 0, 0),
-        BackgroundTransparency = 1, AutomaticSize = "Y", Parent = NotifFrame
+        Size = UDim2.new(1, 0, 0, 0),
+        BackgroundTransparency = 1, 
+        AutomaticSize = "Y", 
+        Parent = NotifFrame
     })
     Create("UIListLayout", {Parent = TextArea, Padding = UDim.new(0, 4), SortOrder = "LayoutOrder"})
     Create("UIPadding", {
-        PaddingTop = UDim.new(0, 18), 
-        PaddingBottom = UDim.new(0, 28), -- เพิ่มพื้นที่ด้านล่างให้หลอดลอยได้สวยๆ
-        PaddingRight = UDim.new(0, 15), 
+        PaddingTop = UDim.new(0, 14), 
+        PaddingBottom = UDim.new(0, 26), -- พื้นที่ด้านล่างสำหรับ Bar
+        PaddingLeft = UDim.new(0, 16),
+        PaddingRight = UDim.new(0, 16), 
         Parent = TextArea
     })
 
     local TitleLabel = Create("TextLabel", {
-        Text = Config.Title:upper(), Font = "GothamBold", TextSize = 14,
+        Text = Config.Title:upper(), Font = "GothamBold", TextSize = 13,
         TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left",
         Size = UDim2.new(1, 0, 0, 16), LayoutOrder = 1, Parent = TextArea
     })
 
     local ContentLabel = Create("TextLabel", {
         Text = Config.Content, Font = "GothamMedium", TextSize = 12,
-        TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,
+        TextColor3 = Color3.fromRGB(220, 220, 220), BackgroundTransparency = 1,
         TextXAlignment = "Left", TextWrapped = true, Size = UDim2.new(1, 0, 0, 14),
         AutomaticSize = "Y", LayoutOrder = 2, Parent = TextArea
     })
 
-    -- [แก้จุดหลอดทะลุ] Progress Bar Container (ขยับให้ลอยขึ้นและกดยุบขอบ)
+    -- 4. Floating Progress Bar (หลอดแบบลอย)
     local BarContainer = Create("Frame", {
         Name = "BarContainer",
-        Size = UDim2.new(1, -24, 0, 4), -- สั้นลงกว่ากรอบหลักเพื่อไม่ให้ชนขอบ Stroke
-        Position = UDim2.new(0, 12, 1, -12), -- ลอยขึ้นจากขอบล่าง 12 pixel
-        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-        BackgroundTransparency = 0.5,
+        Size = UDim2.new(1, -32, 0, 3), 
+        Position = UDim2.new(0.5, 0, 1, -12),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.9, -- พื้นหลังจางมากเพื่อให้ดูแพง
         BorderSizePixel = 0,
-        ClipsDescendants = true, -- บังคับให้หลอดข้างในไม่ทะลุ
         Parent = NotifFrame
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarContainer})
@@ -210,20 +234,27 @@ function SlayLib:Notify(Config)
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarFill})
 
-    -- Animation
+    -- 5. Animation Logic (แก้ปัญหาแว็บ)
     task.spawn(function()
-        repeat task.wait() until TextArea.AbsoluteSize.Y > 30 
+        -- รอให้ UI คำนวณขนาดที่แท้จริงเสร็จก่อนแสดงผล
+        repeat task.wait() until TextArea.AbsoluteSize.Y > 0
         local FinalHeight = TextArea.AbsoluteSize.Y
+
+        -- อนิเมชั่นขาเข้า: สไลด์ขนาดขึ้นและจางลงมา
+        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, FinalHeight), GroupTransparency = 0}, 0.5, Enum.EasingStyle.Quart)
         
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, FinalHeight), GroupTransparency = 0}, 0.7, Enum.EasingStyle.Back)
+        -- อนิเมชั่นหลอด: วิ่งจาก 1 ไป 0
         Tween(BarFill, {Size = UDim2.new(0, 0, 1, 0)}, Config.Duration, Enum.EasingStyle.Linear)
-        
+
         task.wait(Config.Duration)
-        
-        local Out = Tween(NotifFrame, {GroupTransparency = 1, Position = UDim2.new(0, 60, 0, 0)}, 0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
-        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.5)
-        
-        Out.Completed:Connect(function() NotifFrame:Destroy() end)
+
+        -- อนิเมชั่นขาออก: จางหายและเลื่อนขนาดให้คนอื่นขยับขึ้นมาแทน
+        local ExitTween = Tween(NotifFrame, {GroupTransparency = 1}, 0.4, Enum.EasingStyle.Quart)
+        Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.5) -- บีบขนาดเพื่อให้รายการข้างล่างเลื่อนขึ้นมาเนียนๆ
+
+        ExitTween.Completed:Connect(function() 
+            NotifFrame:Destroy() 
+        end)
     end)
 end
 
