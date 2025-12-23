@@ -392,66 +392,53 @@ ExecuteFinalSovereign()
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. [MAIN FRAME] - ปรับพื้นหลังให้ดูโปร่งแต่ชัดเจน
-    local MainFrame = Create("Frame", {
-        Name = "MainFrame",
-        Size = UDim2.new(0, 620, 0, 440),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(18, 18, 20), -- เข้มขึ้นเล็กน้อยเพื่อให้ Element ลอย
-        Parent = CoreGuiFrame,
-        ZIndex = 5,
-        ClipsDescendants = true,
-        Visible = true
-    })
-    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
-    local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = MainFrame})
+    --// [3] MAIN FRAME
+local MainFrame = Create("Frame", {
+    Name = "MainFrame",
+    Size = UDim2.new(0, 620, 0, 440),
+    Position = UDim2.new(0.5, 0, 0.5, 0),
+    AnchorPoint = Vector2.new(0.5, 0.5),
+    BackgroundColor3 = SlayLib.Theme.Background,
+    Parent = CoreGuiFrame,
+    ZIndex = 5,
+    ClipsDescendants = true,
+    Visible = true
+})
+Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
 
-    -- 4. [SIDEBAR] - แก้ไขความกว้างและจัด Title ให้ตรงกลางเป๊ะ
-    local SidebarWidth = 155 -- ปรับลดความกว้างลงตามที่คุณแจ้ง
-    local Sidebar = Create("Frame", {
-        Name = "Sidebar",
-        Size = UDim2.new(0, SidebarWidth, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(22, 22, 24),
-        BorderSizePixel = 0,
-        Parent = MainFrame,
-        ZIndex = 6 -- อยู่เหนือ MainFrame เล็กน้อย
-    })
-    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Sidebar})
+--// [4] SIDEBAR (ปรับ ZIndex ให้ต่ำกว่าพื้นที่แสดงผล)
+local SidebarWidth = 155
+local Sidebar = Create("Frame", {
+    Name = "Sidebar",
+    Size = UDim2.new(0, SidebarWidth, 1, 0),
+    BackgroundColor3 = SlayLib.Theme.Sidebar,
+    BorderSizePixel = 0,
+    Parent = MainFrame,
+    ZIndex = 6 -- ลดลงมาเพื่อให้ Content ลอยทับได้ถ้าจำเป็น
+})
+Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Sidebar})
 
-    -- Title: ปรับแก้ให้อยู่กึ่งกลาง Sidebar ไม่เบี้ยวไปฝั่งใดฝั่งหนึ่ง
-    local Title = Create("TextLabel", {
-        Text = Config.Name,
-        Size = UDim2.new(1, 0, 0, 65), -- ความกว้างเต็ม Sidebar 100%
-        Position = UDim2.new(0, 0, 0, 0),
-        Font = "GothamBold",
-        TextSize = 14,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextXAlignment = "Center", -- บังคับจัดกึ่งกลางแนวนอน
-        BackgroundTransparency = 1,
-        Parent = Sidebar
-    })
+--// [5] CONTENT AREA (แก้ปัญหาขอบโดนกินที่นี่)
+local PageContainer = Create("Frame", {
+    Name = "PageContainer",
+    -- เพิ่มช่องว่างตรง SidebarWidth + 12 (จากเดิม +10) เพื่อให้มีที่หายใจสำหรับ Stroke
+    Size = UDim2.new(1, -SidebarWidth - 25, 1, -20), 
+    Position = UDim2.new(0, SidebarWidth + 12, 0, 10),  
+    BackgroundTransparency = 1,
+    ClipsDescendants = false, -- สำคัญ: ปิดเพื่อให้เส้น Stroke โผล่ออกมาได้ไม่โดนตัด
+    ZIndex = 10, -- ตั้งให้สูงกว่า Sidebar ชัดเจน
+    Parent = MainFrame  
+})
 
-    -- 5. [CONTENT AREA] - แก้ปัญหาขอบโมดูลโดนทับ (Padding Fix)
-    local ContainerHolder = Create("Frame", {
-        Name = "ContainerHolder",
-        -- ขยายพื้นที่ฝั่งขวา และเว้นระยะห่าง (Gutter) 10px ไม่ให้ชิด Sidebar เกินไป
-        Size = UDim2.new(1, -SidebarWidth - 15, 1, -20), 
-        Position = UDim2.new(0, SidebarWidth + 10, 0, 10),
-        BackgroundTransparency = 1,
-        Parent = MainFrame,
-        ZIndex = 7
-    })
-
-    -- เส้นแบ่ง Sidebar (Divider) จัดวางให้สวยงามไม่ทับซ้อน
-    local Divider = Create("Frame", {
-        Size = UDim2.new(0, 1, 1, -40),
-        Position = UDim2.new(0, -5, 0, 20),
-        BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 0.85,
-        BorderSizePixel = 0,
-        Parent = ContainerHolder
-    })
+-- เส้นแบ่ง (Divider) ขยับตำแหน่งให้เหมาะสมไม่ทับโมดูล
+local Divider = Create("Frame", {
+    Size = UDim2.new(0, 1, 1, -40),
+    Position = UDim2.new(0, -6, 0, 20), -- ขยับออกมาจากขอบโมดูลเล็กน้อย
+    BackgroundColor3 = SlayLib.Theme.MainColor,
+    BackgroundTransparency = 0.8,
+    ZIndex = 8,
+    Parent = PageContainer
+})
 
     -- 6. [FLOATING TOGGLE] - ทรงกลมเนียนๆ
     local FloatingToggle = Create("Frame", {
