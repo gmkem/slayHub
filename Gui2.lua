@@ -229,111 +229,141 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent})
+    local Screen = Create("ScreenGui", {
+        Name = "SlayFullLoading",
+        Parent = game.CoreGui,
+        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        ResetOnSpawn = false
+    })
+
+    local Lighting = game:GetService("Lighting")
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
 
-    local Holder = Create("Frame", {
-        Size = UDim2.new(0, 420, 0, 420),
-        Position = UDim2.new(0.5, -210, 0.5, -210),
-        BackgroundTransparency = 1,
+    -- พื้นหลังเต็มจอ
+    local Background = Create("Frame", {
+        Size = UDim2.new(1,0,1,0),
+        BackgroundColor3 = Color3.fromRGB(10,10,10),
         Parent = Screen
     })
 
-    local Glow = Create("ImageLabel", {
-        Size = UDim2.new(0, 260, 0, 260),
-        Position = UDim2.new(0.5, -130, 0.45, -130),
-        Image = "rbxassetid://9424670972",
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 0.8,
-        BackgroundTransparency = 1,
-        Parent = Holder
+    local Gradient = Create("UIGradient", {
+        Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+            ColorSequenceKeypoint.new(1, SlayLib.Theme.MainColor)
+        },
+        Rotation = 45,
+        Parent = Background
     })
 
+    -- โลโก้กลางจอ
     local Logo = Create("ImageLabel", {
         Size = UDim2.new(0, 0, 0, 0),
         Position = UDim2.new(0.5, 0, 0.45, 0),
+        AnchorPoint = Vector2.new(0.5,0.5),
         Image = SlayLib.Icons.Logofull,
+        ImageTransparency = 1,
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+
+    -- แสงเงาเบื้องหลังโลโก้
+    local Glow = Create("ImageLabel", {
+        Size = UDim2.new(0, 320, 0, 320),
+        Position = UDim2.new(0.5, 0, 0.45, 0),
+        AnchorPoint = Vector2.new(0.5,0.5),
+        Image = "rbxassetid://9424670972",
         ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 1,
         BackgroundTransparency = 1,
-        Parent = Holder
+        Parent = Background
     })
 
-    local InfoLabel = Create("TextLabel", {
-        Text = "BOOTING SYSTEM CORE...",
-        Size = UDim2.new(1, 0, 0, 22),
-        Position = UDim2.new(0, 0, 0.78, 0),
-        Font = "Code",
-        TextSize = 13,
-        TextColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1,
-        Parent = Holder,
-        TextTransparency = 1
-    })
-
+    -- แถบโหลด
     local BarBg = Create("Frame", {
-        Size = UDim2.new(0, 280, 0, 5),
-        Position = UDim2.new(0.5, -140, 0.72, 0),
-        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-        Parent = Holder,
-        BackgroundTransparency = 1
+        Size = UDim2.new(0.3, 0, 0, 6),
+        Position = UDim2.new(0.35, 0, 0.8, 0),
+        BackgroundColor3 = Color3.fromRGB(30,30,30),
+        BackgroundTransparency = 1,
+        Parent = Background
     })
     local BarFill = Create("Frame", {
-        Size = UDim2.new(0, 0, 1, 0),
+        Size = UDim2.new(0,0,1,0),
         BackgroundColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
         Parent = BarBg
     })
     Create("UICorner", {Parent = BarBg})
     Create("UICorner", {Parent = BarFill})
 
-    local Gradient = Create("UIGradient", {
+    local BarGradient = Create("UIGradient", {
         Color = ColorSequence.new{
             ColorSequenceKeypoint.new(0, SlayLib.Theme.MainColor),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255))
         },
-        Rotation = 45,
+        Rotation = 0,
         Parent = BarFill
     })
 
-    -- Fade In Start
-    Tween(Blur, {Size = 30}, 1)
-    Tween(Logo, {Size = UDim2.new(0, 230, 0, 230), Position = UDim2.new(0.5, -115, 0.45, -115)}, 1.1, Enum.EasingStyle.Elastic)
-    Tween(Glow, {ImageTransparency = 0.4, Size = UDim2.new(0, 280, 0, 280)}, 1.2)
-    task.wait(0.6)
-    Tween(InfoLabel, {TextTransparency = 0}, 0.5)
-    Tween(BarBg, {BackgroundTransparency = 0}, 0.5)
+    -- ข้อความโหลด
+    local Info = Create("TextLabel", {
+        Text = "INITIALIZING...",
+        Size = UDim2.new(1,0,0,25),
+        Position = UDim2.new(0,0,0.86,0),
+        Font = Enum.Font.Code,
+        TextColor3 = Color3.fromRGB(255,255,255),
+        TextTransparency = 1,
+        TextSize = 16,
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
 
+    -- เริ่มอนิเมชั่นเปิด
+    Tween(Blur, {Size = 35}, 1)
+    Tween(Logo, {Size = UDim2.new(0,250,0,250), ImageTransparency = 0}, 1.2, Enum.EasingStyle.Elastic)
+    Tween(Glow, {ImageTransparency = 0.3, Size = UDim2.new(0,360,0,360)}, 1.2)
+    Tween(BarBg, {BackgroundTransparency = 0}, 1)
+    Tween(BarFill, {BackgroundTransparency = 0}, 1)
+    Tween(Info, {TextTransparency = 0}, 1)
+
+    -- ขั้นตอนโหลด
     local Steps = {
-        "Authenticating Assets...",
-        "Calibrating Interface...",
-        "Synchronizing Modules...",
-        "Deploying UI Components...",
-        "Finalizing Environment..."
+        "Booting Core Framework...",
+        "Syncing Assets...",
+        "Loading Interface Elements...",
+        "Applying SlayLib Theme...",
+        "Deploying User Environment...",
+        "System Ready!"
     }
 
     for i, step in ipairs(Steps) do
-        InfoLabel.Text = step:upper()
-        Tween(BarFill, {Size = UDim2.new(i/#Steps, 0, 1, 0)}, 0.35)
-        Gradient.Rotation = Gradient.Rotation + 45
-        task.wait(math.random(4, 8) / 10)
+        Info.Text = step
+        Tween(BarFill, {Size = UDim2.new(i/#Steps,0,1,0)}, 0.4, Enum.EasingStyle.Sine)
+        BarGradient.Rotation = BarGradient.Rotation + 45
+        task.wait(0.6)
     end
 
-    -- Complete Animation
-    InfoLabel.Text = "ACCESS GRANTED ✓"
-    Tween(InfoLabel, {TextColor3 = Color3.fromRGB(100, 255, 100)}, 0.3)
-    task.wait(0.5)
+    -- Effect Pulse ก่อนปิด
+    Tween(Logo, {Size = UDim2.new(0,270,0,270)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+    task.wait(0.2)
+    Tween(Logo, {Size = UDim2.new(0,240,0,240)}, 0.3)
+    Info.Text = "ACCESS GRANTED ✓"
+    Tween(Info, {TextColor3 = Color3.fromRGB(120,255,120)}, 0.3)
+    task.wait(0.6)
 
-    -- Fade Out
-    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 180, 0, 180)}, 0.7)
-    Tween(Glow, {ImageTransparency = 1}, 0.5)
-    Tween(InfoLabel, {TextTransparency = 1}, 0.5)
+    -- Fade Out ทั้งหมด
+    Tween(Logo, {ImageTransparency = 1}, 0.6)
+    Tween(Glow, {ImageTransparency = 1}, 0.6)
+    Tween(Info, {TextTransparency = 1}, 0.5)
     Tween(BarBg, {BackgroundTransparency = 1}, 0.5)
     Tween(BarFill, {BackgroundTransparency = 1}, 0.5)
-    Tween(Blur, {Size = 0}, 0.8)
+    Tween(Blur, {Size = 0}, 1)
+    Tween(Background, {BackgroundTransparency = 1}, 1)
 
-    task.wait(0.8)
+    task.wait(1)
     Screen:Destroy()
     Blur:Destroy()
 end
+
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
 Config = Config or {Name = "SlayLib Ultimate"}
