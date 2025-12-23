@@ -229,8 +229,10 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
+    local RS = game:GetService("RunService")
+    
     local Screen = Create("ScreenGui", {
-        Name = "SlayVectorClean",
+        Name = "SlayStableBreach",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -238,133 +240,105 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- MainCanvas ตัวเดียวคุมทุกอย่าง (เพื่อให้หายพร้อมกัน 100%)
-    local MainCanvas = Create("CanvasGroup", {
+    -- ใช้ Frame ธรรมดา (ไม่ใช้ CanvasGroup เพื่อป้องกันอาการ Freeze)
+    local MainFrame = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1,
         Parent = Screen
     })
 
-    -- Background: Deep Solid Black (ลดความลายตาจากแสงสีน้ำเงิน)
-    local Bg = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 3),
-        BorderSizePixel = 0,
-        Parent = MainCanvas
-    })
-
-    -- [1] THE CLEAN GRID (ปรับให้บางลงและอยู่แค่ขอบล่าง)
-    local Grid = Create("Frame", {
-        Size = UDim2.new(1, 0, 0.3, 0),
-        Position = UDim2.new(0, 0, 0.7, 0),
-        BackgroundTransparency = 1,
-        Parent = Bg
-    })
-    for i = 1, 8 do -- ลดจำนวนเส้นลง
-        Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 1),
-            Position = UDim2.new(0, 0, i/8, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.9, -- จางมากๆ เพื่อความหรู
-            BorderSizePixel = 0,
-            Parent = Grid
-        })
-    end
-
-    -- [2] THE CORE: LOGO & MINIMALIST BRACKETS
+    -- [1] THE HUB & LOGO
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 400, 0, 400),
-        Position = UDim2.new(0.5, -200, 0.5, -200),
+        Size = UDim2.new(0, 300, 0, 300),
+        Position = UDim2.new(0.5, -150, 0.5, -150),
         BackgroundTransparency = 1,
-        Parent = MainCanvas
+        Parent = MainFrame
     })
 
-    -- เปลี่ยนจากเส้นตัดไปมา เป็น "มุมวงเล็บ" (Brackets) ที่ขยับเข้าหาใจกลาง
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        Image = SlayLib.Icons.Logofull,
+        BackgroundTransparency = 1,
+        ImageTransparency = 1,
+        Parent = Hub
+    })
+
+    -- [2] VECTOR BRACKETS (มุมฉากที่เห็นในรูปของคุณ)
     local function CreateBracket(name, pos)
         local B = Create("Frame", {
             Name = name,
-            Size = UDim2.new(0, 40, 0, 40),
+            Size = UDim2.new(0, 50, 0, 50),
             Position = pos,
             BackgroundTransparency = 1,
             Parent = Hub
         })
-        -- เส้นแนวตั้งและแนวนอนของแต่ละมุม
-        local LineV = Create("Frame", {Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
-        local LineH = Create("Frame", {Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
+        Create("Frame", {Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
+        Create("Frame", {Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
         return B
     end
 
-    local TL = CreateBracket("TL", UDim2.new(0.2, 0, 0.2, 0))
-    local BR = CreateBracket("BR", UDim2.new(0.8, -40, 0.8, -40))
-    -- ปรับเส้น LineH ของ BR ให้อยู่ด้านล่าง
-    BR.Frame.Position = UDim2.new(0, 0, 1, -2) 
-    BR.Frame_1.Position = UDim2.new(1, -2, 0, 0)
+    local TL = CreateBracket("TL", UDim2.new(0, 0, 0, 0))
+    local BR = CreateBracket("BR", UDim2.new(1, -50, 1, -50))
+    BR.Frame.Position = UDim2.new(1, -2, 0, 0) -- ปรับตำแหน่งเส้นให้เป็นมุมฉากด้านขวาล่าง
+    BR.Frame_1.Position = UDim2.new(0, 0, 1, -2)
 
-    -- THE LOGO
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 160, 0, 160),
-        Position = UDim2.new(0.5, -80, 0.5, -80),
-        Image = SlayLib.Icons.Logofull,
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = Hub
-    })
+    -- --- MASTER LOGIC: NO-TWEEN SYSTEM ---
+    local StartTime = tick()
+    local Duration = 3.0 -- ระยะเวลาโหลด 3 วินาทีตามที่ขอ
+    local IsClosing = false
 
-    -- [3] PROGRESS TEXT (เรียบๆ คมๆ)
-    local StatusText = Create("TextLabel", {
-        Text = "SYSTEM.READY",
-        Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 0.85, 0),
-        Font = "Code", TextSize = 14,
-        TextColor3 = SlayLib.Theme.MainColor,
-        TextTransparency = 0.4,
-        BackgroundTransparency = 1,
-        Parent = MainCanvas
-    })
-
-    -- --- EFFECT: LOOPING SUBTLE ROTATION ---
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            Hub.Rotation = Hub.Rotation + 0.2 -- หมุนช้าๆ ให้ดูพรีเมียม
-            task.wait()
+    local Connection
+    Connection = RS.RenderStepped:Connect(function()
+        local Elapsed = tick() - StartTime
+        
+        if Elapsed < Duration then
+            -- แอนิเมชันช่วงเปิด (Fade In)
+            local Alpha = math.clamp(Elapsed / 0.5, 0, 1)
+            MainFrame.BackgroundTransparency = 1 - (Alpha * 0.95)
+            Logo.ImageTransparency = 1 - Alpha
+            Blur.Size = Alpha * 25
+            
+            -- แอนิเมชันวงฉากขยับ (Pulse)
+            local S = 1 + (math.sin(tick() * 4) * 0.05)
+            Hub.Size = UDim2.new(0, 300 * S, 0, 300 * S)
+            Hub.Position = UDim2.new(0.5, -(150 * S), 0.5, -(150 * S))
+            
+        elseif not IsClosing then
+            -- เริ่มกระบวนการปิด (Force Close)
+            IsClosing = true
+            local CloseStart = tick()
+            
+            -- สร้างลูปปิดที่แยกเป็นเอกเทศ ไม่พึ่ง TweenService
+            task.spawn(function()
+                while tick() - CloseStart < 0.5 do
+                    local t = (tick() - CloseStart) / 0.5
+                    local inv = 1 - t
+                    
+                    -- แอนิเมชันขาออก: บีบแบนเป็นเส้นแนวนอน
+                    MainFrame.Size = UDim2.new(1, 0, inv, 0)
+                    MainFrame.Position = UDim2.new(0, 0, t/2, 0)
+                    Logo.ImageTransparency = t
+                    Blur.Size = 25 * inv
+                    
+                    RS.RenderStepped:Wait()
+                end
+                
+                -- ลบทิ้งทันทีหลังแอนิเมชันขาออกจบ
+                Connection:Disconnect()
+                Screen:Destroy()
+                Blur:Destroy()
+            end)
         end
     end)
 
-    -- --- SEQUENCE START (3 SECONDS) ---
-    Tween(Blur, {Size = 25}, 0.8):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 0.8):Play()
-    
-    -- บีบวงเล็บเข้าหาโลโก้
-    Tween(TL, {Position = UDim2.new(0.3, 0, 0.3, 0)}, 1, Enum.EasingStyle.Quart):Play()
-    Tween(BR, {Position = UDim2.new(0.7, -40, 0.7, -40)}, 1, Enum.EasingStyle.Quart):Play()
-
-    -- วงจรโหลด 3 วินาที (ปรับให้ชัวร์)
-    local Sequence = {"[ LOAD ]", "[ SYNC ]", "[ AUTH ]", "[ DONE ]"}
-    for i, msg in ipairs(Sequence) do
-        StatusText.Text = msg
-        task.wait(3 / #Sequence) -- เฉลี่ยให้ครบ 3 วินาที
-    end
-
-    -- --- THE PERFECT SYNC COLLAPSE (การหายที่คมที่สุด) ---
-    -- ทุกอย่างหายไปพร้อมกัน 100% เพราะ Tween แค่ที่ MainCanvas
-    local Collapse = Tween(MainCanvas, {
-        Size = UDim2.new(1.5, 0, 0, 0), -- บีบเป็นเส้นตรงแนวนอน
-        Position = UDim2.new(-0.25, 0, 0.5, 0),
-        GroupTransparency = 1
-    }, 0.6, Enum.EasingStyle.Quart)
-
-    Collapse:Play()
-    Tween(Blur, {Size = 0}, 0.6):Play()
-
-    -- เมื่อจบแอนิเมชัน สั่ง Destroy ทันที
-    Collapse.Completed:Connect(function()
-        Screen:Destroy()
-        Blur:Destroy()
+    -- ** EMERGENCY TERMINATOR **
+    -- ไม่ว่าแอนิเมชันจะค้างหรือไม่ 5 วินาทีหน้าจอนี้ "ต้องหายไป"
+    task.delay(5, function()
+        if Connection then Connection:Disconnect() end
+        if Screen and Screen.Parent then Screen:Destroy() end
+        if Blur then Blur:Destroy() end
     end)
-
-    -- Safety Kill
-    task.delay(5, function() if Screen then Screen:Destroy() end end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
