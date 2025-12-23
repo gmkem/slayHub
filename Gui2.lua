@@ -228,218 +228,180 @@ function SlayLib:Notify(Config)
 end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
-local function ExecuteLoadingSequence()  ()
+local function ExecuteUltimateLoadingSequence()
     local TweenService = game:GetService("TweenService")
     local RunService = game:GetService("RunService")
     local Lighting = game:GetService("Lighting")
 
-    -- ScreenGui + Blur
+    -- [1] CORE INFRASTRUCTURE
     local Screen = Instance.new("ScreenGui")
     Screen.Name = "SLAY_ULTIMATE_CORE"
     Screen.IgnoreGuiInset = true
     Screen.DisplayOrder = 999999
     Screen.ResetOnSpawn = false
-    Screen.Parent = game.CoreGui
+    Screen.Parent = game:GetService("CoreGui")
 
     local Blur = Instance.new("BlurEffect")
     Blur.Size = 0
     Blur.Parent = Lighting
 
-    -- Background + Gradient
+    -- CanvasGroup: หัวใจหลักในการทำให้ "หายพร้อมกัน" และ "ไม่ค้าง"
+    local MainCanvas = Instance.new("CanvasGroup")
+    MainCanvas.Size = UDim2.new(1, 0, 1, 0)
+    MainCanvas.BackgroundTransparency = 1
+    MainCanvas.GroupTransparency = 1
+    MainCanvas.Parent = Screen
+
+    -- Background
     local Background = Instance.new("Frame")
-    Background.Size = UDim2.new(1,0,1,0)
-    Background.BackgroundColor3 = Color3.fromRGB(2,5,10)
+    Background.Size = UDim2.new(1, 0, 1, 0)
+    Background.BackgroundColor3 = Color3.fromRGB(1, 2, 5)
     Background.BorderSizePixel = 0
-    Background.Parent = Screen
+    Background.Parent = MainCanvas
 
-    local Gradient = Instance.new("UIGradient", Background)
-    Gradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(50,120,255))
-    })
-    Gradient.Rotation = 45
-    task.spawn(function()
-        while Screen.Parent do
-            Gradient.Rotation += 0.2
-            task.wait(0.02)
-        end
-    end)
-
-    -- Holographic Grid
+    -- Holographic Grid (Static + Perspective)
     local GridParent = Instance.new("Frame")
-    GridParent.Size = UDim2.new(1,0,1,0)
+    GridParent.Size = UDim2.new(1, 0, 1, 0)
     GridParent.BackgroundTransparency = 1
     GridParent.Parent = Background
 
-    local function CreateGridLine(isHorizontal)
-        local line = Instance.new("Frame")
-        line.Size = isHorizontal and UDim2.new(1,0,0,1) or UDim2.new(0,1,1,0)
-        line.Position = UDim2.new(0,0,isHorizontal and math.random() or 0,0)
-        line.BackgroundColor3 = Color3.fromRGB(0,120,255)
-        line.BackgroundTransparency = 0.7
-        line.Parent = GridParent
-        return line
-    end
-
     local GridLines = {}
-    for i=1,20 do
-        table.insert(GridLines, CreateGridLine(true))
-        table.insert(GridLines, CreateGridLine(false))
+    for i = 1, 30 do
+        local line = Instance.new("Frame")
+        line.BackgroundColor3 = SlayLib.Theme.MainColor
+        line.BackgroundTransparency = 0.85
+        line.BorderSizePixel = 0
+        line.Parent = GridParent
+        
+        if i <= 15 then -- Horizontal
+            line.Size = UDim2.new(1, 0, 0, 1)
+            line.Position = UDim2.new(0, 0, i/15, 0)
+        else -- Vertical
+            line.Size = UDim2.new(0, 1, 1, 0)
+            line.Position = UDim2.new((i-15)/15, 0, 0, 0)
+        end
+        table.insert(GridLines, line)
     end
 
-    -- Logo Core
+    -- [2] VISUAL ASSETS
     local Logo = Instance.new("ImageLabel")
-    Logo.AnchorPoint = Vector2.new(0.5,0.5)
-    Logo.Position = UDim2.new(0.5,0,0.5,0)
-    Logo.Size = UDim2.new(0,0,0,0)
+    Logo.AnchorPoint = Vector2.new(0.5, 0.5)
+    Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
+    Logo.Size = UDim2.new(0, 0, 0, 0)
     Logo.Image = SlayLib.Icons.Logofull
     Logo.BackgroundTransparency = 1
-    Logo.ImageColor3 = Color3.fromRGB(255,255,255)
-    Logo.ImageTransparency = 1
-    Logo.Parent = Background
+    Logo.Parent = MainCanvas
 
-    -- Energy Rings
+    -- Orbiting Rings (เพิ่มดีเทลความหนาต่างกัน)
     local Rings = {}
-    for i=1,4 do
+    for i = 1, 4 do
         local ring = Instance.new("Frame")
-        ring.AnchorPoint = Vector2.new(0.5,0.5)
-        ring.Position = UDim2.new(0.5,0,0.5,0)
-        ring.Size = UDim2.new(0,150+i*60,0,150+i*60)
-        ring.BackgroundColor3 = SlayLib.Theme.MainColor
-        ring.BackgroundTransparency = 0.95
-        local corner = Instance.new("UICorner", ring)
-        corner.CornerRadius = UDim.new(1,0)
-        ring.Parent = Background
-        table.insert(Rings, ring)
-    end
-
-    -- Rays from center
-    local Rays = {}
-    for i=1,12 do
-        local ray = Instance.new("Frame")
-        ray.AnchorPoint = Vector2.new(0.5,1)
-        ray.Position = UDim2.new(0.5,0,0.5,0)
-        ray.Size = UDim2.new(0,2,0,120)
-        ray.Rotation = (i-1)*(360/12)
-        ray.BackgroundColor3 = SlayLib.Theme.MainColor
-        ray.BackgroundTransparency = 0.7
-        ray.Parent = Background
-        table.insert(Rays, ray)
+        ring.AnchorPoint = Vector2.new(0.5, 0.5)
+        ring.Position = UDim2.new(0.5, 0, 0.5, 0)
+        ring.Size = UDim2.new(0, 180 + i*50, 0, 180 + i*50)
+        ring.BackgroundTransparency = 1
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = SlayLib.Theme.MainColor
+        stroke.Thickness = (5-i) * 0.8
+        stroke.Transparency = 0.5 + (i*0.1)
+        stroke.Parent = ring
+        Instance.new("UICorner", ring).CornerRadius = UDim.new(1, 0)
+        ring.Parent = MainCanvas
+        table.insert(Rings, {obj = ring, speed = (i % 2 == 0 and 1 or -1) * (i * 0.5)})
     end
 
     -- Texts
     local Title = Instance.new("TextLabel")
-    Title.AnchorPoint = Vector2.new(0.5,0.5)
-    Title.Position = UDim2.new(0.5,0,0.28,0)
-    Title.Size = UDim2.new(0,400,0,30)
+    Title.Position = UDim2.new(0.5, -200, 0.3, -50)
+    Title.Size = UDim2.new(0, 400, 0, 30)
     Title.Font = Enum.Font.Code
-    Title.TextSize = 18
-    Title.Text = "SLAY ENGINE // ULTIMATE CORE"
+    Title.Text = "QUANTUM_ENGINE // INITIALIZING"
     Title.TextColor3 = SlayLib.Theme.MainColor
     Title.TextTransparency = 1
     Title.BackgroundTransparency = 1
-    Title.Parent = Background
+    Title.Parent = MainCanvas
 
     local Status = Instance.new("TextLabel")
-    Status.AnchorPoint = Vector2.new(0.5,0.5)
-    Status.Position = UDim2.new(0.5,0,0.7,0)
-    Status.Size = UDim2.new(0,400,0,20)
+    Status.Position = UDim2.new(0.5, -200, 0.7, 30)
+    Status.Size = UDim2.new(0, 400, 0, 20)
     Status.Font = Enum.Font.Code
-    Status.TextSize = 13
-    Status.Text = "Initializing Systems..."
-    Status.TextColor3 = Color3.fromRGB(180,180,180)
+    Status.Text = "LOADING ASSETS..."
+    Status.TextColor3 = Color3.fromRGB(200, 200, 200)
     Status.TextTransparency = 1
     Status.BackgroundTransparency = 1
-    Status.Parent = Background
+    Status.Parent = MainCanvas
 
-    -- Intro Animations
-    TweenService:Create(Blur, TweenInfo.new(1.2), {Size=35}):Play()
-    TweenService:Create(Logo, TweenInfo.new(1.5,Enum.EasingStyle.Elastic), {Size=UDim2.new(0,280,0,280),ImageTransparency=0}):Play()
-    TweenService:Create(Title, TweenInfo.new(1.2), {TextTransparency=0}):Play()
-    TweenService:Create(Status, TweenInfo.new(1.2), {TextTransparency=0}):Play()
-    for _,r in pairs(Rings) do
-        TweenService:Create(r,TweenInfo.new(1.5,Enum.EasingStyle.Elastic),{BackgroundTransparency=0.7}):Play()
-    end
-
-    -- Animations: Rotate Rings & Rays, Pulse Energy
-    RunService.Heartbeat:Connect(function()
-        for i,r in ipairs(Rings) do
-            r.Rotation += (i*0.8)
-            r.Size = UDim2.new(0,150+i*60+math.sin(tick()*3)*5,0,150+i*60+math.sin(tick()*3)*5)
+    -- [3] DYNAMIC ANIMATION ENGINE
+    local RuntimeConnection
+    RuntimeConnection = RunService.RenderStepped:Connect(function()
+        if not Screen.Parent then RuntimeConnection:Disconnect() return end
+        local T = tick()
+        
+        -- Pulse & Rotate
+        for _, r in ipairs(Rings) do
+            r.obj.Rotation += r.speed
+            local s = 1 + math.sin(T * 2) * 0.02
+            r.obj.Scale = s
         end
-        for _,ray in ipairs(Rays) do
-            ray.BackgroundTransparency = 0.5 + math.abs(math.sin(tick()*4))*0.3
-        end
-        for _,line in ipairs(GridLines) do
-            line.Position = UDim2.new(line.Position.X.Scale,0,(line.Position.Y.Scale+0.002)%1,0)
-        end
+        
+        -- Grid Subtle Movement
+        GridParent.Position = UDim2.new(0, 0, 0, math.sin(T) * 10)
     end)
 
-    -- Pulse Core Effect
+    -- [4] MASTER SEQUENCE
     task.spawn(function()
-        while Screen.Parent do
-            local pulse = Instance.new("Frame")
-            pulse.AnchorPoint = Vector2.new(0.5,0.5)
-            pulse.Position = UDim2.new(0.5,0,0.5,0)
-            pulse.Size = UDim2.new(0,10,0,10)
-            pulse.BackgroundColor3 = SlayLib.Theme.MainColor
-            pulse.BackgroundTransparency = 0.3
-            local corner = Instance.new("UICorner",pulse)
-            corner.CornerRadius = UDim.new(1,0)
-            pulse.Parent = Background
-            TweenService:Create(pulse,TweenInfo.new(0.8,Enum.EasingStyle.Sine),{Size=UDim2.new(0,200,0,200),BackgroundTransparency=1}):Play()
-            task.wait(0.15)
-            pulse:Destroy()
+        -- Intro
+        TweenService:Create(Blur, TweenInfo.new(1), {Size = 30}):Play()
+        TweenService:Create(MainCanvas, TweenInfo.new(1), {GroupTransparency = 0}):Play()
+        TweenService:Create(Logo, TweenInfo.new(1.5, Enum.EasingStyle.Elastic), {Size = UDim2.new(0, 220, 0, 220)}):Play()
+        TweenService:Create(Title, TweenInfo.new(1), {TextTransparency = 0}):Play()
+        TweenService:Create(Status, TweenInfo.new(1), {TextTransparency = 0.4}):Play()
+
+        -- Steps
+        local Steps = {"BOOTING_CORE", "NEURAL_LINKING", "GRID_STABILIZING", "READY"}
+        for _, s in ipairs(Steps) do
+            Status.Text = "> " .. s
+            task.wait(0.7)
         end
+        
+        task.wait(0.3)
+
+        -- [5] THE ULTIMATE EXIT (แก้ปัญหาค้าง)
+        -- บีบทุกอย่างหายไปใน Singularity
+        local ExitTween = TweenService:Create(MainCanvas, TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+            Size = UDim2.new(0, 0, 1.2, 0), -- บีบแนวนอนจนหายไป
+            Position = UDim2.new(0.5, 0, -0.1, 0),
+            GroupTransparency = 1
+        })
+        
+        ExitTween:Play()
+        TweenService:Create(Blur, TweenInfo.new(0.7), {Size = 0}):Play()
+
+        -- ใช้ Completed Event ของ Tween สุดท้ายในการลบ
+        ExitTween.Completed:Connect(function()
+            if RuntimeConnection then RuntimeConnection:Disconnect() end
+            Screen:Destroy()
+            Blur:Destroy()
+        end)
     end)
 
-    -- Status Steps
-    local Steps = {
-        "Calibrating Core Systems...",
-        "Activating Quantum Lattice...",
-        "Compiling Neural Modules...",
-        "Stabilizing Energy Grid...",
-        "Deploying Engine Framework...",
-        "System Online"
-    }
-
-    for _,step in ipairs(Steps) do
-        Status.Text = step
-        task.wait(math.random(5,8)/10)
-    end
-
-    Status.Text = "ACCESS GRANTED ✓"
-    TweenService:Create(Status,TweenInfo.new(0.4),{TextColor3=Color3.fromRGB(120,255,120)}):Play()
-    task.wait(0.5)
-
-    -- Fade-out ทุกชิ้นพร้อมกัน
-    local duration = 1.5
-    TweenService:Create(Blur,TweenInfo.new(duration),{Size=0}):Play()
-    TweenService:Create(Logo,TweenInfo.new(duration),{ImageTransparency=1}):Play()
-    TweenService:Create(Title,TweenInfo.new(duration),{TextTransparency=1}):Play()
-    TweenService:Create(Status,TweenInfo.new(duration),{TextTransparency=1}):Play()
-    for _,r in pairs(Rings) do
-        TweenService:Create(r,TweenInfo.new(duration),{BackgroundTransparency=1}):Play()
-    end
-    for _,ray in pairs(Rays) do
-        TweenService:Create(ray,TweenInfo.new(duration),{BackgroundTransparency=1}):Play()
-    end
-    for _,line in pairs(GridLines) do
-        TweenService:Create(line,TweenInfo.new(duration),{BackgroundTransparency=1}):Play()
-    end
-    TweenService:Create(Background,TweenInfo.new(duration),{BackgroundTransparency=1}):Play()
-
-    task.wait(duration)
-    Screen:Destroy()
-    Blur:Destroy()
+    -- [6] HARD FAILSAFE (ถ้า 6 วินาทียังไม่หาย ให้บังคับลบ)
+    task.delay(6, function()
+        if Screen and Screen.Parent then
+            if RuntimeConnection then RuntimeConnection:Disconnect() end
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end
+    end)
 end
+
 
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
 Config = Config or {Name = "SlayLib Ultimate"}
 
 -- Force Loading  
-ExecuteLoadingSequence()  
+ExecuteUltimateLoadingSequence()  
 
 local Window = {  
     Enabled = true,  
