@@ -233,12 +233,12 @@ local function ExecuteUltimateLoadingSequence()
     local Lighting = game:GetService("Lighting")
     local Debris = game:GetService("Debris")
 
-    -- [1] STABLE FULLSCREEN SETUP
+    -- [1] SOVEREIGN SETUP (ไร้ขอบและนิ่งที่สุด)
     local Screen = Instance.new("ScreenGui")
-    Screen.Name = "SLAY_GOD_VOID"
+    Screen.Name = "SLAY_SOVEREIGN"
     Screen.IgnoreGuiInset = true
     Screen.DisplayOrder = 999999
-    Screen.ScreenInsets = Enum.ScreenInsets.None -- ลบขอบ 100%
+    Screen.ScreenInsets = Enum.ScreenInsets.None
     Screen.Parent = game:GetService("CoreGui")
 
     local Blur = Instance.new("BlurEffect", Lighting)
@@ -264,11 +264,12 @@ local function ExecuteUltimateLoadingSequence()
     Logo.BackgroundTransparency = 1
     Logo.ImageTransparency = 1
 
-    -- --- 💥 [ฉากเปิด: THE BIG BANG] 💥 ---
+    -- --- 💥 [ฉากเปิด: THE CINEMATIC IGNITION] 💥 ---
     task.spawn(function()
-        TweenService:Create(MainFrame, TweenInfo.new(0.5), {BackgroundTransparency = 0.05}):Play()
-        TweenService:Create(Blur, TweenInfo.new(1), {Size = 35}):Play()
+        TweenService:Create(MainFrame, TweenInfo.new(0.7), {BackgroundTransparency = 0.05}):Play()
+        TweenService:Create(Blur, TweenInfo.new(1.2, Enum.EasingStyle.Quart), {Size = 35}):Play()
         
+        -- ระเบิด Shockwave แบบนุ่มนวลแต่ทรงพลัง
         for i = 1, 3 do
             local sw = Instance.new("Frame", Hub)
             sw.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -277,84 +278,80 @@ local function ExecuteUltimateLoadingSequence()
             sw.BackgroundColor3 = SlayLib.Theme.MainColor
             sw.BackgroundTransparency = 0.5
             Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
-            TweenService:Create(sw, TweenInfo.new(1, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0, 800, 0, 800), BackgroundTransparency = 1}):Play()
-            Debris:AddItem(sw, 1)
-            task.wait(0.15)
+            
+            TweenService:Create(sw, TweenInfo.new(1.2, Enum.EasingStyle.Expo, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 900, 0, 900),
+                BackgroundTransparency = 1
+            }):Play()
+            Debris:AddItem(sw, 1.2)
+            task.wait(0.18)
         end
-        TweenService:Create(Logo, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Size = UDim2.new(0, 280, 0, 280), ImageTransparency = 0}):Play()
+        
+        -- โลโก้ปรากฏแบบ Smooth Elastic
+        TweenService:Create(Logo, TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 260, 0, 260),
+            ImageTransparency = 0
+        }):Play()
     end)
 
-    -- [2] DYNAMIC STATUS
+    -- [2] STATUS ENGINE
     local Status = Instance.new("TextLabel", MainFrame)
     Status.AnchorPoint = Vector2.new(0.5, 0.5)
-    Status.Position = UDim2.new(0.5, 0, 0.85, 0)
+    Status.Position = UDim2.new(0.5, 0, 0.84, 0)
     Status.Size = UDim2.new(0, 500, 0, 20)
     Status.Font = Enum.Font.Code
     Status.TextColor3 = SlayLib.Theme.MainColor
-    Status.TextSize = 16
+    Status.TextSize = 14
     Status.BackgroundTransparency = 1
     Status.TextTransparency = 1
-    Status.Text = "EXECUTING_MODULES..."
+    Status.Text = "SOVEREIGN_ENGINE_v2.0"
 
-    TweenService:Create(Status, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
-    task.wait(2.5)
-
-    -- --- ☣️ [ฉากปิด: THE GLITCH EXECUTION] ☣️ ---
-    task.wait(0.2)
+    TweenService:Create(Status, TweenInfo.new(0.8), {TextTransparency = 0.2}):Play()
     
-    -- จังหวะ 1: White Flash & Distortion (แสงขาววาบและสั่น)
-    local Flash = Instance.new("Frame", Screen)
-    Flash.Size = UDim2.new(1, 0, 1, 0)
-    Flash.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    Flash.BackgroundTransparency = 1
-    Flash.ZIndex = 10
-    Flash.BorderSizePixel = 0
+    local Steps = {"SYNCING...", "AUTHORIZING...", "STABILIZING...", "READY"}
+    for _, msg in ipairs(Steps) do
+        Status.Text = "> " .. msg
+        task.wait(0.7)
+    end
 
-    -- เริ่มการสั่นระดับ Overdrive
-    local ShakeLoop = task.spawn(function()
-        while true do
-            MainFrame.Position = UDim2.new(0, math.random(-20, 20), 0, math.random(-20, 20))
-            Logo.ImageColor3 = (math.random() > 0.5) and Color3.new(1,1,1) or SlayLib.Theme.MainColor
-            task.wait(0.02)
-        end
-    end)
-
-    -- Flash แสงขาววาบขึ้นมา
-    TweenService:Create(Flash, TweenInfo.new(0.15), {BackgroundTransparency = 0.3}):Play()
-    
-    task.wait(0.15)
-    task.cancel(ShakeLoop) -- หยุดสั่นแล้วเข้าสู่จังหวะ "ฉีก"
-    
-    -- จังหวะ 2: The Void Breach (ฉีกหน้าจอและดูดหาย)
-    TweenService:Create(Flash, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+    -- --- 🌪️ [ฉากปิด: THE VOID COMPRESSION] 🌪️ ---
+    task.wait(0.3)
     
     local FinalInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
     
-    -- กระชากโลโก้ให้แบนเป็นเส้นแสงแนวตั้ง (The Needle)
+    -- 1. เตรียมระเบิด (Anticipation)
+    TweenService:Create(Logo, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.new(0, 300, 0, 300) -- เด้งขยายขึ้นนิดนึงก่อนยุบ
+    }):Play()
+    
+    task.wait(0.2)
+    
+    -- 2. ยุบมิติแบบฉับพลัน (Compression)
+    -- โลโก้บีบเป็นเส้นตั้ง พื้นหลังบีบเป็นเส้นนอน
     TweenService:Create(Logo, FinalInfo, {
-        Size = UDim2.new(0, 5, 0, 2000), -- ยืดแนวตั้งยาวทะลุจอ
-        ImageColor3 = Color3.new(1,1,1),
-        ImageTransparency = 0.5
+        Size = UDim2.new(0, 2, 0, 1500), -- กลายเป็นเส้นแสงแนวตั้งพุ่งยาว
+        ImageTransparency = 1,
+        ImageColor3 = Color3.new(1,1,1)
     }):Play()
 
-    -- กระชากพื้นหลังให้ยุบหายไปเป็นเส้นแสงแนวนอน (The Rift)
     local FinalCollapse = TweenService:Create(MainFrame, FinalInfo, {
-        Size = UDim2.new(1, 0, 0, 0), -- บีบจนหายไป
-        Position = UDim2.new(0, 0, 0.5, 0),
+        Size = UDim2.new(1.2, 0, 0, 0), -- ยืดออกแนวนอนแล้วหายวับ
+        Position = UDim2.new(-0.1, 0, 0.5, 0),
         BackgroundTransparency = 1
     })
     
     FinalCollapse:Play()
     TweenService:Create(Blur, TweenInfo.new(0.6), {Size = 0}):Play()
-    Status:Destroy()
+    TweenService:Create(Status, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
 
+    -- [3] CLEAN UP (The Final Snap)
     FinalCollapse.Completed:Connect(function()
         Screen:Destroy()
         if Blur then Blur:Destroy() end
     end)
 
-    -- Emergency Kill
-    task.delay(5, function() if Screen then Screen:Destroy() end end)
+    -- Failsafe
+    task.delay(6, function() if Screen then Screen:Destroy() end end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
