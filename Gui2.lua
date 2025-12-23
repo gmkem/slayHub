@@ -346,6 +346,8 @@ end
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib Ultimate"}
 
+ExecuteFinalSovereign()
+
     -- 1. ล้างค่า UI เก่าป้องกันการรันซ้อน
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
