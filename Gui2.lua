@@ -375,103 +375,121 @@ end
 
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
-    Config = Config or {Name = "SlayLib X"}
-
-ExecuteFinalSovereign()
-
-    -- 1. Cleanup Old UI
+    Config = Config or {Name = "SlayLib X Ultimate"}
+    
+    -- 1. Anti Re-execute & Loading Effects
+    ExecuteFinalSovereign()
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
     local Window = { Toggled = true, Tabs = {}, CurrentTab = nil }
 
-    -- 2. Root Setup
+    -- 2. Core GUI Root
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    --// [3] MAIN FRAME
-local MainFrame = Create("Frame", {
-    Name = "MainFrame",
-    Size = UDim2.new(0, 620, 0, 440),
-    Position = UDim2.new(0.5, 0, 0.5, 0),
-    AnchorPoint = Vector2.new(0.5, 0.5),
-    BackgroundColor3 = SlayLib.Theme.Background,
-    Parent = CoreGuiFrame,
-    ZIndex = 5,
-    ClipsDescendants = true,
-    Visible = true
-})
-Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
+    -- 3. [MAIN FRAME]
+    local MainFrame = Create("Frame", {
+        Name = "MainFrame",
+        Size = UDim2.new(0, 620, 0, 440),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = SlayLib.Theme.Background,
+        Parent = CoreGuiFrame,
+        ZIndex = 5,
+        ClipsDescendants = true,
+        Visible = true
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
+    local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.5, Parent = MainFrame})
 
---// [4] SIDEBAR (ปรับ ZIndex ให้ต่ำกว่าพื้นที่แสดงผล)
-local SidebarWidth = 155
-local Sidebar = Create("Frame", {
-    Name = "Sidebar",
-    Size = UDim2.new(0, SidebarWidth, 1, 0),
-    BackgroundColor3 = SlayLib.Theme.Sidebar,
-    BorderSizePixel = 0,
-    Parent = MainFrame,
-    ZIndex = 6 -- ลดลงมาเพื่อให้ Content ลอยทับได้ถ้าจำเป็น
-})
-Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Sidebar})
+    -- 4. [SIDEBAR] - ความกว้าง 155 ตามสั่ง และ ZIndex ต่ำกว่า Content เพื่อป้องกันการทับขอบ
+    local SidebarWidth = 155
+    local Sidebar = Create("Frame", {
+        Name = "Sidebar",
+        Size = UDim2.new(0, SidebarWidth, 1, 0),
+        BackgroundColor3 = SlayLib.Theme.Sidebar,
+        BorderSizePixel = 0,
+        Parent = MainFrame,
+        ZIndex = 6 -- อยู่ชั้นล่างกว่า Content
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = Sidebar})
 
---// [5] CONTENT AREA (แก้ปัญหาขอบโดนกินที่นี่)
-local PageContainer = Create("Frame", {
-    Name = "PageContainer",
-    -- เพิ่มช่องว่างตรง SidebarWidth + 12 (จากเดิม +10) เพื่อให้มีที่หายใจสำหรับ Stroke
-    Size = UDim2.new(1, -SidebarWidth - 25, 1, -20), 
-    Position = UDim2.new(0, SidebarWidth + 12, 0, 10),  
-    BackgroundTransparency = 1,
-    ClipsDescendants = false, -- สำคัญ: ปิดเพื่อให้เส้น Stroke โผล่ออกมาได้ไม่โดนตัด
-    ZIndex = 10, -- ตั้งให้สูงกว่า Sidebar ชัดเจน
-    Parent = MainFrame  
-})
+    -- Title: จัดวางกึ่งกลาง Sidebar เป๊ะๆ ไม่เอียง
+    local SideHeader = Create("Frame", {
+        Size = UDim2.new(1, 0, 0, 65),
+        BackgroundTransparency = 1,
+        Parent = Sidebar,
+        ZIndex = 10
+    })
 
--- เส้นแบ่ง (Divider) ขยับตำแหน่งให้เหมาะสมไม่ทับโมดูล
-local Divider = Create("Frame", {
-    Size = UDim2.new(0, 1, 1, -40),
-    Position = UDim2.new(0, -6, 0, 20), -- ขยับออกมาจากขอบโมดูลเล็กน้อย
-    BackgroundColor3 = SlayLib.Theme.MainColor,
-    BackgroundTransparency = 0.8,
-    ZIndex = 8,
-    Parent = PageContainer
-})
+    local Title = Create("TextLabel", {
+        Text = Config.Name,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = "GothamBold",
+        TextSize = 14,
+        TextColor3 = SlayLib.Theme.Text,
+        TextXAlignment = "Center", -- กึ่งกลางเป๊ะ
+        BackgroundTransparency = 1,
+        Parent = SideHeader,
+        ZIndex = 11
+    })
 
-    -- 6. [FLOATING TOGGLE] - ทรงกลมเนียนๆ
+    -- Tab Scroll Area
+    local TabScroll = Create("ScrollingFrame", {
+        Size = UDim2.new(1, -10, 1, -75),
+        Position = UDim2.new(0, 5, 0, 70),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = "Y",
+        Parent = Sidebar,
+        ZIndex = 10
+    })
+    Create("UIListLayout", {Parent = TabScroll, Padding = UDim.new(0, 5), HorizontalAlignment = "Center"})
+
+    -- 5. [PAGE CONTAINER] - แก้ปัญหาขอบโดนกิน
+    local PageContainer = Create("Frame", {
+        Name = "PageContainer",
+        -- เว้นระยะห่างจาก Sidebar 12px เพื่อให้ Stroke มีที่ว่าง ไม่โดนตัด
+        Size = UDim2.new(1, -SidebarWidth - 25, 1, -20),
+        Position = UDim2.new(0, SidebarWidth + 12, 0, 10),
+        BackgroundTransparency = 1,
+        ClipsDescendants = false, -- ปิดเพื่อให้ขอบโมดูล (Stroke) แสดงผลได้ครบไม่โดน Clip
+        ZIndex = 20, -- อยู่ชั้นบนสุดของ MainFrame เสมอ
+        Parent = MainFrame
+    })
+
+    -- เส้นแบ่ง (Divider) ขยับตำแหน่งไม่ให้ทับกับขอบโมดูล
+    local Divider = Create("Frame", {
+        Size = UDim2.new(0, 1, 1, -40),
+        Position = UDim2.new(0, -6, 0, 20),
+        BackgroundColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 0.8,
+        ZIndex = 15,
+        Parent = PageContainer
+    })
+
+    -- 6. [FLOATING TOGGLE]
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
         Size = UDim2.new(0, 50, 0, 50),
         Position = UDim2.new(0.05, 0, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(25, 25, 27),
+        BackgroundColor3 = SlayLib.Theme.Element,
         Parent = CoreGuiFrame,
         ZIndex = 100
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
     Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
 
-    local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 26, 0, 26),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Image = SlayLib.Icons.Logo,
-        ImageColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1,
-        Parent = FloatingToggle
-    })
-
-    local ToggleButton = Create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundTransparency = 1,
-        Text = "",
-        Parent = FloatingToggle
-    })
-
-    -- 7. Systems (Drag & Animation)
+    local ToggleButton = Create("TextButton", {Size = UDim2.new(1,0,1,0), BackgroundTransparency = 1, Text = "", Parent = FloatingToggle})
+    
+    -- 7. Systems (Drag & Visibility)
+    RegisterDrag(MainFrame, SideHeader)
     RegisterDrag(FloatingToggle, FloatingToggle)
-    RegisterDrag(MainFrame, Sidebar) -- ลากได้จากแผง Sidebar ทั้งแผง
 
     ToggleButton.MouseButton1Click:Connect(function()
         Window.Toggled = not Window.Toggled
@@ -480,12 +498,10 @@ local Divider = Create("Frame", {
             MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.35, true)
         else
             MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quart", 0.3, true)
-            task.delay(0.3, function() 
-                if not Window.Toggled then MainFrame.Visible = false end 
-            end)
+            task.delay(0.3, function() if not Window.Toggled then MainFrame.Visible = false end end)
         end
     end)
-
+            
     -- [1] SIDEBAR (จัดตำแหน่งให้มีช่องว่าง Margin เล็กน้อยเพื่อให้ดูโมเดิร์น)
     local Sidebar = Create("Frame", {  
         Name = "Sidebar",
@@ -559,110 +575,99 @@ local Divider = Create("Frame", {
     RegisterDrag(MainFrame, SideHeader)  
 
     --// [TAB CREATOR LOGIC]
-    function Window:CreateTab(Name, IconID)  
-        local Tab = {Active = false, Page = nil, Button = nil}  
-
-        -- ปุ่ม Tab
-        local TabBtn = Create("TextButton", {  
-            Name = Name .. "_Tab",
-            Size = UDim2.new(0, 185, 0, 40), 
-            BackgroundTransparency = 1, 
-            Text = "", 
+    function Window:CreateTab(Name, IconID)
+        local Tab = {Active = false}
+        
+        local TabBtn = Create("TextButton", {
+            Size = UDim2.new(1, -10, 0, 38),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 1,
+            Text = "",
             ZIndex = 15,
-            Parent = TabScroll  
-        })  
-        Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = TabBtn})  
-
-        local TabIcon = Create("ImageLabel", {  
-            Size = UDim2.new(0, 18, 0, 18), 
-            Position = UDim2.new(0, 15, 0.5, -9),  
-            Image = IconID or SlayLib.Icons.Folder, 
-            BackgroundTransparency = 1,  
-            ImageColor3 = SlayLib.Theme.TextSecondary, 
+            Parent = TabScroll
+        })
+        Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = TabBtn})
+        
+        local TabLbl = Create("TextLabel", {
+            Text = Name,
+            Size = UDim2.new(1, -40, 1, 0),
+            Position = UDim2.new(0, 35, 0, 0),
+            Font = "GothamMedium",
+            TextSize = 13,
+            TextColor3 = SlayLib.Theme.TextSecondary,
+            TextXAlignment = "Left",
+            BackgroundTransparency = 1,
             ZIndex = 16,
-            Parent = TabBtn  
-        })  
+            Parent = TabBtn
+        })
 
-        local TabLbl = Create("TextLabel", {  
-            Text = Name, 
-            Size = UDim2.new(1, -50, 1, 0), 
-            Position = UDim2.new(0, 42, 0, 0),  
-            Font = "GothamMedium", 
-            TextSize = 13, 
-            TextColor3 = SlayLib.Theme.TextSecondary,  
-            TextXAlignment = "Left", 
-            BackgroundTransparency = 1, 
+        local TabIcon = Create("ImageLabel", {
+            Size = UDim2.new(0, 18, 0, 18),
+            Position = UDim2.new(0, 10, 0.5, -9),
+            Image = IconID or SlayLib.Icons.Folder,
+            ImageColor3 = SlayLib.Theme.TextSecondary,
+            BackgroundTransparency = 1,
             ZIndex = 16,
-            Parent = TabBtn  
-        })  
+            Parent = TabBtn
+        })
 
-        -- หน้า Page สำหรับ Tab นี้
-        local Page = Create("ScrollingFrame", {  
-            Name = Name .. "_Page",
-            Size = UDim2.new(1, 0, 1, 0), 
-            BackgroundTransparency = 1,  
-            Visible = false, 
-            ScrollBarThickness = 2, 
-            ScrollBarImageColor3 = SlayLib.Theme.MainColor,  
-            CanvasSize = UDim2.new(0,0,0,0), 
-            AutomaticCanvasSize = "Y", 
-            ZIndex = 20,
-            Parent = PageContainer  
-        })  
-        Create("UIListLayout", {Parent = Page, Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder})  
-        Create("UIPadding", {Parent = Page, PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 5)})  
+        local Page = Create("ScrollingFrame", {
+            Size = UDim2.new(1, 0, 1, 0),
+            BackgroundTransparency = 1,
+            Visible = false,
+            ScrollBarThickness = 2,
+            ScrollBarImageColor3 = SlayLib.Theme.MainColor,
+            CanvasSize = UDim2.new(0,0,0,0),
+            AutomaticCanvasSize = "Y",
+            ZIndex = 25,
+            Parent = PageContainer
+        })
+        Create("UIListLayout", {Parent = Page, Padding = UDim.new(0, 10)})
+        Create("UIPadding", {Parent = Page, PaddingRight = UDim.new(0, 5), PaddingTop = UDim.new(0, 2)})
 
-        -- คลิกเพื่อเปลี่ยน Tab
-        TabBtn.MouseButton1Click:Connect(function()  
-            if Window.CurrentTab and Window.CurrentTab.Button ~= TabBtn then  
-                -- ซ่อนหน้าเก่า
-                Window.CurrentTab.Page.Visible = false  
-                Tween(Window.CurrentTab.Button, {BackgroundTransparency = 1}, 0.3)  
-                Tween(Window.CurrentTab.Label, {TextColor3 = SlayLib.Theme.TextSecondary}, 0.3)  
-                Tween(Window.CurrentTab.Icon, {ImageColor3 = SlayLib.Theme.TextSecondary}, 0.3)  
-            end  
+        TabBtn.MouseButton1Click:Connect(function()
+            if Window.CurrentTab then
+                Window.CurrentTab.Page.Visible = false
+                Tween(Window.CurrentTab.Btn, {BackgroundTransparency = 1}, 0.2)
+                Tween(Window.CurrentTab.Lbl, {TextColor3 = SlayLib.Theme.TextSecondary}, 0.2)
+                Tween(Window.CurrentTab.Icon, {ImageColor3 = SlayLib.Theme.TextSecondary}, 0.2)
+            end
+            Window.CurrentTab = {Page = Page, Btn = TabBtn, Lbl = TabLbl, Icon = TabIcon}
+            Page.Visible = true
+            Tween(TabBtn, {BackgroundTransparency = 0.85, BackgroundColor3 = SlayLib.Theme.MainColor}, 0.2)
+            Tween(TabLbl, {TextColor3 = SlayLib.Theme.MainColor}, 0.2)
+            Tween(TabIcon, {ImageColor3 = SlayLib.Theme.MainColor}, 0.2)
+        end)
 
-            -- แสดงหน้าใหม่
-            Window.CurrentTab = {Page = Page, Button = TabBtn, Label = TabLbl, Icon = TabIcon}  
-            Page.Visible = true  
-            Tween(TabBtn, {BackgroundTransparency = 0.85, BackgroundColor3 = SlayLib.Theme.MainColor}, 0.3)  
-            Tween(TabLbl, {TextColor3 = SlayLib.Theme.MainColor}, 0.3)  
-            Tween(TabIcon, {ImageColor3 = SlayLib.Theme.MainColor}, 0.3)  
-        end)  
-
-        -- เลือก Tab แรกให้อัตโนมัติ
-        if not Window.CurrentTab then  
-            Window.CurrentTab = {Page = Page, Button = TabBtn, Label = TabLbl, Icon = TabIcon}  
-            Page.Visible = true  
+        if not Window.CurrentTab then
+            Window.CurrentTab = {Page = Page, Btn = TabBtn, Lbl = TabLbl, Icon = TabIcon}
+            Page.Visible = true
             TabBtn.BackgroundTransparency = 0.85
             TabBtn.BackgroundColor3 = SlayLib.Theme.MainColor
-            TabLbl.TextColor3 = SlayLib.Theme.MainColor  
-            TabIcon.ImageColor3 = SlayLib.Theme.MainColor  
-        end  
+            TabLbl.TextColor3 = SlayLib.Theme.MainColor
+            TabIcon.ImageColor3 = SlayLib.Theme.MainColor
+        end
 
-           --// [SECTION CREATOR]
-    function Tab:CreateSection(SName)  
-        local Section = {}  
-
-        -- กล่องหัวข้อ Section
-        local SectFrame = Create("Frame", {  
-            Name = SName .. "_Section",
-            Size = UDim2.new(1, 0, 0, 32), 
-            BackgroundTransparency = 1, 
-            ZIndex = 21,
-            Parent = Page  
-        })  
-        local SectLabel = Create("TextLabel", {  
-            Text = SName:upper(), 
-            Size = UDim2.new(1, 0, 1, 0),  
-            Font = "GothamBold", 
-            TextSize = 12, 
-            TextColor3 = SlayLib.Theme.MainColor, 
-            BackgroundTransparency = 1, 
-            TextXAlignment = "Left", 
-            ZIndex = 22,
-            Parent = SectFrame  
-        })  
+    -- // [SECTION CREATOR]
+        function Tab:CreateSection(SName)
+            local Section = {}
+            local SectFrame = Create("Frame", {
+                Size = UDim2.new(1, 0, 0, 25),
+                BackgroundTransparency = 1,
+                ZIndex = 26,
+                Parent = Page
+            })
+            Create("TextLabel", {
+                Text = SName:upper(),
+                Size = UDim2.new(1, 0, 1, 0),
+                Font = "GothamBold",
+                TextSize = 12,
+                TextColor3 = SlayLib.Theme.MainColor,
+                TextXAlignment = "Left",
+                BackgroundTransparency = 1,
+                ZIndex = 27,
+                Parent = SectFrame
+            })
 
         -- 1. [UPGRADED] TOGGLE (เน้นความชัดเจนและ Clickable Area)
         function Section:CreateToggle(Props)  
