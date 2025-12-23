@@ -231,8 +231,9 @@ end
 local function ExecuteLoadingSequence()
     local RS = game:GetService("RunService")
     
+    -- 1. CLEAN SETUP (เลิกใช้ CanvasGroup เพื่อตัดปัญหา Freeze)
     local Screen = Create("ScreenGui", {
-        Name = "SlayStableBreach",
+        Name = "SlayFinalSingularity",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -240,7 +241,6 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- ใช้ Frame ธรรมดา (ไม่ใช้ CanvasGroup เพื่อป้องกันอาการ Freeze)
     local MainFrame = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -248,96 +248,130 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- [1] THE HUB & LOGO
+    -- 2. QUANTUM ARCHITECTURE (ดีไซน์เจาะลึก)
     local Hub = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
+        Size = UDim2.new(0, 350, 0, 350),
+        Position = UDim2.new(0.5, -175, 0.5, -175),
         BackgroundTransparency = 1,
         Parent = MainFrame
     })
 
+    -- สร้าง "เส้นนำสายตา" (Scanning Lines)
+    local function CreateScanner()
+        local S = Create("Frame", {
+            Size = UDim2.new(1.2, 0, 0, 1),
+            Position = UDim2.new(-0.1, 0, 0.5, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.5,
+            BorderSizePixel = 0,
+            Parent = MainFrame
+        })
+        return S
+    end
+    local ScanLine = CreateScanner()
+
+    -- วงโคจรควอนตัม (ใช้ Stroke หนา/บางสลับกัน)
+    local function CreateOrbit(size, thickness, transparency)
+        local O = Create("Frame", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            BackgroundTransparency = 1, Parent = Hub
+        })
+        Create("UIStroke", {
+            Color = SlayLib.Theme.MainColor,
+            Thickness = thickness,
+            Transparency = transparency,
+            Parent = O
+        })
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = O})
+        return O
+    end
+
+    local Orbit1 = CreateOrbit(280, 2, 0.2)
+    local Orbit2 = CreateOrbit(320, 1, 0.6)
+
+    -- โลโก้ (The Core)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(0, 180, 0, 180),
+        Position = UDim2.new(0.5, -90, 0.5, -90),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
         ImageTransparency = 1,
+        ZIndex = 10,
         Parent = Hub
     })
 
-    -- [2] VECTOR BRACKETS (มุมฉากที่เห็นในรูปของคุณ)
-    local function CreateBracket(name, pos)
-        local B = Create("Frame", {
-            Name = name,
-            Size = UDim2.new(0, 50, 0, 50),
-            Position = pos,
-            BackgroundTransparency = 1,
-            Parent = Hub
-        })
-        Create("Frame", {Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
-        Create("Frame", {Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
-        return B
-    end
-
-    local TL = CreateBracket("TL", UDim2.new(0, 0, 0, 0))
-    local BR = CreateBracket("BR", UDim2.new(1, -50, 1, -50))
-    BR.Frame.Position = UDim2.new(1, -2, 0, 0) -- ปรับตำแหน่งเส้นให้เป็นมุมฉากด้านขวาล่าง
-    BR.Frame_1.Position = UDim2.new(0, 0, 1, -2)
-
-    -- --- MASTER LOGIC: NO-TWEEN SYSTEM ---
+    -- 3. MASTER CONTROLLER (ระบบลูปเดียวคุมโลก)
     local StartTime = tick()
-    local Duration = 3.0 -- ระยะเวลาโหลด 3 วินาทีตามที่ขอ
+    local Duration = 3.0
+    local Connection
     local IsClosing = false
 
-    local Connection
     Connection = RS.RenderStepped:Connect(function()
+        if not Screen or not Screen.Parent then 
+            Connection:Disconnect() 
+            return 
+        end
+
         local Elapsed = tick() - StartTime
-        
+        local T = tick()
+
+        -- [PHASE 1 & 2: APPEAR & ACTIVE]
         if Elapsed < Duration then
-            -- แอนิเมชันช่วงเปิด (Fade In)
-            local Alpha = math.clamp(Elapsed / 0.5, 0, 1)
-            MainFrame.BackgroundTransparency = 1 - (Alpha * 0.95)
-            Logo.ImageTransparency = 1 - Alpha
-            Blur.Size = Alpha * 25
+            local FadeAlpha = math.clamp(Elapsed / 0.8, 0, 1)
             
-            -- แอนิเมชันวงฉากขยับ (Pulse)
-            local S = 1 + (math.sin(tick() * 4) * 0.05)
-            Hub.Size = UDim2.new(0, 300 * S, 0, 300 * S)
-            Hub.Position = UDim2.new(0.5, -(150 * S), 0.5, -(150 * S))
+            -- การแสดงผลพื้นฐาน
+            MainFrame.BackgroundTransparency = 1 - (FadeAlpha * 0.96)
+            Logo.ImageTransparency = 1 - FadeAlpha
+            Blur.Size = FadeAlpha * 28
             
+            -- แอนิเมชันแอดวานซ์
+            Orbit1.Rotation = T * 90
+            Orbit2.Rotation = T * -45
+            ScanLine.Position = UDim2.new(-0.1, 0, 0.5 + math.sin(T * 2) * 0.4, 0)
+            
+            -- จังหวะหัวใจ Core (Breathing Effect)
+            local Pulse = 1 + (math.sin(T * 4) * 0.03)
+            Hub.Scale = Pulse -- ใช้ Scale แทนการปรับ Size โดยตรงเพื่อความนิ่ง
+            
+        -- [PHASE 3: THE FINAL COLLAPSE]
         elseif not IsClosing then
-            -- เริ่มกระบวนการปิด (Force Close)
             IsClosing = true
-            local CloseStart = tick()
-            
-            -- สร้างลูปปิดที่แยกเป็นเอกเทศ ไม่พึ่ง TweenService
+            Connection:Disconnect() -- หยุดลูปหลักเพื่อเปลี่ยนโหมด
+
+            -- ใช้ Task Spawn แยกออกมาเพื่อทำแอนิเมชันขาออกโดยเฉพาะ
             task.spawn(function()
-                while tick() - CloseStart < 0.5 do
-                    local t = (tick() - CloseStart) / 0.5
+                local ExitStart = tick()
+                while tick() - ExitStart < 0.6 do
+                    local t = (tick() - ExitStart) / 0.6
                     local inv = 1 - t
                     
-                    -- แอนิเมชันขาออก: บีบแบนเป็นเส้นแนวนอน
-                    MainFrame.Size = UDim2.new(1, 0, inv, 0)
-                    MainFrame.Position = UDim2.new(0, 0, t/2, 0)
+                    -- หายแบบ "Singularity" (ยุบลงเป็นจุดกึ่งกลาง)
+                    Hub.Size = UDim2.new(0, 350 * inv, 0, 350 * inv)
+                    Hub.Position = UDim2.new(0.5, -(175 * inv), 0.5, -(175 * inv))
+                    Hub.Rotation = t * 180 -- หมุนวนขณะหาย
+                    
                     Logo.ImageTransparency = t
-                    Blur.Size = 25 * inv
+                    MainFrame.BackgroundTransparency = 0.04 + (t * 0.96)
+                    Blur.Size = 28 * inv
+                    ScanLine.BackgroundTransparency = 1
                     
                     RS.RenderStepped:Wait()
                 end
                 
-                -- ลบทิ้งทันทีหลังแอนิเมชันขาออกจบ
-                Connection:Disconnect()
+                -- CLEANUP ขั้นเด็ดขาด
                 Screen:Destroy()
-                Blur:Destroy()
+                if Blur then Blur:Destroy() end
             end)
         end
     end)
 
-    -- ** EMERGENCY TERMINATOR **
-    -- ไม่ว่าแอนิเมชันจะค้างหรือไม่ 5 วินาทีหน้าจอนี้ "ต้องหายไป"
+    -- 4. ABSOLUTE TERMINATOR (ระบบตัดไฟฉุกเฉิน)
     task.delay(5, function()
-        if Connection then Connection:Disconnect() end
-        if Screen and Screen.Parent then Screen:Destroy() end
-        if Blur then Blur:Destroy() end
+        if Screen and Screen.Parent then
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end
     end)
 end
 
