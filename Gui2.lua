@@ -229,9 +229,8 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- [1] INITIAL SETUP
     local Screen = Create("ScreenGui", {
-        Name = "SlayUltraCore",
+        Name = "SlayUltraStable",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -239,136 +238,104 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- Main Container: ใช้ CanvasGroup เพื่อความสมูทในการ Fade และ Collapse
-    local MainCanvas = Create("CanvasGroup", {
+    -- ใช้ Frame ปกติเป็นตัวหุ้มแทนเพื่อความเสถียรสูงสุด
+    local MainFrame = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
-        GroupTransparency = 1,
         Parent = Screen
     })
 
-    -- Background: Ultra Dark (0,0,0) พร้อม Vignette สร้างเอง
+    -- Background
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BorderSizePixel = 0,
-        Parent = MainCanvas
+        Parent = MainFrame
     })
 
-    -- [2] ULTRA QUANTUM CORE (ศูนย์กลางพลังงานระดับสูง)
-    local CoreContainer = Create("Frame", {
-        Size = UDim2.new(0, 500, 0, 500),
-        Position = UDim2.new(0.5, -250, 0.5, -250),
+    -- [1] THE QUANTUM CORE (สร้างด้วย Frame และ Stroke)
+    local Core = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 300),
+        Position = UDim2.new(0.5, -150, 0.5, -150),
         BackgroundTransparency = 1,
-        Parent = MainCanvas
+        Parent = MainFrame
     })
 
-    -- สร้าง "Quantum Rings" 4 ชั้นที่มีความหนาและ Dash ต่างกัน
-    local function CreateUltraRing(size, speed, thickness, dash)
-        local Ring = Create("Frame", {
+    local Logo = Create("ImageLabel", {
+        Size = UDim2.new(1, 0, 1, 0),
+        Image = SlayLib.Icons.Logofull,
+        BackgroundTransparency = 1,
+        ImageTransparency = 1,
+        Parent = Core
+    })
+
+    -- สร้างวงแหวนพลังงาน (Procedural)
+    local function AddRing(size, rotSpeed)
+        local R = Create("Frame", {
             Size = UDim2.new(0, size, 0, size),
             Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            BackgroundTransparency = 1,
-            Parent = CoreContainer
+            BackgroundTransparency = 1, Parent = Core
         })
-        local Stroke = Create("UIStroke", {
-            Color = SlayLib.Theme.MainColor,
-            Thickness = thickness,
-            DashPattern = dash,
-            Parent = Ring
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
-        
+        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, DashPattern = {5, 5}, Parent = R})
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = R})
         task.spawn(function()
             while Screen and Screen.Parent do
-                Ring.Rotation = Ring.Rotation + speed
+                R.Rotation = R.Rotation + rotSpeed
                 task.wait()
             end
         end)
     end
+    AddRing(250, 2)
+    AddRing(350, -1)
 
-    CreateUltraRing(300, 2.5, 3, {2, 10}) -- ชั้นในสุด (เร็ว)
-    CreateUltraRing(350, -1.2, 1.5, {10, 20}) -- ชั้นกลาง (ช้าสวนทาง)
-    CreateUltraRing(420, 0.5, 1, {5, 5}) -- ชั้นนอกสุด (เน้นรายละเอียด)
+    -- --- ANIMATION LOGIC (3 SECONDS) ---
+    -- เปิดตัว
+    Tween(Blur, {Size = 25}, 0.5):Play()
+    Tween(Logo, {ImageTransparency = 0}, 0.5):Play()
 
-    -- โลโก้กลางปฏิกรณ์
-    local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 160, 0, 160),
-        Position = UDim2.new(0.5, -80, 0.5, -80),
-        Image = SlayLib.Icons.Logofull,
-        BackgroundTransparency = 1,
-        ZIndex = 10,
-        Parent = CoreContainer
-    })
-
-    -- [3] DYNAMIC SCANNER (เส้นสแกนคู่ที่ตัดผ่านจอ)
-    local function CreateScanner(name, yPos)
-        local S = Create("Frame", {
-            Size = UDim2.new(1, 0, 0, 2),
-            Position = UDim2.new(0, 0, yPos, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.7,
-            BorderSizePixel = 0,
-            Parent = MainCanvas
-        })
-        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = S})
-        return S
-    end
-    local TopScan = CreateScanner("Top", 0.2)
-    local BtmScan = CreateScanner("Bottom", 0.8)
-
-    -- --- ULTRA SEQUENCE (3 SECONDS) ---
-    Tween(Blur, {Size = 40}, 1):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
-
-    -- วนลูปการสแกน
-    task.spawn(function()
-        while Screen and Screen.Parent do
-            Tween(TopScan, {Position = UDim2.new(0, 0, 0.8, 0)}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true):Play()
-            Tween(BtmScan, {Position = UDim2.new(0, 0, 0.2, 0)}, 1.5, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true):Play()
-            task.wait(3)
+    -- วงจรโหลด (3 วินาที)
+    local StartTime = tick()
+    local Connection
+    Connection = game:GetService("RunService").RenderStepped:Connect(function()
+        if not Screen or not Screen.Parent then Connection:Disconnect() return end
+        
+        local Elapsed = tick() - StartTime
+        -- เพิ่มเอฟเฟกต์ Pulsing ให้ Core ดูมีชีวิต
+        local Scale = 1 + (math.sin(tick() * 5) * 0.05)
+        Core.Size = UDim2.new(0, 300 * Scale, 0, 300 * Scale)
+        Core.Position = UDim2.new(0.5, -(150 * Scale), 0.5, -(150 * Scale))
+        
+        if Elapsed >= 3 then
+            Connection:Disconnect()
+            
+            -- [EXIT SEQUENCE] - ใช้ลูปปิดเอง ไม่ใช้ Tween กันค้าง
+            task.spawn(function()
+                for i = 0, 1, 0.1 do
+                    if not Screen then break end
+                    local inv = 1 - i
+                    -- ยุบจอแนวตั้งแบบ Quantum Collapse
+                    MainFrame.Size = UDim2.new(1, 0, inv, 0)
+                    MainFrame.Position = UDim2.new(0, 0, i/2, 0)
+                    Bg.BackgroundTransparency = i
+                    Logo.ImageTransparency = i
+                    Blur.Size = 25 * inv
+                    task.wait(0.03)
+                end
+                
+                -- ลบทิ้งทันทีหลังลูปจบ
+                if Screen then Screen:Destroy() end
+                if Blur then Blur:Destroy() end
+            end)
         end
     end)
 
-    -- Timeline Sequence
-    task.wait(1) -- Stage 1: Stabilization
-    Tween(Logo, {Size = UDim2.new(0, 200, 0, 200), Position = UDim2.new(0.5, -100, 0.5, -100)}, 0.5, Enum.EasingStyle.BackOut):Play()
-    
-    task.wait(1) -- Stage 2: Energy Spike (Glitch)
-    for i = 1, 10 do
-        MainCanvas.Position = UDim2.new(0, math.random(-15, 15), 0, math.random(-15, 15))
-        Logo.ImageColor3 = (i % 2 == 0) and SlayLib.Theme.MainColor or Color3.fromRGB(255, 255, 255)
-        task.wait(0.03)
-    end
-    MainCanvas.Position = UDim2.new(0, 0, 0, 0)
-    Logo.ImageColor3 = Color3.fromRGB(255, 255, 255)
-
-    task.wait(1) -- Stage 3: Ready for Breach
-
-    -- --- THE QUANTUM BREACH EXIT (หายพร้อมกัน 100% คมกริบ) ---
-    local function FinalBreach()
-        -- 1. ทุกอย่างจะถูกบีบอัดเข้าสู่จุด Singularity (ศูนย์กลาง)
-        local Collapse = Tween(MainCanvas, {
-            Size = UDim2.new(0.1, 0, 0, 0), -- บีบเป็นจุดเล็กๆ
-            Position = UDim2.new(0.45, 0, 0.5, 0),
-            GroupTransparency = 1
-        }, 0.5, Enum.EasingStyle.Quart)
-
-        Collapse:Play()
-        Tween(Blur, {Size = 0}, 0.5):Play()
-
-        -- 2. เคลียร์ทุกอย่างทิ้ง (ป้องกันการค้างถาวร)
-        task.delay(0.6, function()
-            if Screen then Screen:Destroy() end
-            if Blur then Blur:Destroy() end
-        end)
-    end
-
-    FinalBreach()
-
-    -- ** EMERGENCY AUTO-KILL (ถ้า 5 วิแล้วยังไม่หาย ให้เชือดทันที) **
+    -- ** EMERGENCY OVERRIDE **
+    -- ถ้าผ่านไป 5 วินาทีแล้วยังอยู่ สั่งเชือดทิ้งสถานเดียว
     task.delay(5, function()
-        if Screen and Screen.Parent then Screen:Destroy() end
+        if Screen and Screen.Parent then
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end
     end)
 end
 
