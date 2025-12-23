@@ -377,9 +377,7 @@ end
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib Ultimate"}
 
-ExecuteFinalSovereign()
-
-    -- 1. Cleanup Old UI
+    -- 1. ล้างค่า UI เก่า
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
@@ -390,41 +388,29 @@ ExecuteFinalSovereign()
         CurrentTab = nil,
     }
 
-    -- 2. Root Setup
+    -- 2. สร้าง ScreenGui
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. [MAIN CONTAINER] ใช้ CanvasGroup เพื่อการ Fade ที่สมบูรณ์แบบ
+    -- 3. [MAIN CONTAINER] ใช้ CanvasGroup เพื่อคุมความใสพร้อมกันทั้งกลุ่ม
     local MainFrame = Create("CanvasGroup", {
         Name = "MainFrame",
         Size = UDim2.new(0, 620, 0, 440),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         BackgroundColor3 = SlayLib.Theme.Background,
-        GroupTransparency = 0, -- คุมความใสทั้งหมดที่นี่
+        GroupTransparency = 0, 
         Parent = CoreGuiFrame,
         ZIndex = 5,
-        ClipsDescendants = false,
+        ClipsDescendants = true,
         Visible = true
     })
     Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
     
-    -- [Shadow] ใช้ภาพลักษณ์ที่นุ่มขึ้น
-    local Shadow = Create("ImageLabel", {
-        Name = "Shadow",
-        Size = UDim2.new(1, 40, 1, 40),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://6015267023", -- เงาฟุ้งแบบมืออาชีพ
-        ImageColor3 = Color3.new(0, 0, 0),
-        ImageTransparency = 0.5,
-        ZIndex = 4,
-        Parent = MainFrame
-    })
+    -- ลบ Shadow ออกแล้ว (สะอาดตาขึ้น)
 
     -- Glass Effect (Gradient)
     Create("UIGradient", {
@@ -436,14 +422,15 @@ ExecuteFinalSovereign()
         Parent = MainFrame
     })
 
+    -- ขอบหน้าต่าง
     local MainStroke = Create("UIStroke", {
         Color = SlayLib.Theme.MainColor,
         Thickness = 1.2,
-        Transparency = 0.6,
+        Transparency = 0.5,
         Parent = MainFrame
     })
 
-    -- 4. [FLOATING TOGGLE] - ทรงกลมพรีเมียม
+    -- 4. [FLOATING TOGGLE] - ทรงกลม (ไม่มีเงา)
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
         Size = UDim2.new(0, 52, 0, 52),
@@ -455,42 +442,46 @@ ExecuteFinalSovereign()
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
     Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
 
-    -- เงานิดๆ ให้ปุ่มลอยดูมีมิติ
-    local ToggleShadow = Create("ImageLabel", {
-        Size = UDim2.new(1, 20, 1, 20), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1, Image = "rbxassetid://6015267023", ImageColor3 = Color3.new(0,0,0), ImageTransparency = 0.6,
-        Parent = FloatingToggle, ZIndex = 99
-    })
-
     local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(0.5, 0, 0.5, 0), AnchorPoint = Vector2.new(0.5, 0.5),
-        Image = SlayLib.Icons.Logo, ImageColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, ZIndex = 101, Parent = FloatingToggle
+        Size = UDim2.new(0, 26, 0, 26), 
+        Position = UDim2.new(0.5, 0, 0.5, 0), 
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Image = SlayLib.Icons.Logo, 
+        ImageColor3 = SlayLib.Theme.MainColor, 
+        BackgroundTransparency = 1, 
+        ZIndex = 101, 
+        Parent = FloatingToggle
     })
 
     local ToggleButton = Create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 105, Parent = FloatingToggle
+        Size = UDim2.new(1, 0, 1, 0), 
+        BackgroundTransparency = 1, 
+        Text = "", 
+        ZIndex = 105, 
+        Parent = FloatingToggle
     })
 
     -- 5. [DRAG LOGIC]
     task.spawn(function()
         RegisterDrag(FloatingToggle, FloatingToggle)
-        -- ถ้ามีฟังก์ชันลาก MainFrame ให้ใส่ที่ Header ของมันในภายหลัง
     end)
 
-    -- 6. [ANIMATION LOGIC] - สมูทแบบไร้รอยต่อ
+    -- 6. [ANIMATION LOGIC] - ปิดแล้วหายวับพร้อมกันแบบเนียนๆ
     local function ToggleUI(State)
         if State then
             MainFrame.Visible = true
-            -- อนิเมชั่นเด้งนุ่มๆ พร้อม Fade In
+            -- ขยายตัวจากจุดศูนย์กลาง
             MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.4, true)
             Tween(MainFrame, {GroupTransparency = 0}, 0.3)
         else
-            -- อนิเมชั่นย่อพร้อม Fade Out (หายแว็บแน่นอน)
-            MainFrame:TweenSize(UDim2.new(0, 580, 0, 400), "In", "Quart", 0.3, true)
-            Tween(MainFrame, {GroupTransparency = 1}, 0.25)
+            -- หายวับ: ย่อขนาดพร้อม Fade Out (GroupTransparency ทำให้ลูกๆ หายไปพร้อมกัน)
+            MainFrame:TweenSize(UDim2.new(0, 500, 0, 320), "In", "Quart", 0.3, true)
+            Tween(MainFrame, {GroupTransparency = 1}, 0.2)
             
             task.delay(0.3, function() 
-                if not Window.Toggled then MainFrame.Visible = false end 
+                if not Window.Toggled then 
+                    MainFrame.Visible = false 
+                end 
             end)
         end
     end
@@ -499,10 +490,11 @@ ExecuteFinalSovereign()
         Window.Toggled = not Window.Toggled
         ToggleUI(Window.Toggled)
         
-        -- Effect เล็กๆ ตอนกดปุ่มลอย
+        -- Effect ปุ่มกด
         Tween(ToggleIcon, {Size = UDim2.new(0, 20, 0, 20)}, 0.1)
-        task.wait(0.1)
-        Tween(ToggleIcon, {Size = UDim2.new(0, 26, 0, 26)}, 0.1)
+        task.delay(0.1, function()
+            Tween(ToggleIcon, {Size = UDim2.new(0, 26, 0, 26)}, 0.1)
+        end)
     end)
 
     -- [1] SIDEBAR (จัดตำแหน่งให้มีช่องว่าง Margin เล็กน้อยเพื่อให้ดูโมเดิร์น)
