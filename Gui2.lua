@@ -228,14 +228,14 @@ function SlayLib:Notify(Config)
 end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
-local function ExecuteUltimateLoadingSequence()
+local function ExecuteFinalSovereign()
     local TweenService = game:GetService("TweenService")
     local Lighting = game:GetService("Lighting")
     local Debris = game:GetService("Debris")
 
-    -- [1] SOVEREIGN SETUP (ไร้ขอบและนิ่งที่สุด)
+    -- [1] SETUP (Force Fullscreen)
     local Screen = Instance.new("ScreenGui")
-    Screen.Name = "SLAY_SOVEREIGN"
+    Screen.Name = "SLAY_SOVEREIGN_FIXED"
     Screen.IgnoreGuiInset = true
     Screen.DisplayOrder = 999999
     Screen.ScreenInsets = Enum.ScreenInsets.None
@@ -264,12 +264,11 @@ local function ExecuteUltimateLoadingSequence()
     Logo.BackgroundTransparency = 1
     Logo.ImageTransparency = 1
 
-    -- --- 💥 [ฉากเปิด: THE CINEMATIC IGNITION] 💥 ---
+    -- --- 💥 [ฉากเปิด] 💥 ---
     task.spawn(function()
         TweenService:Create(MainFrame, TweenInfo.new(0.7), {BackgroundTransparency = 0.05}):Play()
         TweenService:Create(Blur, TweenInfo.new(1.2, Enum.EasingStyle.Quart), {Size = 35}):Play()
         
-        -- ระเบิด Shockwave แบบนุ่มนวลแต่ทรงพลัง
         for i = 1, 3 do
             local sw = Instance.new("Frame", Hub)
             sw.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -279,22 +278,22 @@ local function ExecuteUltimateLoadingSequence()
             sw.BackgroundTransparency = 0.5
             Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
             
-            TweenService:Create(sw, TweenInfo.new(1.2, Enum.EasingStyle.Expo, Enum.EasingDirection.Out), {
-                Size = UDim2.new(0, 900, 0, 900),
+            -- แก้ไขจาก Exponential เป็น Quart เพื่อความเสถียรสูงสุด
+            TweenService:Create(sw, TweenInfo.new(1.2, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 1000, 0, 1000),
                 BackgroundTransparency = 1
             }):Play()
             Debris:AddItem(sw, 1.2)
             task.wait(0.18)
         end
         
-        -- โลโก้ปรากฏแบบ Smooth Elastic
-        TweenService:Create(Logo, TweenInfo.new(1.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        TweenService:Create(Logo, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
             Size = UDim2.new(0, 260, 0, 260),
             ImageTransparency = 0
         }):Play()
     end)
 
-    -- [2] STATUS ENGINE
+    -- [2] STATUS
     local Status = Instance.new("TextLabel", MainFrame)
     Status.AnchorPoint = Vector2.new(0.5, 0.5)
     Status.Position = UDim2.new(0.5, 0, 0.84, 0)
@@ -304,54 +303,43 @@ local function ExecuteUltimateLoadingSequence()
     Status.TextSize = 14
     Status.BackgroundTransparency = 1
     Status.TextTransparency = 1
-    Status.Text = "SOVEREIGN_ENGINE_v2.0"
+    Status.Text = "SYSTEM_READY"
 
     TweenService:Create(Status, TweenInfo.new(0.8), {TextTransparency = 0.2}):Play()
-    
-    local Steps = {"SYNCING...", "AUTHORIZING...", "STABILIZING...", "READY"}
-    for _, msg in ipairs(Steps) do
-        Status.Text = "> " .. msg
-        task.wait(0.7)
-    end
+    task.wait(2.5)
 
     -- --- 🌪️ [ฉากปิด: THE VOID COMPRESSION] 🌪️ ---
-    task.wait(0.3)
-    
-    local FinalInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
-    
-    -- 1. เตรียมระเบิด (Anticipation)
-    TweenService:Create(Logo, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
-        Size = UDim2.new(0, 300, 0, 300) -- เด้งขยายขึ้นนิดนึงก่อนยุบ
-    }):Play()
-    
-    task.wait(0.2)
-    
-    -- 2. ยุบมิติแบบฉับพลัน (Compression)
-    -- โลโก้บีบเป็นเส้นตั้ง พื้นหลังบีบเป็นเส้นนอน
-    TweenService:Create(Logo, FinalInfo, {
-        Size = UDim2.new(0, 2, 0, 1500), -- กลายเป็นเส้นแสงแนวตั้งพุ่งยาว
-        ImageTransparency = 1,
-        ImageColor3 = Color3.new(1,1,1)
-    }):Play()
+    -- ใช้ระบบ Pcall เพื่อป้องกันสคริปต์ค้างถ้าเกิด Error
+    pcall(function()
+        local FinalInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+        
+        -- บีบโลโก้และพื้นหลังสวนทางกัน
+        TweenService:Create(Logo, FinalInfo, {
+            Size = UDim2.new(0, 2, 0, 2000),
+            ImageTransparency = 1
+        }):Play()
 
-    local FinalCollapse = TweenService:Create(MainFrame, FinalInfo, {
-        Size = UDim2.new(1.2, 0, 0, 0), -- ยืดออกแนวนอนแล้วหายวับ
-        Position = UDim2.new(-0.1, 0, 0.5, 0),
-        BackgroundTransparency = 1
-    })
-    
-    FinalCollapse:Play()
-    TweenService:Create(Blur, TweenInfo.new(0.6), {Size = 0}):Play()
-    TweenService:Create(Status, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
-
-    -- [3] CLEAN UP (The Final Snap)
-    FinalCollapse.Completed:Connect(function()
-        Screen:Destroy()
-        if Blur then Blur:Destroy() end
+        local FinalCollapse = TweenService:Create(MainFrame, FinalInfo, {
+            Size = UDim2.new(1.5, 0, 0, 0),
+            Position = UDim2.new(-0.25, 0, 0.5, 0),
+            BackgroundTransparency = 1
+        })
+        
+        FinalCollapse:Play()
+        TweenService:Create(Blur, TweenInfo.new(0.6), {Size = 0}):Play()
+        
+        FinalCollapse.Completed:Connect(function()
+            Screen:Destroy()
+            if Blur then Blur:Destroy() end
+        end)
     end)
 
-    -- Failsafe
-    task.delay(6, function() if Screen then Screen:Destroy() end end)
+    -- [3] ABSOLUTE FAILSAFE (ตัวตัดไฟ)
+    -- ถ้าผ่านไป 6 วินาทีแล้วหน้าจอยังไม่หาย ให้บังคับลบทิ้งทันทีไม่ว่าจะเกิดอะไรขึ้น
+    task.delay(6, function()
+        if Screen and Screen.Parent then Screen:Destroy() end
+        if Blur and Blur.Parent then Blur:Destroy() end
+    end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
