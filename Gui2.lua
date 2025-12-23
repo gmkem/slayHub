@@ -229,137 +229,190 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
+    -- เต็มจอและลำดับสูงสุด
     local Screen = Create("ScreenGui", {
-        Name = "SlayFullLoading",
-        Parent = game.CoreGui,
-        ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        Name = "SlayQuantum2",
+        Parent = Parent,
+        DisplayOrder = 999999,
+        IgnoreGuiInset = true,
         ResetOnSpawn = false
     })
 
     local Lighting = game:GetService("Lighting")
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
 
-    -- พื้นหลังเต็มจอ
+    -- BACKGROUND: ไล่สีแบบ Gradient + Glow Subtle Pulse
     local Background = Create("Frame", {
         Size = UDim2.new(1,0,1,0),
-        BackgroundColor3 = Color3.fromRGB(10,10,10),
+        BackgroundColor3 = Color3.fromRGB(5,5,10),
+        BorderSizePixel = 0,
         Parent = Screen
     })
 
-    local Gradient = Create("UIGradient", {
+    local BackGradient = Create("UIGradient", {
         Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(0, 0, 0)),
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
             ColorSequenceKeypoint.new(1, SlayLib.Theme.MainColor)
         },
-        Rotation = 45,
+        Rotation = 60,
         Parent = Background
     })
 
-    -- โลโก้กลางจอ
+    local Vignette = Create("ImageLabel", {
+        Size = UDim2.new(1,0,1,0),
+        Image = "rbxassetid://13215234567",
+        ImageColor3 = Color3.new(0,0,0),
+        ImageTransparency = 0.15,
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+
+    -- PARTICLE FIELD (เศษเรืองแสงลอยขึ้น)
+    local function SpawnParticle()
+        local P = Create("Frame", {
+            Size = UDim2.new(0, math.random(3,6), 0, math.random(30,80)),
+            Position = UDim2.new(math.random(), 0, 1.1, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.7,
+            Rotation = math.random(-30,30),
+            Parent = Background
+        })
+        Tween(P, {Position = UDim2.new(P.Position.X.Scale,0,-0.2,0), BackgroundTransparency = 1}, math.random(3,6), Enum.EasingStyle.Linear):Play()
+        task.delay(6, function() P:Destroy() end)
+    end
+
+    task.spawn(function()
+        while Screen.Parent do
+            SpawnParticle()
+            task.wait(0.15)
+        end
+    end)
+
+    -- MAIN CORE
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0,520,0,520),
+        Position = UDim2.new(0.5,-260,0.5,-260),
+        BackgroundTransparency = 1,
+        Parent = Background
+    })
+
+    local LogoGlow = Create("ImageLabel", {
+        Size = UDim2.new(0,260,0,260),
+        Position = UDim2.new(0.5,-130,0.5,-130),
+        Image = SlayLib.Icons.Logofull,
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.9,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
+
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 0, 0, 0),
-        Position = UDim2.new(0.5, 0, 0.45, 0),
+        Size = UDim2.new(0,0,0,0),
+        Position = UDim2.new(0.5,0,0.5,0),
         AnchorPoint = Vector2.new(0.5,0.5),
         Image = SlayLib.Icons.Logofull,
-        ImageTransparency = 1,
+        ImageColor3 = Color3.fromRGB(255,255,255),
         BackgroundTransparency = 1,
-        Parent = Background
+        Parent = Hub
     })
 
-    -- แสงเงาเบื้องหลังโลโก้
-    local Glow = Create("ImageLabel", {
-        Size = UDim2.new(0, 320, 0, 320),
-        Position = UDim2.new(0.5, 0, 0.45, 0),
-        AnchorPoint = Vector2.new(0.5,0.5),
-        Image = "rbxassetid://9424670972",
-        ImageColor3 = SlayLib.Theme.MainColor,
-        ImageTransparency = 1,
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-
-    -- แถบโหลด
-    local BarBg = Create("Frame", {
-        Size = UDim2.new(0.3, 0, 0, 6),
-        Position = UDim2.new(0.35, 0, 0.8, 0),
-        BackgroundColor3 = Color3.fromRGB(30,30,30),
-        BackgroundTransparency = 1,
-        Parent = Background
-    })
-    local BarFill = Create("Frame", {
-        Size = UDim2.new(0,0,1,0),
+    -- SCANLINE
+    local Scan = Create("Frame", {
+        Size = UDim2.new(1.3,0,0,2),
+        Position = UDim2.new(-0.15,0,0,0),
         BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1,
-        Parent = BarBg
-    })
-    Create("UICorner", {Parent = BarBg})
-    Create("UICorner", {Parent = BarFill})
-
-    local BarGradient = Create("UIGradient", {
-        Color = ColorSequence.new{
-            ColorSequenceKeypoint.new(0, SlayLib.Theme.MainColor),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(255,255,255))
-        },
-        Rotation = 0,
-        Parent = BarFill
-    })
-
-    -- ข้อความโหลด
-    local Info = Create("TextLabel", {
-        Text = "INITIALIZING...",
-        Size = UDim2.new(1,0,0,25),
-        Position = UDim2.new(0,0,0.86,0),
-        Font = Enum.Font.Code,
-        TextColor3 = Color3.fromRGB(255,255,255),
-        TextTransparency = 1,
-        TextSize = 16,
-        BackgroundTransparency = 1,
+        BackgroundTransparency = 0.6,
+        ZIndex = 50,
         Parent = Background
     })
 
-    -- เริ่มอนิเมชั่นเปิด
-    Tween(Blur, {Size = 35}, 1)
-    Tween(Logo, {Size = UDim2.new(0,250,0,250), ImageTransparency = 0}, 1.2, Enum.EasingStyle.Elastic)
-    Tween(Glow, {ImageTransparency = 0.3, Size = UDim2.new(0,360,0,360)}, 1.2)
-    Tween(BarBg, {BackgroundTransparency = 0}, 1)
-    Tween(BarFill, {BackgroundTransparency = 0}, 1)
-    Tween(Info, {TextTransparency = 0}, 1)
+    task.spawn(function()
+        while Screen.Parent do
+            Scan.Position = UDim2.new(-0.15,0,0,0)
+            Tween(Scan, {Position = UDim2.new(-0.15,0,1,0)}, 2, Enum.EasingStyle.Linear):Play()
+            task.wait(2)
+        end
+    end)
 
-    -- ขั้นตอนโหลด
+    -- TEXTS
+    local Title = Create("TextLabel", {
+        Text = "SLAYLIB X // QUANTUM PROTOCOL",
+        Size = UDim2.new(0,400,0,25),
+        Position = UDim2.new(0.5,-200,0.38,-130),
+        Font = Enum.Font.Code,
+        TextSize = 14,
+        TextColor3 = SlayLib.Theme.MainColor,
+        TextTransparency = 1,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
+
+    local Subtitle = Create("TextLabel", {
+        Text = "BOOTING CORE SYSTEM...",
+        Size = UDim2.new(0,400,0,20),
+        Position = UDim2.new(0.5,-200,0.62,110),
+        Font = Enum.Font.Code,
+        TextSize = 11,
+        TextColor3 = Color3.fromRGB(180,180,180),
+        TextTransparency = 1,
+        BackgroundTransparency = 1,
+        Parent = Hub
+    })
+
+    -- ANIMATIONS
+    Tween(Blur, {Size = 28}, 1.6):Play()
+    Tween(Logo, {Size = UDim2.new(0,240,0,240)}, 1.4, Enum.EasingStyle.Elastic):Play()
+    Tween(LogoGlow, {ImageTransparency = 0.4, Size = UDim2.new(0,320,0,320)}, 1.8):Play()
+    Tween(Title, {TextTransparency = 0}, 1):Play()
+    Tween(Subtitle, {TextTransparency = 0}, 1):Play()
+
+    -- Logo Glitch Pulse
+    task.spawn(function()
+        while Screen.Parent do
+            task.wait(math.random(2,4))
+            for _=1,3 do
+                Logo.ImageColor3 = Color3.fromRGB(math.random(100,255), math.random(100,255), 255)
+                Logo.Position = UDim2.new(0.5, math.random(-3,3), 0.5, math.random(-3,3))
+                task.wait(0.04)
+            end
+            Logo.ImageColor3 = Color3.new(1,1,1)
+            Logo.Position = UDim2.new(0.5,0,0.5,0)
+        end
+    end)
+
+    -- Step Progress
     local Steps = {
-        "Booting Core Framework...",
-        "Syncing Assets...",
-        "Loading Interface Elements...",
-        "Applying SlayLib Theme...",
-        "Deploying User Environment...",
-        "System Ready!"
+        "LINKING KERNEL...",
+        "LOADING VISUAL CORE...",
+        "CALIBRATING MODULES...",
+        "STABILIZING MEMORY...",
+        "DEPLOYING INTERFACE...",
+        "ACCESS GRANTED"
     }
 
     for i, step in ipairs(Steps) do
-        Info.Text = step
-        Tween(BarFill, {Size = UDim2.new(i/#Steps,0,1,0)}, 0.4, Enum.EasingStyle.Sine)
-        BarGradient.Rotation = BarGradient.Rotation + 45
-        task.wait(0.6)
+        Subtitle.Text = step
+        Tween(LogoGlow, {Size = UDim2.new(0,300,0,300), ImageTransparency = 0.2}, 0.3):Play()
+        task.wait(0.4)
+        Tween(LogoGlow, {Size = UDim2.new(0,260,0,260), ImageTransparency = 0.5}, 0.4):Play()
+        task.wait(math.random(5,9)/10)
     end
 
-    -- Effect Pulse ก่อนปิด
-    Tween(Logo, {Size = UDim2.new(0,270,0,270)}, 0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-    task.wait(0.2)
-    Tween(Logo, {Size = UDim2.new(0,240,0,240)}, 0.3)
-    Info.Text = "ACCESS GRANTED ✓"
-    Tween(Info, {TextColor3 = Color3.fromRGB(120,255,120)}, 0.3)
-    task.wait(0.6)
+    Subtitle.Text = "SYSTEM ONLINE ✓"
+    Tween(Subtitle, {TextColor3 = Color3.fromRGB(130,255,130)}, 0.4):Play()
+    Tween(Logo, {Size = UDim2.new(0,260,0,260)}, 0.2):Play()
+    task.wait(0.8)
 
-    -- Fade Out ทั้งหมด
-    Tween(Logo, {ImageTransparency = 1}, 0.6)
-    Tween(Glow, {ImageTransparency = 1}, 0.6)
-    Tween(Info, {TextTransparency = 1}, 0.5)
-    Tween(BarBg, {BackgroundTransparency = 1}, 0.5)
-    Tween(BarFill, {BackgroundTransparency = 1}, 0.5)
-    Tween(Blur, {Size = 0}, 1)
-    Tween(Background, {BackgroundTransparency = 1}, 1)
+    -- FADE OUT
+    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0,100,0,100)}, 0.7, Enum.EasingStyle.Quad, Enum.EasingDirection.In):Play()
+    Tween(LogoGlow, {ImageTransparency = 1}, 0.7):Play()
+    Tween(Subtitle, {TextTransparency = 1}, 0.4):Play()
+    Tween(Title, {TextTransparency = 1}, 0.4):Play()
+    Tween(Background, {BackgroundTransparency = 1}, 1):Play()
+    Tween(Vignette, {ImageTransparency = 1}, 1):Play()
+    Tween(Blur, {Size = 0}, 1.2):Play()
 
-    task.wait(1)
+    task.wait(1.2)
     Screen:Destroy()
     Blur:Destroy()
 end
