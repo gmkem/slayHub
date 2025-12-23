@@ -229,11 +229,8 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local RS = game:GetService("RunService")
-    
-    -- 1. ล้างกระดาษสร้างใหม่ (Clean Setup)
     local Screen = Create("ScreenGui", {
-        Name = "SlayNova",
+        Name = "SlayVectorClean",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -241,122 +238,133 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- ใช้ Frame ธรรมดา (ไม่ใช้ CanvasGroup เพื่อตัดปัญหาบั๊กค้าง)
-    local Main = Create("Frame", {
+    -- MainCanvas ตัวเดียวคุมทุกอย่าง (เพื่อให้หายพร้อมกัน 100%)
+    local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
         BackgroundTransparency = 1,
+        GroupTransparency = 1,
         Parent = Screen
     })
 
-    -- 2. CORE CENTER (ดีไซน์ใหม่: Nova Reactor)
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
-        BackgroundTransparency = 1,
-        Parent = Main
+    -- Background: Deep Solid Black (ลดความลายตาจากแสงสีน้ำเงิน)
+    local Bg = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 3),
+        BorderSizePixel = 0,
+        Parent = MainCanvas
     })
 
-    -- โลโก้ (หัวใจสำคัญ)
+    -- [1] THE CLEAN GRID (ปรับให้บางลงและอยู่แค่ขอบล่าง)
+    local Grid = Create("Frame", {
+        Size = UDim2.new(1, 0, 0.3, 0),
+        Position = UDim2.new(0, 0, 0.7, 0),
+        BackgroundTransparency = 1,
+        Parent = Bg
+    })
+    for i = 1, 8 do -- ลดจำนวนเส้นลง
+        Create("Frame", {
+            Size = UDim2.new(1, 0, 0, 1),
+            Position = UDim2.new(0, 0, i/8, 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            BackgroundTransparency = 0.9, -- จางมากๆ เพื่อความหรู
+            BorderSizePixel = 0,
+            Parent = Grid
+        })
+    end
+
+    -- [2] THE CORE: LOGO & MINIMALIST BRACKETS
+    local Hub = Create("Frame", {
+        Size = UDim2.new(0, 400, 0, 400),
+        Position = UDim2.new(0.5, -200, 0.5, -200),
+        BackgroundTransparency = 1,
+        Parent = MainCanvas
+    })
+
+    -- เปลี่ยนจากเส้นตัดไปมา เป็น "มุมวงเล็บ" (Brackets) ที่ขยับเข้าหาใจกลาง
+    local function CreateBracket(name, pos)
+        local B = Create("Frame", {
+            Name = name,
+            Size = UDim2.new(0, 40, 0, 40),
+            Position = pos,
+            BackgroundTransparency = 1,
+            Parent = Hub
+        })
+        -- เส้นแนวตั้งและแนวนอนของแต่ละมุม
+        local LineV = Create("Frame", {Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
+        local LineH = Create("Frame", {Size = UDim2.new(1, 0, 0, 2), BackgroundColor3 = SlayLib.Theme.MainColor, BorderSizePixel = 0, Parent = B})
+        return B
+    end
+
+    local TL = CreateBracket("TL", UDim2.new(0.2, 0, 0.2, 0))
+    local BR = CreateBracket("BR", UDim2.new(0.8, -40, 0.8, -40))
+    -- ปรับเส้น LineH ของ BR ให้อยู่ด้านล่าง
+    BR.Frame.Position = UDim2.new(0, 0, 1, -2) 
+    BR.Frame_1.Position = UDim2.new(1, -2, 0, 0)
+
+    -- THE LOGO
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(0, 160, 0, 160),
+        Position = UDim2.new(0.5, -80, 0.5, -80),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
-        ImageTransparency = 1,
+        ZIndex = 10,
         Parent = Hub
     })
 
-    -- เส้นวงโคจรแบบเส้นบาง (Sleek Orbitals)
-    local function CreateNovaRing(size, thickness)
-        local R = Create("Frame", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            BackgroundTransparency = 1, Parent = Hub
-        })
-        Create("UIStroke", {
-            Color = SlayLib.Theme.MainColor,
-            Thickness = thickness,
-            Transparency = 0.6,
-            Parent = R
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = R})
-        return R
+    -- [3] PROGRESS TEXT (เรียบๆ คมๆ)
+    local StatusText = Create("TextLabel", {
+        Text = "SYSTEM.READY",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.85, 0),
+        Font = "Code", TextSize = 14,
+        TextColor3 = SlayLib.Theme.MainColor,
+        TextTransparency = 0.4,
+        BackgroundTransparency = 1,
+        Parent = MainCanvas
+    })
+
+    -- --- EFFECT: LOOPING SUBTLE ROTATION ---
+    task.spawn(function()
+        while Screen and Screen.Parent do
+            Hub.Rotation = Hub.Rotation + 0.2 -- หมุนช้าๆ ให้ดูพรีเมียม
+            task.wait()
+        end
+    end)
+
+    -- --- SEQUENCE START (3 SECONDS) ---
+    Tween(Blur, {Size = 25}, 0.8):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 0.8):Play()
+    
+    -- บีบวงเล็บเข้าหาโลโก้
+    Tween(TL, {Position = UDim2.new(0.3, 0, 0.3, 0)}, 1, Enum.EasingStyle.Quart):Play()
+    Tween(BR, {Position = UDim2.new(0.7, -40, 0.7, -40)}, 1, Enum.EasingStyle.Quart):Play()
+
+    -- วงจรโหลด 3 วินาที (ปรับให้ชัวร์)
+    local Sequence = {"[ LOAD ]", "[ SYNC ]", "[ AUTH ]", "[ DONE ]"}
+    for i, msg in ipairs(Sequence) do
+        StatusText.Text = msg
+        task.wait(3 / #Sequence) -- เฉลี่ยให้ครบ 3 วินาที
     end
 
-    local Ring1 = CreateNovaRing(250, 3)
-    local Ring2 = CreateNovaRing(350, 1)
+    -- --- THE PERFECT SYNC COLLAPSE (การหายที่คมที่สุด) ---
+    -- ทุกอย่างหายไปพร้อมกัน 100% เพราะ Tween แค่ที่ MainCanvas
+    local Collapse = Tween(MainCanvas, {
+        Size = UDim2.new(1.5, 0, 0, 0), -- บีบเป็นเส้นตรงแนวนอน
+        Position = UDim2.new(-0.25, 0, 0.5, 0),
+        GroupTransparency = 1
+    }, 0.6, Enum.EasingStyle.Quart)
 
-    -- 3. MASTER CONTROLLER (ระบบควบคุมเดียว ไม่พึ่ง Tween ค้างๆ)
-    local StartTime = tick()
-    local Duration = 3.0
-    local IsClosing = false
+    Collapse:Play()
+    Tween(Blur, {Size = 0}, 0.6):Play()
 
-    local Connection
-    Connection = RS.RenderStepped:Connect(function()
-        if not Screen or not Screen.Parent then 
-            Connection:Disconnect() 
-            return 
-        end
-
-        local Elapsed = tick() - StartTime
-        
-        -- ช่วงเปิดและรัน (0 - 3 วินาที)
-        if Elapsed < Duration then
-            local Alpha = math.clamp(Elapsed / 0.8, 0, 1) -- Smooth Fade In
-            Main.BackgroundTransparency = 1 - (Alpha * 0.95)
-            Logo.ImageTransparency = 1 - Alpha
-            Blur.Size = Alpha * 25
-            
-            -- การหมุนและ Pulsing
-            local T = tick()
-            Ring1.Rotation = T * 120
-            Ring2.Rotation = T * -80
-            
-            local Pulse = 1 + (math.sin(T * 5) * 0.04)
-            Hub.Size = UDim2.new(0, 300 * Pulse, 0, 300 * Pulse)
-            Hub.Position = UDim2.new(0.5, -(150 * Pulse), 0.5, -(150 * Pulse))
-            
-        -- ช่วงปิด (หลัง 3 วินาที)
-        elseif not IsClosing then
-            IsClosing = true
-            
-            -- แอนิเมชันตอนหาย: "The Nova Burst" (หดแล้วระเบิดหาย)
-            local ExitStart = tick()
-            local CloseConn
-            CloseConn = RS.RenderStepped:Connect(function()
-                local OutElapsed = tick() - ExitStart
-                local OutAlpha = math.clamp(OutElapsed / 0.5, 0, 1)
-                local Inv = 1 - OutAlpha
-                
-                if OutAlpha >= 1 then
-                    CloseConn:Disconnect()
-                    Connection:Disconnect()
-                    Screen:Destroy()
-                    Blur:Destroy()
-                    return
-                end
-                
-                -- ยุบทุกอย่างเป็นเส้นแนวนอน (Sleek Collapse)
-                Hub.Size = UDim2.new(0, 500 * OutAlpha + 300, 0, 2 * Inv)
-                Hub.Position = UDim2.new(0.5, -(250 * OutAlpha + 150), 0.5, -1)
-                
-                Logo.ImageTransparency = OutAlpha
-                Main.BackgroundTransparency = 0.05 + (OutAlpha * 0.95)
-                Blur.Size = 25 * Inv
-                Ring1.BackgroundTransparency = 1
-                Ring2.BackgroundTransparency = 1
-            end)
-        end
+    -- เมื่อจบแอนิเมชัน สั่ง Destroy ทันที
+    Collapse.Completed:Connect(function()
+        Screen:Destroy()
+        Blur:Destroy()
     end)
 
-    -- 4. ULTIMATE FAILSAFE (ถ้า 5 วินาทียังไม่ตาย ให้บังคับลบ)
-    task.delay(5, function()
-        if Screen and Screen.Parent then
-            if Connection then Connection:Disconnect() end
-            Screen:Destroy()
-            if Blur then Blur:Destroy() end
-        end
-    end)
+    -- Safety Kill
+    task.delay(5, function() if Screen then Screen:Destroy() end end)
 end
 
 --// MAIN WINDOW CONSTRUCTOR
