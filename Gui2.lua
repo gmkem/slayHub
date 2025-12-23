@@ -229,9 +229,8 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    -- [1] Clean & Pure Setup
     local Screen = Create("ScreenGui", {
-        Name = "SlayGenesisCore",
+        Name = "SlayVoidCore",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -239,7 +238,7 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- Main Container (ใช้ Frame ธรรมดาแทน CanvasGroup เพื่อป้องกันบั๊กค้าง)
+    -- Main Container
     local Container = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundColor3 = Color3.fromRGB(0, 0, 0),
@@ -247,15 +246,15 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- Background
+    -- Background: Deep Void
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
         BorderSizePixel = 0,
         Parent = Container
     })
 
-    -- [2] QUANTUM ELEMENTS
+    -- [1] THE QUANTUM REACTOR
     local Hub = Create("Frame", {
         Size = UDim2.new(0, 300, 0, 300),
         Position = UDim2.new(0.5, -150, 0.5, -150),
@@ -272,90 +271,107 @@ local function ExecuteLoadingSequence()
         Parent = Hub
     })
 
-    -- วงแหวนพลังงาน (Manual Rotation)
-    local function CreateRing(size, color, thickness)
-        local Ring = Create("Frame", {
+    -- Quantum Orbitals (วงโคจรควอนตัม 3 ชั้น)
+    local function CreateOrbital(size, color, thickness, speed)
+        local Orbit = Create("Frame", {
             Size = UDim2.new(0, size, 0, size),
             Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
             BackgroundTransparency = 1,
             Parent = Hub
         })
-        Create("UIStroke", {Color = color, Thickness = thickness, Parent = Ring})
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
-        return Ring
+        Create("UIStroke", {
+            Color = color, 
+            Thickness = thickness, 
+            Transparency = 0.5,
+            Parent = Orbit
+        })
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Orbit})
+        return {Obj = Orbit, Speed = speed}
     end
 
-    local Ring1 = CreateRing(260, SlayLib.Theme.MainColor, 3)
-    local Ring2 = CreateRing(320, Color3.fromRGB(255, 255, 255), 1)
+    local Orbs = {
+        CreateOrbital(220, SlayLib.Theme.MainColor, 4, 180),
+        CreateOrbital(280, Color3.fromRGB(50, 50, 80), 2, -120),
+        CreateOrbital(340, SlayLib.Theme.MainColor, 1, 60)
+    }
 
-    -- [3] SEQUENCE CONTROLLER (แก้ปัญหาค้าง 100%)
+    -- [2] DIGITAL DEBRIS (เศษพิกเซลที่ถูกดูดเข้าศูนย์กลาง)
+    local DebrisFolder = Create("Frame", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Parent = Container})
+    local function SpawnDebris()
+        local Angle = math.rad(math.random(0, 360))
+        local StartDist = math.random(400, 600)
+        local D = Create("Frame", {
+            Size = UDim2.new(0, math.random(2, 6), 0, 1),
+            Position = UDim2.new(0.5 + math.cos(Angle) * (StartDist/1000), 0, 0.5 + math.sin(Angle) * (StartDist/1000), 0),
+            BackgroundColor3 = SlayLib.Theme.MainColor,
+            Rotation = math.deg(Angle),
+            BorderSizePixel = 0,
+            Parent = DebrisFolder
+        })
+        Tween(D, {
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            Size = UDim2.new(0, 0, 0, 0),
+            BackgroundTransparency = 1
+        }, 1.5, Enum.EasingStyle.Quart):Play()
+        task.delay(1.5, function() D:Destroy() end)
+    end
+
+    -- [3] MASTER SEQUENCE (3 SECONDS)
     task.spawn(function()
-        -- PHASE 1: FADE IN (0 - 0.5s)
-        local start = tick()
-        while tick() - start < 0.5 do
-            local alpha = (tick() - start) / 0.5
+        local StartTime = tick()
+        
+        -- แอนิเมชันตอนเปิด (0 - 0.5s)
+        while tick() - StartTime < 0.5 do
+            local alpha = (tick() - StartTime) / 0.5
             Bg.BackgroundTransparency = 1 - alpha
             Logo.ImageTransparency = 1 - alpha
-            Blur.Size = 25 * alpha
+            Blur.Size = 30 * alpha
             task.wait()
         end
-        Bg.BackgroundTransparency = 0
-        Logo.ImageTransparency = 0
 
-        -- PHASE 2: SUSTAIN & ANIMATE (0.5 - 3.0s)
-        -- ช่วงนี้ใส่แอนิเมชันที่ต้องการความอลังการ
-        local phase2Start = tick()
-        while tick() - phase2Start < 2.5 do
+        -- ช่วงทำงานหลัก (0.5 - 3s)
+        while tick() - StartTime < 3.0 do
             local t = tick()
-            Ring1.Rotation = t * 150
-            Ring2.Rotation = t * -100
+            for _, o in ipairs(Orbs) do
+                o.Obj.Rotation = t * o.Speed
+            end
             
-            -- จังหวะหัวใจ (Quantum Pulse)
-            local s = 1 + (math.sin(t * 6) * 0.05)
+            -- หัวใจเต้นแบบดุดัน (Pulse)
+            local s = 1 + (math.sin(t * 8) * 0.03)
             Hub.Size = UDim2.new(0, 300 * s, 0, 300 * s)
             Hub.Position = UDim2.new(0.5, -(150 * s), 0.5, -(150 * s))
             
-            -- Glitch สั้นๆ ทุก 1 วินาที
-            if math.floor(t % 1.5) == 0 and math.random() > 0.8 then
-                Logo.Position = UDim2.new(0, math.random(-5,5), 0, math.random(-5,5))
-            else
-                Logo.Position = UDim2.new(0, 0, 0, 0)
-            end
+            if math.random() > 0.85 then SpawnDebris() end
             task.wait()
         end
 
-        -- PHASE 3: TOTAL COLLAPSE (The Exit)
-        -- บีบทุกอย่างลงแนวตั้งและแนวนอนพร้อมกัน ไม่ใช้ Tween กันค้าง
-        local phase3Start = tick()
-        while tick() - phase3Start < 0.5 do
-            local alpha = (tick() - phase3Start) / 0.5
+        -- [EXIT] THE VOID COLLAPSE (ดูดทุกอย่างหายไปในหลุมดำ)
+        local ExitStart = tick()
+        while tick() - ExitStart < 0.6 do
+            local alpha = (tick() - ExitStart) / 0.6
             local inv = 1 - alpha
             
-            -- บีบอัดมิติ
+            -- ค่อยๆ บีบทุกอย่างลงจนเป็นศูนย์
             Hub.Size = UDim2.new(0, 300 * inv, 0, 300 * inv)
             Hub.Position = UDim2.new(0.5, -(150 * inv), 0.5, -(150 * inv))
+            Hub.Rotation = Hub.Rotation + (alpha * 20)
             
-            -- จางหาย
             Bg.BackgroundTransparency = alpha
             Logo.ImageTransparency = alpha
-            Ring1.Transparency = alpha
-            Ring2.Transparency = alpha
-            Blur.Size = 25 * inv
+            for _, o in ipairs(Orbs) do o.Obj.BackgroundTransparency = alpha end
+            Blur.Size = 30 * inv
             
             task.wait()
         end
 
-        -- [4] ABSOLUTE CLEANUP
+        -- ลบทิ้งทันที
         Screen:Destroy()
         if Blur then Blur:Destroy() end
     end)
 
-    -- EMERGENCY SAFETY KILL
-    task.delay(5, function()
-        if Screen and Screen.Parent then
-            Screen:Destroy()
-            if Blur then Blur:Destroy() end
-        end
+    -- Safety Kill
+    task.delay(6, function()
+        if Screen and Screen.Parent then Screen:Destroy() end
     end)
 end
 
