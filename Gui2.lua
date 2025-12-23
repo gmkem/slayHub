@@ -230,7 +230,7 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayUltimateBreach",
+        Name = "SlayAbsoluteZero",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -238,7 +238,7 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- CanvasGroup คุมความใสและการสลายตัว
+    -- CanvasGroup: ตัวควบคุมทุกอย่างในหน้าจอ (สำคัญมากเพื่อให้หายพร้อมกัน)
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
@@ -246,30 +246,30 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- Background: Ultra Deep Void
+    -- Background: Deep Dark Space
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 5),
+        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] DYNAMIC HUD (ตกแต่งด้วยเส้น Tech รอบจอ)
-    local function CreateTechLine(pos, size, rot)
-        local L = Create("Frame", {
-            Size = size, Position = pos, Rotation = rot,
+    -- [1] MOTION FX: สร้างเส้น "Digital Portal" พุ่งเข้าหาจอ (สร้างด้วยโค้ด)
+    local function CreatePortalLine()
+        local Line = Create("Frame", {
+            Size = UDim2.new(0, 2, 0, 0),
+            Position = UDim2.new(0.5, math.random(-200, 200), 0.5, math.random(-200, 200)),
             BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.5, BorderSizePixel = 0, Parent = MainCanvas
+            BackgroundTransparency = 0.5,
+            BorderSizePixel = 0,
+            Parent = Bg
         })
-        Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = L})
-        return L
+        -- พุ่งขยายออก
+        Tween(Line, {Size = UDim2.new(0, 2, 0, 500), Position = UDim2.new(Line.Position.X.Scale, Line.Position.X.Offset * 5, Line.Position.Y.Scale, Line.Position.Y.Offset * 5), BackgroundTransparency = 1}, 1):Play()
+        task.delay(1, function() Line:Destroy() end)
     end
 
-    -- เส้นตกแต่งมุมจอ (Corner HUD)
-    local TL = CreateTechLine(UDim2.new(0, 50, 0, 50), UDim2.new(0, 100, 0, 2), 0)
-    local BR = CreateTechLine(UDim2.new(1, -150, 1, -52), UDim2.new(0, 100, 0, 2), 0)
-
-    -- [2] THE CORE: LOGO & VECTOR ORBITS
+    -- [2] CENTRAL HUB (สร้างความอลังการรอบโลโก้)
     local Hub = Create("Frame", {
         Size = UDim2.new(0, 400, 0, 400),
         Position = UDim2.new(0.5, -200, 0.5, -200),
@@ -277,95 +277,76 @@ local function ExecuteLoadingSequence()
         Parent = MainCanvas
     })
 
-    -- สร้าง "วงแหวนข้อมูล" จาก Frame (สร้างมือ 100%)
-    local function CreateDataRing(size, speed)
-        local Ring = Create("Frame", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            BackgroundTransparency = 1, Parent = Hub
-        })
-        local Stroke = Create("UIStroke", {
-            Color = SlayLib.Theme.MainColor, Thickness = 2, 
-            DashPattern = {5, 10}, Parent = Ring
-        })
-        task.spawn(function()
-            while Screen and Screen.Parent do
-                Ring.Rotation = Ring.Rotation + speed
-                task.wait()
-            end
-        end)
-        return Ring
-    end
-
-    local R1 = CreateDataRing(280, 1.5)
-    local R2 = CreateDataRing(320, -0.8)
-
     -- โลโก้ (หัวใจสำคัญ)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 150, 0, 150),
-        Position = UDim2.new(0.5, -75, 0.5, -75),
+        Size = UDim2.new(0, 180, 0, 180),
+        Position = UDim2.new(0.5, -90, 0.5, -90),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
         ZIndex = 10,
         Parent = Hub
     })
 
-    -- [3] PROGRESS & LOGS (สไตล์แฮกเกอร์)
-    local StatusLabel = Create("TextLabel", {
-        Text = "INITIALIZING CORE SYSTEM...",
-        Size = UDim2.new(1, 0, 0, 30),
-        Position = UDim2.new(0, 0, 0.85, 0),
-        Font = "Code", TextSize = 18,
-        TextColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 1, Parent = MainCanvas
+    -- สร้าง "วงแหวนข้อมูล" (ใช้ UIStroke Dash)
+    local Ring = Create("Frame", {
+        Size = UDim2.new(0, 300, 0, 300),
+        Position = UDim2.new(0.5, -150, 0.5, -150),
+        BackgroundTransparency = 1,
+        Parent = Hub
     })
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 3, DashPattern = {1, 5}, Parent = Ring})
+    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
 
-    -- --- 3-SECOND CINEMATIC SEQUENCE ---
-    Tween(Blur, {Size = 30}, 1):Play()
-    Tween(MainCanvas, {GroupTransparency = 0}, 0.8):Play()
+    -- --- START 3-SECOND CINEMATIC ---
+    Tween(Blur, {Size = 25}, 1):Play()
+    Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
 
-    -- Phase 1: Search & Lock (0 - 1s)
-    task.wait(1)
-    StatusLabel.Text = "BYPASSING SECURITY PROTOCOLS..."
-    Tween(Hub, {Size = UDim2.new(0, 450, 0, 450), Position = UDim2.new(0.5, -225, 0.5, -225)}, 0.5, Enum.EasingStyle.Quart):Play()
+    -- วนลูปเอฟเฟกต์พุ่ง (รันแยก Thread เพื่อไม่ให้กวนลำดับหลัก)
+    local EffectConnection = task.spawn(function()
+        while Screen and Screen.Parent do
+            CreatePortalLine()
+            Ring.Rotation = Ring.Rotation + 2
+            task.wait(0.05)
+        end
+    end)
 
-    -- Phase 2: Data Inject (1 - 2s)
-    task.wait(1)
-    StatusLabel.Text = "INJECTING SLAYLIB_X_CORE..."
-    -- เอฟเฟกต์ Glitch สั้นๆ
-    for i = 1, 5 do
-        Logo.Position = UDim2.new(0.5, -75 + math.random(-10,10), 0.5, -75 + math.random(-10,10))
-        task.wait(0.05)
-    end
-    Logo.Position = UDim2.new(0.5, -75, 0.5, -75)
+    -- ลำดับการโหลด (3 วินาที)
+    task.wait(1) -- วิที่ 1: เตรียมระบบ
+    Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 0.5):Play()
+    
+    task.wait(1) -- วิที่ 2: โหลดข้อมูล (Glitch เบาๆ)
+    Hub.Position = UDim2.new(0.5, -195, 0.5, -200)
+    task.wait(0.1)
+    Hub.Position = UDim2.new(0.5, -200, 0.5, -200)
 
-    -- Phase 3: Finalize (2 - 3s)
-    task.wait(0.5)
-    StatusLabel.Text = "ACCESS GRANTED. ENJOY."
-    task.wait(0.5)
+    task.wait(1) -- วิที่ 3: พร้อมทำงาน
 
-    -- --- THE ULTIMATE EXIT (หายพร้อมกัน 100%) ---
-    local function AbsoluteShutdown()
-        -- 1. บีบทุกอย่างลงเป็นจุดเดียว (Singularity)
+    -- --- THE FINAL SYNC EXIT (จุดแก้ปัญหาค้าง) ---
+    local function PerfectExit()
+        -- หยุดเอฟเฟกต์ทั้งหมดก่อนหาย
+        task.cancel(EffectConnection)
+        
+        -- บีบอัดทุกอย่างผ่าน MainCanvas ตัวเดียว (หายพร้อมกัน 100%)
         local Collapse = Tween(MainCanvas, {
-            Size = UDim2.new(1.5, 0, 0, 0), -- บีบแนวนอนจนหาย
-            Position = UDim2.new(-0.25, 0, 0.5, 0),
+            Size = UDim2.new(1.2, 0, 0, 0), -- บีบแนวนอนเป็นเส้นคมๆ
+            Position = UDim2.new(-0.1, 0, 0.5, 0),
             GroupTransparency = 1
-        }, 0.6, Enum.EasingStyle.Quart)
+        }, 0.5, Enum.EasingStyle.Quart)
 
         Collapse:Play()
-        Tween(Blur, {Size = 0}, 0.6):Play()
+        Tween(Blur, {Size = 0}, 0.5):Play()
 
-        -- 2. เคลียร์หน่วยความจำทันทีที่ Tween จบ
-        Collapse.Completed:Connect(function()
-            Screen:Destroy()
-            Blur:Destroy()
+        -- สั่ง Destroy โดยใช้ delay คงที่ (ไม่ใช้ระบบรอ Tween เพื่อกันค้าง)
+        task.delay(0.6, function()
+            if Screen then Screen:Destroy() end
+            if Blur then Blur:Destroy() end
         end)
     end
 
-    AbsoluteShutdown()
+    PerfectExit()
 
-    -- Safety Kill (เซฟตี้คัท 5 วินาที)
+    -- ** SAFETY CUT (กันค้างถาวร) **
+    -- ไม่ว่าอะไรจะเกิดขึ้น 5 วินาทีหน้าจอนี้ต้องหายไป
     task.delay(5, function()
         if Screen and Screen.Parent then Screen:Destroy() end
     end)
