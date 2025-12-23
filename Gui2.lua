@@ -377,6 +377,7 @@ end
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib Ultimate"}
 
+    -- 1. ล้างค่า UI เก่าป้องกันการรันซ้อน
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
@@ -385,111 +386,111 @@ function SlayLib:CreateWindow(Config)
         Toggled = true,
         Tabs = {},
         CurrentTab = nil,
+        Minimized = false
     }
 
+    -- 2. สร้าง ScreenGui หลัก
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. [MAIN FRAME] ปรับ BackgroundColor3 ให้สว่างขึ้นเล็กน้อย (จาก 15 เป็น 28)
-    local MainFrame = Create("CanvasGroup", {
+    -- 3. หน้าต่างหลัก (MainFrame)
+    local MainFrame = Create("Frame", {
         Name = "MainFrame",
         Size = UDim2.new(0, 620, 0, 440),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(28, 28, 30), -- สว่างขึ้นเพื่อให้เห็น Element ข้างใน
-        GroupTransparency = 0, 
+        BackgroundColor3 = SlayLib.Theme.Background,
         Parent = CoreGuiFrame,
         ZIndex = 5,
-        ClipsDescendants = true,
+        ClipsDescendants = false, -- ปิดเพื่อให้เงาโผล่ออกมาด้านข้างได้
         Visible = true
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
+    Create("UICorner", {CornerRadius = UDim.new(0, 14), Parent = MainFrame})
+    
+    -- [Shadow Integration] เงาต้องเป็นลูกของ MainFrame เพื่อให้ติดหนึบเวลาขยับหรือย่อขยาย
+    local Shadow = Create("Frame", {
+        Name = "Shadow",
+        Size = UDim2.new(1, 25, 1, 25), -- ใหญ่กว่าพ่อเล็กน้อยเพื่อทำขอบเงา
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+        BackgroundTransparency = 0.45,
+        ZIndex = 4, -- อยู่หลัง MainFrame เสมอ
+        Parent = MainFrame
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 18), Parent = Shadow})
 
-    -- ปรับ Gradient ให้สว่างขึ้น (จุดนี้สำคัญมากเพื่อให้ UI ไม่มืดเป็นแผ่น)
-    Create("UIGradient", {
+    -- เพิ่มความหรูหราด้วย Gradient และ Stroke
+    local MainGradient = Create("UIGradient", {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(45, 45, 50)), -- ส่วนบนที่สว่างขึ้น
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 25, 28))  -- ส่วนล่าง
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(30, 30, 30)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(15, 15, 15))
         }),
         Rotation = 45,
         Parent = MainFrame
     })
 
-    -- เพิ่มความเด่นให้ขอบ (Stroke)
     local MainStroke = Create("UIStroke", {
         Color = SlayLib.Theme.MainColor,
-        Thickness = 1.4,
-        Transparency = 0.2, -- ลดความใสลงเพื่อให้ขอบชัดตัดกับความมืดในเกม
+        Thickness = 1.3,
+        Transparency = 0.5,
         Parent = MainFrame
     })
 
-    -- 4. [FLOATING TOGGLE] ปรับให้สว่างกว่าพื้นหลังหลัก
+    -- 4. ปุ่มเปิด-ปิดลอยตัว (Floating Toggle) - ปรับปรุงให้ลากได้อิสระ
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
-        Size = UDim2.new(0, 52, 0, 52),
-        Position = UDim2.new(0.05, 0, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(40, 40, 45), -- สว่างกว่าเดิม
+        Size = UDim2.new(0, 50, 0, 50),
+        Position = UDim2.new(0.05, 0, 0.2, 0),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 15),
         Parent = CoreGuiFrame,
-        ZIndex = 100 
+        ZIndex = 100 -- อยู่ชั้นบนสุดเสมอ
     })
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2.5, Parent = FloatingToggle}) -- ขอบหนาขึ้น
+    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = FloatingToggle})
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
 
     local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 28, 0, 28), 
-        Position = UDim2.new(0.5, 0, 0.5, 0), 
+        Size = UDim2.new(0, 30, 0, 30),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        Image = SlayLib.Icons.Logo, 
-        ImageColor3 = SlayLib.Theme.MainColor, 
-        BackgroundTransparency = 1, 
-        ZIndex = 101, 
+        Image = SlayLib.Icons.Logo,
+        ImageColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        ZIndex = 101,
         Parent = FloatingToggle
     })
 
+    -- ปุ่มใสสำหรับคลิก (แยกออกจาก Frame เพื่อให้รับ Input ได้แม่นยำ)
     local ToggleButton = Create("TextButton", {
-        Size = UDim2.new(1, 0, 1, 0), 
-        BackgroundTransparency = 1, 
-        Text = "", 
-        ZIndex = 105, 
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        ZIndex = 105,
         Parent = FloatingToggle
     })
 
-    -- 5. [DRAG LOGIC]
-    task.spawn(function()
-        RegisterDrag(FloatingToggle, FloatingToggle)
-    end)
+    -- 5. ระบบการลาก (Drag System)
+    -- ทำให้ทั้งหน้าต่างหลักและปุ่มลอยตัวลากได้
+    RegisterDrag(FloatingToggle, FloatingToggle) -- ลากตัวปุ่มลอยตัว
+    -- หมายเหตุ: Sidebar Header จะต้องถูก RegisterDrag ในส่วนที่ 2 ต่อไป
 
-    -- 6. [ANIMATION LOGIC]
-    local function ToggleUI(State)
-        if State then
-            MainFrame.Visible = true
-            MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.4, true)
-            Tween(MainFrame, {GroupTransparency = 0}, 0.3)
-        else
-            -- หายวับไปพร้อมกัน 100%
-            MainFrame:TweenSize(UDim2.new(0, 580, 0, 400), "In", "Quart", 0.25, true)
-            Tween(MainFrame, {GroupTransparency = 1}, 0.2)
-            
-            task.delay(0.25, function() 
-                if not Window.Toggled then 
-                    MainFrame.Visible = false 
-                end 
-            end)
-        end
-    end
-
+    -- 6. Logic การเปิด-ปิดหน้าต่าง (Animation)
     ToggleButton.MouseButton1Click:Connect(function()
         Window.Toggled = not Window.Toggled
-        ToggleUI(Window.Toggled)
-        
-        -- Effect ปุ่มกด (เด้งเบาๆ)
-        Tween(ToggleIcon, {Size = UDim2.new(0, 22, 0, 22)}, 0.1)
-        task.delay(0.1, function()
-            Tween(ToggleIcon, {Size = UDim2.new(0, 28, 0, 28)}, 0.1)
-        end)
+        if Window.Toggled then
+            MainFrame.Visible = true
+            -- Tween เฉพาะตัวแม่ (MainFrame) เงาที่เป็นตัวลูกจะขยับตามอัตโนมัติ
+            MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.4, true)
+        else
+            -- อนิเมชันย่อหน้าต่างเข้าจุดกึ่งกลาง
+            MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quart", 0.3, true)
+            task.delay(0.3, function() 
+                if not Window.Toggled then MainFrame.Visible = false end 
+            end)
+        end
     end)
 
     -- [1] SIDEBAR (จัดตำแหน่งให้มีช่องว่าง Margin เล็กน้อยเพื่อให้ดูโมเดิร์น)
