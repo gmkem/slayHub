@@ -235,25 +235,21 @@ local function ExecuteUltimateLoadingSequence()
 
     -- [1] SETUP
     local Screen = Instance.new("ScreenGui", game:GetService("CoreGui"))
-    Screen.Name = "SLAY_NOVA_CORE"
+    Screen.Name = "SLAY_FINAL_GOD"
     Screen.IgnoreGuiInset = true
     Screen.DisplayOrder = 999999
 
     local Blur = Instance.new("BlurEffect", Lighting)
     Blur.Size = 0
 
-    local MainCanvas = Instance.new("CanvasGroup", Screen)
-    MainCanvas.Size = UDim2.new(1, 0, 1, 0)
-    MainCanvas.BackgroundTransparency = 1
-    MainCanvas.GroupTransparency = 1
+    -- เปลี่ยนมาใช้ Frame ธรรมดาแทน CanvasGroup เพื่อเลี่ยงบั๊กค้างในภาพแรก
+    local MainFrame = Instance.new("Frame", Screen)
+    MainFrame.Size = UDim2.new(1, 0, 1, 0)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    MainFrame.BackgroundTransparency = 1
+    MainFrame.BorderSizePixel = 0
 
-    local Background = Instance.new("Frame", MainCanvas)
-    Background.Size = UDim2.new(1, 0, 1, 0)
-    Background.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    Background.BorderSizePixel = 0
-
-    -- [2] ASSETS (Rings & Logo)
-    local Hub = Instance.new("Frame", MainCanvas)
+    local Hub = Instance.new("Frame", MainFrame)
     Hub.AnchorPoint = Vector2.new(0.5, 0.5)
     Hub.Position = UDim2.new(0.5, 0, 0.5, 0)
     Hub.Size = UDim2.new(0, 400, 0, 400)
@@ -262,32 +258,28 @@ local function ExecuteUltimateLoadingSequence()
     local Logo = Instance.new("ImageLabel", Hub)
     Logo.AnchorPoint = Vector2.new(0.5, 0.5)
     Logo.Position = UDim2.new(0.5, 0, 0.5, 0)
-    Logo.Size = UDim2.new(0, 0, 0, 0) -- เริ่มจาก 0 เพื่อฉากเปิดที่ทรงพลัง
+    Logo.Size = UDim2.new(0, 0, 0, 0)
     Logo.Image = SlayLib.Icons.Logofull
     Logo.BackgroundTransparency = 1
+    Logo.ImageTransparency = 1
 
-    -- สร้างวงแหวนที่จะพุ่งออกมาตอนเปิด (Shockwave)
-    local function CreateShockwave()
-        local sw = Instance.new("Frame", Hub)
-        sw.AnchorPoint = Vector2.new(0.5, 0.5)
-        sw.Position = UDim2.new(0.5, 0, 0.5, 0)
-        sw.Size = UDim2.new(0, 0, 0, 0)
-        sw.BackgroundTransparency = 0.5
-        sw.BackgroundColor3 = SlayLib.Theme.MainColor
-        Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
-        return sw
-    end
-
-    -- --- 💥 [ฉากเปิด: THE BIG BANG INTRO] 💥 ---
+    -- --- 💥 [ฉากเปิด: THE BIG BANG] 💥 ---
     task.spawn(function()
-        -- 1. จุดกำเนิด (The Singularity)
-        TweenService:Create(MainCanvas, TweenInfo.new(0.5), {GroupTransparency = 0}):Play()
-        TweenService:Create(Blur, TweenInfo.new(1.5, Enum.EasingStyle.Quart), {Size = 35}):Play()
+        -- จางพื้นหลังเข้า
+        TweenService:Create(MainFrame, TweenInfo.new(0.5), {BackgroundTransparency = 0.05}):Play()
+        TweenService:Create(Blur, TweenInfo.new(1, Enum.EasingStyle.Quart), {Size = 35}):Play()
         
-        -- 2. ระเบิดวงแหวน Shockwave
+        -- Shockwave ระเบิด (Fixed Error)
         for i = 1, 3 do
-            local sw = CreateShockwave()
-            TweenService:Create(sw, TweenInfo.new(0.8, Enum.EasingStyle.OutExpo), {
+            local sw = Instance.new("Frame", Hub)
+            sw.AnchorPoint = Vector2.new(0.5, 0.5)
+            sw.Position = UDim2.new(0.5, 0, 0.5, 0)
+            sw.Size = UDim2.new(0, 0, 0, 0)
+            sw.BackgroundTransparency = 0.5
+            sw.BackgroundColor3 = SlayLib.Theme.MainColor
+            Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
+            
+            TweenService:Create(sw, TweenInfo.new(0.8, Enum.EasingStyle.Expo, Enum.EasingDirection.Out), {
                 Size = UDim2.new(0, 600, 0, 600),
                 BackgroundTransparency = 1
             }):Play()
@@ -295,62 +287,62 @@ local function ExecuteUltimateLoadingSequence()
             task.wait(0.1)
         end
 
-        -- 3. โลโก้เด้งออกมาด้วยแรงกระแทก (Overshoot)
-        TweenService:Create(Logo, TweenInfo.new(1.2, Enum.EasingStyle.BackOut), {
-            Size = UDim2.new(0, 240, 0, 240)
+        -- โลโก้พุ่งออกมา
+        TweenService:Create(Logo, TweenInfo.new(1, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Size = UDim2.new(0, 240, 0, 240),
+            ImageTransparency = 0
         }):Play()
     end)
 
-    -- [3] PROGRESSION (3 SECONDS)
-    local Status = Instance.new("TextLabel", MainCanvas)
+    -- [2] PROGRESSION
+    local Status = Instance.new("TextLabel", MainFrame)
     Status.AnchorPoint = Vector2.new(0.5, 0.5)
-    Status.Position = UDim2.new(0.5, 0, 0.8, 0)
+    Status.Position = UDim2.new(0.5, 0, 0.82, 0)
     Status.Size = UDim2.new(0, 400, 0, 20)
     Status.Font = Enum.Font.Code
     Status.TextColor3 = SlayLib.Theme.MainColor
+    Status.TextSize = 15
     Status.BackgroundTransparency = 1
     Status.TextTransparency = 1
-    Status.TextSize = 14
+    Status.Text = "SYSTEM INITIALIZING..."
 
-    TweenService:Create(Status, TweenInfo.new(1), {TextTransparency = 0}):Play()
+    TweenService:Create(Status, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
 
-    local Steps = {"[ ANALYZING CORE ]", "[ SYNCHRONIZING ]", "[ BYPASSING V-LOCK ]", "[ ACCESS GRANTED ]"}
+    local Steps = {"[ ANALYZING ]", "[ BYPASSING ]", "[ DEPLOYING ]", "[ SUCCESS ]"}
     for _, msg in ipairs(Steps) do
         Status.Text = msg
-        task.wait(0.75)
+        task.wait(0.7)
     end
 
-    -- --- 🌪️ [ฉากปิด: THE DIMENSION RIFT OUTRO] 🌪️ ---
-    task.wait(0.2)
+    -- --- 🌪️ [ฉากปิด: THE VOID COLLAPSE] 🌪️ ---
+    task.wait(0.3)
     
-    local OutroInfo = TweenInfo.new(0.8, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
+    -- บีบทุกอย่างหายไปเป็นเส้นตั้ง (เท่และคมกว่าเดิม)
+    local OutInfo = TweenInfo.new(0.6, Enum.EasingStyle.Quint, Enum.EasingDirection.In)
     
-    -- 1. บิดเบี้ยว (Distortion)
-    -- โลโก้หมุนควงสว่านและหดหายไป
-    TweenService:Create(Logo, OutroInfo, {
-        Rotation = 360,
-        Size = UDim2.new(0, 0, 0, 0),
-        ImageColor3 = SlayLib.Theme.MainColor
+    -- หมุนโลโก้เร็วๆ ก่อนหาย
+    TweenService:Create(Logo, OutInfo, {
+        Rotation = 180,
+        Size = UDim2.new(0, 0, 0, 500), -- ยืดแนวตั้ง บีบแนวนอน
+        ImageTransparency = 1
     }):Play()
 
-    -- 2. การยุบมิติแบบเส้นแสง (Light Stretch)
-    -- บีบหน้าจอให้กลายเป็นเส้นแนวนอนที่ยาวและบางเฉียบ
-    local FinalCollapse = TweenService:Create(MainCanvas, OutroInfo, {
-        Size = UDim2.new(2, 0, 0, 0), -- ยืดออกแนวนอน บีบแนวตั้ง
-        Position = UDim2.new(-0.5, 0, 0.5, 0),
-        GroupTransparency = 1
+    local FinalTween = TweenService:Create(MainFrame, OutInfo, {
+        Size = UDim2.new(0, 0, 1, 0), -- บีบเหลือเส้นตรงกลางหน้าจอ
+        Position = UDim2.new(0.5, 0, 0, 0),
+        BackgroundTransparency = 1
     })
     
-    FinalCollapse:Play()
-    TweenService:Create(Blur, TweenInfo.new(0.8), {Size = 0}):Play()
+    FinalTween:Play()
+    TweenService:Create(Blur, TweenInfo.new(0.6), {Size = 0}):Play()
+    TweenService:Create(Status, TweenInfo.new(0.3), {TextTransparency = 1}):Play()
 
-    -- 3. ลบทุกอย่าง
-    FinalCollapse.Completed:Connect(function()
+    FinalTween.Completed:Connect(function()
         Screen:Destroy()
         Blur:Destroy()
     end)
 
-    -- Failsafe
+    -- Failsafe กันพัง
     task.delay(6, function() if Screen then Screen:Destroy() end end)
 end
 
