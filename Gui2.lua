@@ -229,152 +229,111 @@ end
 
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
-    local RS = game:GetService("RunService")
-    
-    -- 1. CLEAN SETUP (เลิกใช้ CanvasGroup เพื่อตัดปัญหา Freeze)
-    local Screen = Create("ScreenGui", {
-        Name = "SlayFinalSingularity",
-        Parent = Parent,
-        DisplayOrder = 9999999,
-        IgnoreGuiInset = true 
-    })
-    
+    local Screen = Create("ScreenGui", {Name = "SlayLoadingEnv", Parent = Parent})
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
-    
-    local MainFrame = Create("Frame", {
-        Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+
+    local Holder = Create("Frame", {
+        Size = UDim2.new(0, 420, 0, 420),
+        Position = UDim2.new(0.5, -210, 0.5, -210),
         BackgroundTransparency = 1,
         Parent = Screen
     })
 
-    -- 2. QUANTUM ARCHITECTURE (ดีไซน์เจาะลึก)
-    local Hub = Create("Frame", {
-        Size = UDim2.new(0, 350, 0, 350),
-        Position = UDim2.new(0.5, -175, 0.5, -175),
+    local Glow = Create("ImageLabel", {
+        Size = UDim2.new(0, 260, 0, 260),
+        Position = UDim2.new(0.5, -130, 0.45, -130),
+        Image = "rbxassetid://9424670972",
+        ImageColor3 = SlayLib.Theme.MainColor,
+        ImageTransparency = 0.8,
         BackgroundTransparency = 1,
-        Parent = MainFrame
+        Parent = Holder
     })
 
-    -- สร้าง "เส้นนำสายตา" (Scanning Lines)
-    local function CreateScanner()
-        local S = Create("Frame", {
-            Size = UDim2.new(1.2, 0, 0, 1),
-            Position = UDim2.new(-0.1, 0, 0.5, 0),
-            BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.5,
-            BorderSizePixel = 0,
-            Parent = MainFrame
-        })
-        return S
-    end
-    local ScanLine = CreateScanner()
-
-    -- วงโคจรควอนตัม (ใช้ Stroke หนา/บางสลับกัน)
-    local function CreateOrbit(size, thickness, transparency)
-        local O = Create("Frame", {
-            Size = UDim2.new(0, size, 0, size),
-            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
-            BackgroundTransparency = 1, Parent = Hub
-        })
-        Create("UIStroke", {
-            Color = SlayLib.Theme.MainColor,
-            Thickness = thickness,
-            Transparency = transparency,
-            Parent = O
-        })
-        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = O})
-        return O
-    end
-
-    local Orbit1 = CreateOrbit(280, 2, 0.2)
-    local Orbit2 = CreateOrbit(320, 1, 0.6)
-
-    -- โลโก้ (The Core)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 180, 0, 180),
-        Position = UDim2.new(0.5, -90, 0.5, -90),
+        Size = UDim2.new(0, 0, 0, 0),
+        Position = UDim2.new(0.5, 0, 0.45, 0),
         Image = SlayLib.Icons.Logofull,
+        ImageColor3 = SlayLib.Theme.MainColor,
         BackgroundTransparency = 1,
-        ImageTransparency = 1,
-        ZIndex = 10,
-        Parent = Hub
+        Parent = Holder
     })
 
-    -- 3. MASTER CONTROLLER (ระบบลูปเดียวคุมโลก)
-    local StartTime = tick()
-    local Duration = 3.0
-    local Connection
-    local IsClosing = false
+    local InfoLabel = Create("TextLabel", {
+        Text = "BOOTING SYSTEM CORE...",
+        Size = UDim2.new(1, 0, 0, 22),
+        Position = UDim2.new(0, 0, 0.78, 0),
+        Font = "Code",
+        TextSize = 13,
+        TextColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1,
+        Parent = Holder,
+        TextTransparency = 1
+    })
 
-    Connection = RS.RenderStepped:Connect(function()
-        if not Screen or not Screen.Parent then 
-            Connection:Disconnect() 
-            return 
-        end
+    local BarBg = Create("Frame", {
+        Size = UDim2.new(0, 280, 0, 5),
+        Position = UDim2.new(0.5, -140, 0.72, 0),
+        BackgroundColor3 = Color3.fromRGB(35, 35, 35),
+        Parent = Holder,
+        BackgroundTransparency = 1
+    })
+    local BarFill = Create("Frame", {
+        Size = UDim2.new(0, 0, 1, 0),
+        BackgroundColor3 = SlayLib.Theme.MainColor,
+        Parent = BarBg
+    })
+    Create("UICorner", {Parent = BarBg})
+    Create("UICorner", {Parent = BarFill})
 
-        local Elapsed = tick() - StartTime
-        local T = tick()
+    local Gradient = Create("UIGradient", {
+        Color = ColorSequence.new{
+            ColorSequenceKeypoint.new(0, SlayLib.Theme.MainColor),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 255, 255))
+        },
+        Rotation = 45,
+        Parent = BarFill
+    })
 
-        -- [PHASE 1 & 2: APPEAR & ACTIVE]
-        if Elapsed < Duration then
-            local FadeAlpha = math.clamp(Elapsed / 0.8, 0, 1)
-            
-            -- การแสดงผลพื้นฐาน
-            MainFrame.BackgroundTransparency = 1 - (FadeAlpha * 0.96)
-            Logo.ImageTransparency = 1 - FadeAlpha
-            Blur.Size = FadeAlpha * 28
-            
-            -- แอนิเมชันแอดวานซ์
-            Orbit1.Rotation = T * 90
-            Orbit2.Rotation = T * -45
-            ScanLine.Position = UDim2.new(-0.1, 0, 0.5 + math.sin(T * 2) * 0.4, 0)
-            
-            -- จังหวะหัวใจ Core (Breathing Effect)
-            local Pulse = 1 + (math.sin(T * 4) * 0.03)
-            Hub.Scale = Pulse -- ใช้ Scale แทนการปรับ Size โดยตรงเพื่อความนิ่ง
-            
-        -- [PHASE 3: THE FINAL COLLAPSE]
-        elseif not IsClosing then
-            IsClosing = true
-            Connection:Disconnect() -- หยุดลูปหลักเพื่อเปลี่ยนโหมด
+    -- Fade In Start
+    Tween(Blur, {Size = 30}, 1)
+    Tween(Logo, {Size = UDim2.new(0, 230, 0, 230), Position = UDim2.new(0.5, -115, 0.45, -115)}, 1.1, Enum.EasingStyle.Elastic)
+    Tween(Glow, {ImageTransparency = 0.4, Size = UDim2.new(0, 280, 0, 280)}, 1.2)
+    task.wait(0.6)
+    Tween(InfoLabel, {TextTransparency = 0}, 0.5)
+    Tween(BarBg, {BackgroundTransparency = 0}, 0.5)
 
-            -- ใช้ Task Spawn แยกออกมาเพื่อทำแอนิเมชันขาออกโดยเฉพาะ
-            task.spawn(function()
-                local ExitStart = tick()
-                while tick() - ExitStart < 0.6 do
-                    local t = (tick() - ExitStart) / 0.6
-                    local inv = 1 - t
-                    
-                    -- หายแบบ "Singularity" (ยุบลงเป็นจุดกึ่งกลาง)
-                    Hub.Size = UDim2.new(0, 350 * inv, 0, 350 * inv)
-                    Hub.Position = UDim2.new(0.5, -(175 * inv), 0.5, -(175 * inv))
-                    Hub.Rotation = t * 180 -- หมุนวนขณะหาย
-                    
-                    Logo.ImageTransparency = t
-                    MainFrame.BackgroundTransparency = 0.04 + (t * 0.96)
-                    Blur.Size = 28 * inv
-                    ScanLine.BackgroundTransparency = 1
-                    
-                    RS.RenderStepped:Wait()
-                end
-                
-                -- CLEANUP ขั้นเด็ดขาด
-                Screen:Destroy()
-                if Blur then Blur:Destroy() end
-            end)
-        end
-    end)
+    local Steps = {
+        "Authenticating Assets...",
+        "Calibrating Interface...",
+        "Synchronizing Modules...",
+        "Deploying UI Components...",
+        "Finalizing Environment..."
+    }
 
-    -- 4. ABSOLUTE TERMINATOR (ระบบตัดไฟฉุกเฉิน)
-    task.delay(5, function()
-        if Screen and Screen.Parent then
-            Screen:Destroy()
-            if Blur then Blur:Destroy() end
-        end
-    end)
+    for i, step in ipairs(Steps) do
+        InfoLabel.Text = step:upper()
+        Tween(BarFill, {Size = UDim2.new(i/#Steps, 0, 1, 0)}, 0.35)
+        Gradient.Rotation = Gradient.Rotation + 45
+        task.wait(math.random(4, 8) / 10)
+    end
+
+    -- Complete Animation
+    InfoLabel.Text = "ACCESS GRANTED ✓"
+    Tween(InfoLabel, {TextColor3 = Color3.fromRGB(100, 255, 100)}, 0.3)
+    task.wait(0.5)
+
+    -- Fade Out
+    Tween(Logo, {ImageTransparency = 1, Size = UDim2.new(0, 180, 0, 180)}, 0.7)
+    Tween(Glow, {ImageTransparency = 1}, 0.5)
+    Tween(InfoLabel, {TextTransparency = 1}, 0.5)
+    Tween(BarBg, {BackgroundTransparency = 1}, 0.5)
+    Tween(BarFill, {BackgroundTransparency = 1}, 0.5)
+    Tween(Blur, {Size = 0}, 0.8)
+
+    task.wait(0.8)
+    Screen:Destroy()
+    Blur:Destroy()
 end
-
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
 Config = Config or {Name = "SlayLib Ultimate"}
