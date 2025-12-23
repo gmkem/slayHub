@@ -230,7 +230,7 @@ end
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteLoadingSequence()
     local Screen = Create("ScreenGui", {
-        Name = "SlayAbsoluteZero",
+        Name = "SlayQuantumCore",
         Parent = Parent,
         DisplayOrder = 9999999,
         IgnoreGuiInset = true 
@@ -238,7 +238,7 @@ local function ExecuteLoadingSequence()
     
     local Blur = Create("BlurEffect", {Size = 0, Parent = Lighting})
     
-    -- CanvasGroup: ตัวควบคุมทุกอย่างในหน้าจอ (สำคัญมากเพื่อให้หายพร้อมกัน)
+    -- CanvasGroup สำหรับควบคุมการสลายตัวแบบ Total Sync
     local MainCanvas = Create("CanvasGroup", {
         Size = UDim2.new(1, 0, 1, 0),
         BackgroundTransparency = 1,
@@ -246,107 +246,145 @@ local function ExecuteLoadingSequence()
         Parent = Screen
     })
 
-    -- Background: Deep Dark Space
+    -- Background: The Event Horizon (มืดลึกมีมิติ)
     local Bg = Create("Frame", {
         Size = UDim2.new(1, 0, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(2, 2, 4),
+        BackgroundColor3 = Color3.fromRGB(1, 1, 3),
         BorderSizePixel = 0,
         Parent = MainCanvas
     })
 
-    -- [1] MOTION FX: สร้างเส้น "Digital Portal" พุ่งเข้าหาจอ (สร้างด้วยโค้ด)
-    local function CreatePortalLine()
-        local Line = Create("Frame", {
-            Size = UDim2.new(0, 2, 0, 0),
-            Position = UDim2.new(0.5, math.random(-200, 200), 0.5, math.random(-200, 200)),
+    -- [1] QUANTUM PARTICLES (อนุภาคควอนตัมพุ่งวน)
+    local ParticleFolder = Create("Frame", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Parent = Bg
+    })
+
+    local function SpawnQuantumParticle()
+        local Particle = Create("Frame", {
+            Size = UDim2.new(0, 2, 0, 2),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
             BackgroundColor3 = SlayLib.Theme.MainColor,
-            BackgroundTransparency = 0.5,
             BorderSizePixel = 0,
-            Parent = Bg
+            Parent = ParticleFolder
         })
-        -- พุ่งขยายออก
-        Tween(Line, {Size = UDim2.new(0, 2, 0, 500), Position = UDim2.new(Line.Position.X.Scale, Line.Position.X.Offset * 5, Line.Position.Y.Scale, Line.Position.Y.Offset * 5), BackgroundTransparency = 1}, 1):Play()
-        task.delay(1, function() Line:Destroy() end)
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Particle})
+        
+        local Angle = math.rad(math.random(0, 360))
+        local Dist = math.random(150, 400)
+        local TargetPos = UDim2.new(0.5 + math.cos(Angle) * (Dist/1000), 0, 0.5 + math.sin(Angle) * (Dist/1000), 0)
+        
+        Tween(Particle, {Position = TargetPos, BackgroundTransparency = 1, Size = UDim2.new(0, 6, 0, 6)}, 1.2, Enum.EasingStyle.Quart):Play()
+        task.delay(1.2, function() Particle:Destroy() end)
     end
 
-    -- [2] CENTRAL HUB (สร้างความอลังการรอบโลโก้)
-    local Hub = Create("Frame", {
+    -- [2] THE QUANTUM CORE (ศูนย์กลางพลังงาน)
+    local CoreHub = Create("Frame", {
         Size = UDim2.new(0, 400, 0, 400),
         Position = UDim2.new(0.5, -200, 0.5, -200),
         BackgroundTransparency = 1,
         Parent = MainCanvas
     })
 
-    -- โลโก้ (หัวใจสำคัญ)
+    -- วงแหวนพลังงาน 3 ชั้น (ความเร็วต่างกัน)
+    local function CreateQuantumRing(size, speed, transparency)
+        local Ring = Create("Frame", {
+            Size = UDim2.new(0, size, 0, size),
+            Position = UDim2.new(0.5, -size/2, 0.5, -size/2),
+            BackgroundTransparency = 1, Parent = CoreHub
+        })
+        local Stroke = Create("UIStroke", {
+            Color = SlayLib.Theme.MainColor, Thickness = 2, 
+            Transparency = transparency, Parent = Ring
+        })
+        Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
+        
+        task.spawn(function()
+            while Screen and Screen.Parent do
+                Ring.Rotation = Ring.Rotation + speed
+                task.wait()
+            end
+        end)
+    end
+
+    CreateQuantumRing(250, 2, 0.2)
+    CreateQuantumRing(280, -1.2, 0.5)
+    CreateQuantumRing(320, 0.5, 0.7)
+
+    -- โลโก้ (The Core Singularity)
     local Logo = Create("ImageLabel", {
-        Size = UDim2.new(0, 180, 0, 180),
-        Position = UDim2.new(0.5, -90, 0.5, -90),
+        Size = UDim2.new(0, 150, 0, 150),
+        Position = UDim2.new(0.5, -75, 0.5, -75),
         Image = SlayLib.Icons.Logofull,
         BackgroundTransparency = 1,
         ZIndex = 10,
-        Parent = Hub
+        Parent = CoreHub
     })
 
-    -- สร้าง "วงแหวนข้อมูล" (ใช้ UIStroke Dash)
-    local Ring = Create("Frame", {
-        Size = UDim2.new(0, 300, 0, 300),
-        Position = UDim2.new(0.5, -150, 0.5, -150),
-        BackgroundTransparency = 1,
-        Parent = Hub
+    -- [3] DATA LOG (เท่ๆ ด้านล่าง)
+    local StatusText = Create("TextLabel", {
+        Text = "> INITIALIZING QUANTUM CORE",
+        Size = UDim2.new(1, 0, 0, 20),
+        Position = UDim2.new(0, 0, 0.85, 0),
+        Font = "Code", TextSize = 16,
+        TextColor3 = SlayLib.Theme.MainColor,
+        BackgroundTransparency = 1, Parent = MainCanvas
     })
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 3, DashPattern = {1, 5}, Parent = Ring})
-    Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Ring})
 
-    -- --- START 3-SECOND CINEMATIC ---
-    Tween(Blur, {Size = 25}, 1):Play()
+    -- --- 3-SECOND QUANTUM SEQUENCE ---
+    Tween(Blur, {Size = 35}, 1):Play()
     Tween(MainCanvas, {GroupTransparency = 0}, 1):Play()
 
-    -- วนลูปเอฟเฟกต์พุ่ง (รันแยก Thread เพื่อไม่ให้กวนลำดับหลัก)
-    local EffectConnection = task.spawn(function()
+    -- วนลูปอนุภาค
+    local ParticleLoop = task.spawn(function()
         while Screen and Screen.Parent do
-            CreatePortalLine()
-            Ring.Rotation = Ring.Rotation + 2
-            task.wait(0.05)
+            SpawnQuantumParticle()
+            task.wait(0.08)
         end
     end)
 
-    -- ลำดับการโหลด (3 วินาที)
-    task.wait(1) -- วิที่ 1: เตรียมระบบ
-    Tween(Logo, {Size = UDim2.new(0, 220, 0, 220), Position = UDim2.new(0.5, -110, 0.5, -110)}, 0.5):Play()
+    -- Timeline
+    task.wait(1)
+    StatusText.Text = "> STABILIZING DIMENSIONAL RIFT"
+    Tween(Logo, {Size = UDim2.new(0, 180, 0, 180), Position = UDim2.new(0.5, -90, 0.5, -90)}, 0.5):Play()
     
-    task.wait(1) -- วิที่ 2: โหลดข้อมูล (Glitch เบาๆ)
-    Hub.Position = UDim2.new(0.5, -195, 0.5, -200)
-    task.wait(0.1)
-    Hub.Position = UDim2.new(0.5, -200, 0.5, -200)
+    task.wait(1)
+    StatusText.Text = "> SYNCHRONIZING WITH MULTIVERSE"
+    -- Glitch Impact
+    for i = 1, 8 do
+        CoreHub.Position = UDim2.new(0.5, -200 + math.random(-8, 8), 0.5, -200 + math.random(-8, 8))
+        task.wait(0.04)
+    end
+    CoreHub.Position = UDim2.new(0.5, -200, 0.5, -200)
 
-    task.wait(1) -- วิที่ 3: พร้อมทำงาน
+    task.wait(1)
+    StatusText.Text = "> CORE ONLINE"
 
-    -- --- THE FINAL SYNC EXIT (จุดแก้ปัญหาค้าง) ---
-    local function PerfectExit()
-        -- หยุดเอฟเฟกต์ทั้งหมดก่อนหาย
-        task.cancel(EffectConnection)
+    -- --- THE QUANTUM COLLAPSE (หายพร้อมกัน 100% ไม่ค้าง) ---
+    local function FinalCollapse()
+        task.cancel(ParticleLoop) -- หยุดการสร้างอนุภาคทันที
         
-        -- บีบอัดทุกอย่างผ่าน MainCanvas ตัวเดียว (หายพร้อมกัน 100%)
+        -- ยุบมิติเข้าสู่จุดศูนย์กลาง (Absolute Sync)
         local Collapse = Tween(MainCanvas, {
-            Size = UDim2.new(1.2, 0, 0, 0), -- บีบแนวนอนเป็นเส้นคมๆ
-            Position = UDim2.new(-0.1, 0, 0.5, 0),
+            Size = UDim2.new(0, 0, 1.5, 0), -- ยุบแนวนอนจนเป็นเส้นด้าย
+            Position = UDim2.new(0.5, 0, -0.25, 0),
             GroupTransparency = 1
-        }, 0.5, Enum.EasingStyle.Quart)
+        }, 0.6, Enum.EasingStyle.Quart)
 
         Collapse:Play()
-        Tween(Blur, {Size = 0}, 0.5):Play()
+        Tween(Blur, {Size = 0}, 0.6):Play()
 
-        -- สั่ง Destroy โดยใช้ delay คงที่ (ไม่ใช้ระบบรอ Tween เพื่อกันค้าง)
-        task.delay(0.6, function()
+        -- สั่งลบทิ้งแบบ Hard-Coded Delay
+        task.delay(0.7, function()
             if Screen then Screen:Destroy() end
             if Blur then Blur:Destroy() end
         end)
     end
 
-    PerfectExit()
+    FinalCollapse()
 
-    -- ** SAFETY CUT (กันค้างถาวร) **
-    -- ไม่ว่าอะไรจะเกิดขึ้น 5 วินาทีหน้าจอนี้ต้องหายไป
+    -- Safety Kill (5 วินาที เชือดทิ้งแน่นอน)
     task.delay(5, function()
         if Screen and Screen.Parent then Screen:Destroy() end
     end)
