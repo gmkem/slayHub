@@ -377,6 +377,8 @@ end
 function SlayLib:CreateWindow(Config)
     Config = Config or {Name = "SlayLib Ultimate"}
 
+ExecuteFinalSovereign()
+
     -- 1. Cleanup Old UI
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
@@ -845,57 +847,121 @@ function SlayLib:CreateWindow(Config)
 
                         -- 3. [UPGRADED] DROPDOWN (Smart Layering & Search)
         function Section:CreateDropdown(Props)
-            Props = Props or {Name = "Dropdown", Options = {"Option 1", "Option 2"}, Flag = "Drop_1", Callback = function() end}
-            local IsOpen = false
-            local Selected = Props.Multi and {} or nil 
+    Props = Props or {Name = "Dropdown", Options = {"Option 1"}, Flag = "Drop_1", Multi = false, Default = {}, Callback = function() end}
+    local IsOpen = false
+    local Selected = Props.Multi and {} or nil
+    
+    -- สร้าง Container
+    local DContainer = Create("Frame", {  
+        Name = Props.Name .. "_Dropdown",
+        Size = UDim2.new(1, 0, 0, 45), 
+        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+        BackgroundTransparency = 0.5, -- กระจกใสตาม MainFrame
+        ClipsDescendants = true,
+        ZIndex = 35, 
+        Parent = Page  
+    })  
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = DContainer})  
+    local DStroke = Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 1, Transparency = 0.9, Parent = DContainer})
 
-            local DContainer = Create("Frame", {  
-                Name = Props.Name .. "_Dropdown",
-                Size = UDim2.new(1, 0, 0, 48), 
-                BackgroundColor3 = SlayLib.Theme.Element,  
-                ClipsDescendants = true, -- ตัวควบคุมการเปิด-ปิด List
-                ZIndex = 35, -- สูงกว่า Toggle/Slider
-                Parent = Page  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = DContainer})  
-            local DStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = DContainer})
+    local MainBtn = Create("TextButton", {Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, Text = "", ZIndex = 36, Parent = DContainer})  
 
-            local MainBtn = Create("TextButton", {Size = UDim2.new(1, 0, 0, 48), BackgroundTransparency = 1, Text = "", ZIndex = 36, Parent = DContainer})  
+    local DLbl = Create("TextLabel", {  
+        Text = Props.Name .. ": None", 
+        Size = UDim2.new(1, -50, 0, 45), Position = UDim2.new(0, 15, 0, 0), 
+        Font = "GothamMedium", TextSize = 13, TextColor3 = SlayLib.Theme.TextSecondary, 
+        TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 37, Parent = MainBtn  
+    })  
 
-            local DLbl = Create("TextLabel", {  
-                Text = Props.Name .. ": None", 
-                Size = UDim2.new(1, -50, 0, 48), Position = UDim2.new(0, 15, 0, 0), 
-                Font = "GothamMedium", TextSize = 13, TextColor3 = SlayLib.Theme.TextSecondary, 
-                TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 37, Parent = MainBtn  
-            })  
+    local Chevron = Create("ImageLabel", {  
+        Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -30, 0.5, -7),  
+        Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, 
+        ImageColor3 = SlayLib.Theme.MainColor, ZIndex = 37, Parent = MainBtn  
+    })  
 
-            local Chevron = Create("ImageLabel", {  
-                Size = UDim2.new(0, 16, 0, 16), Position = UDim2.new(1, -30, 0.5, -8),  
-                Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1, ImageColor3 = SlayLib.Theme.TextSecondary, ZIndex = 37, Parent = MainBtn  
-            })  
+    local List = Create("ScrollingFrame", {  
+        Size = UDim2.new(1, -10, 0, 125), Position = UDim2.new(0, 5, 0, 50),  
+        BackgroundTransparency = 1, ScrollBarThickness = 0, 
+        CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", ZIndex = 38, Parent = DContainer  
+    })  
+    Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 4)})
 
-            -- พื้นที่ List รายการ
-            local List = Create("ScrollingFrame", {  
-                Size = UDim2.new(1, -10, 0, 120), Position = UDim2.new(0, 5, 0, 50),  
-                BackgroundTransparency = 1, ScrollBarThickness = 2, 
-                CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", ZIndex = 38, Parent = DContainer  
-            })  
-            Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 4)})
-
-            -- Logic เปิด/ปิด
-            MainBtn.MouseButton1Click:Connect(function()
-                IsOpen = not IsOpen
-                local TargetSize = IsOpen and UDim2.new(1, 0, 0, 180) or UDim2.new(1, 0, 0, 48)
-                Tween(DContainer, {Size = TargetSize}, 0.3, Enum.EasingStyle.Quart)
-                Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.3)
-                
-                -- แก้ปัญหา Dropdown โดนบัง: เมื่อเปิดให้ยก ZIndex ขึ้นสูงสุด
-                DContainer.ZIndex = IsOpen and 50 or 35
-            end)
-
-            -- ฟังก์ชันเพิ่มรายการ (RefreshOptions)
-            -- [คุณสามารถใช้ Logic วนลูป Options เดิมของคุณได้เลยที่นี่]
+    -- ฟังก์ชันอัปเดตตัวหนังสือบนปุ่ม
+    local function UpdateText()
+        if Props.Multi then
+            local Count = 0
+            for _, v in pairs(Selected) do if v then Count = Count + 1 end end
+            DLbl.Text = Props.Name .. ": " .. Count .. " Selected"
+        else
+            DLbl.Text = Props.Name .. ": " .. tostring(Selected or "None")
         end
+        DLbl.TextColor3 = (Selected ~= nil) and SlayLib.Theme.Text or SlayLib.Theme.TextSecondary
+    end
+
+    -- ฟังก์ชันสร้างรายการ (Items)
+    local function RefreshOptions()
+        for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+        
+        for _, opt in pairs(Props.Options) do
+            local Item = Create("TextButton", {
+                Size = UDim2.new(1, 0, 0, 32), 
+                BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+                BackgroundTransparency = 0.8,
+                Text = "  " .. opt,
+                Font = "Gotham", TextSize = 12, TextColor3 = Color3.fromRGB(200, 200, 200),
+                TextXAlignment = "Left", ZIndex = 39, Parent = List
+            })
+            Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = Item})
+            
+            -- สถานะการเลือก (Highlight)
+            local function CheckHighlight()
+                local IsActive = Props.Multi and Selected[opt] or Selected == opt
+                Tween(Item, {
+                    BackgroundTransparency = IsActive and 0.4 or 0.8,
+                    TextColor3 = IsActive and SlayLib.Theme.MainColor or Color3.fromRGB(200, 200, 200)
+                }, 0.2)
+            end
+            CheckHighlight()
+
+            Item.MouseButton1Click:Connect(function()
+                if Props.Multi then
+                    Selected[opt] = not Selected[opt]
+                    CheckHighlight()
+                    task.spawn(Props.Callback, Selected)
+                else
+                    Selected = opt
+                    IsOpen = false
+                    Tween(DContainer, {Size = UDim2.new(1, 0, 0, 45)}, 0.3)
+                    Tween(Chevron, {Rotation = 0}, 0.3)
+                    DContainer.ZIndex = 35
+                    for _, child in pairs(List:GetChildren()) do 
+                        if child:IsA("TextButton") then 
+                            Tween(child, {TextColor3 = Color3.fromRGB(200, 200, 200), BackgroundTransparency = 0.8}, 0.2)
+                        end 
+                    end
+                    CheckHighlight()
+                    task.spawn(Props.Callback, Selected)
+                end
+                UpdateText()
+            end)
+        end
+    end
+
+    -- Click Logic
+    MainBtn.MouseButton1Click:Connect(function()
+        IsOpen = not IsOpen
+        -- ยก ZIndex ขึ้นเพื่อให้ทับ Element ด้านล่าง
+        DContainer.ZIndex = IsOpen and 100 or 35 
+        
+        local TargetSize = IsOpen and UDim2.new(1, 0, 0, 185) or UDim2.new(1, 0, 0, 45)
+        Tween(DContainer, {Size = TargetSize}, 0.4, Enum.EasingStyle.Quart)
+        Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.3)
+        Tween(DStroke, {Transparency = IsOpen and 0.5 or 0.9, Color = IsOpen and SlayLib.Theme.MainColor or Color3.new(1,1,1)}, 0.3)
+    end)
+
+    RefreshOptions()
+    return {Refresh = RefreshOptions}
+end
 
         -- 4. [UPGRADED] INTERACTIVE BUTTON
         function Section:CreateButton(Props)  
