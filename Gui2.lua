@@ -334,7 +334,7 @@ local function ExecuteFinalSovereign()
     Status.TextSize = 14
     Status.BackgroundTransparency = 1
     Status.TextTransparency = 1
-    Status.Text = "SYSTEM_READY"
+    Status.Text = "READY"
 
     TweenService:Create(Status, TweenInfo.new(0.8), {TextTransparency = 0.2}):Play()
     task.wait(2.5)
@@ -375,108 +375,100 @@ end
 
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
-    Config = Config or {Name = "SlayLib X Ultimate"}
+    Config = Config or {Name = "SLAYLIB X"}
 
-    -- 1. ล้างค่า UI เก่าป้องกันการรันซ้อน
+ExecuteFinalSovereign()
+
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
     if OldUI then OldUI:Destroy() end
 
-    local Window = {
-        Toggled = true,
-        Tabs = {},
-        CurrentTab = nil
-    }
+    local Window = { Toggled = true, Tabs = {}, CurrentTab = nil }
 
-    -- 2. สร้าง ScreenGui
     local CoreGuiFrame = Create("ScreenGui", {
         Name = "SlayLib_X_Engine", 
         Parent = game:GetService("CoreGui"),
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling 
     })
 
-    -- 3. หน้าต่างหลัก (MainFrame)
+    -- 1. [MAIN FRAME] ใช้โทนสี Deep Charcoal และเพิ่มความโค้งมนที่ดูทันสมัย
     local MainFrame = Create("Frame", {
         Name = "MainFrame",
-        Size = UDim2.new(0, 620, 0, 440),
+        Size = UDim2.new(0, 620, 0, 420),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundColor3 = Color3.fromRGB(22, 22, 24),
+        BackgroundColor3 = Color3.fromRGB(15, 15, 17),
+        BorderSizePixel = 0,
         Parent = CoreGuiFrame,
-        ZIndex = 5,
-        ClipsDescendants = true,
         Visible = true
     })
-    Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = MainFrame})
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
 
-    -- Shadow (เนียนขึ้นและจางหายพร้อมหน้าต่าง)
-    local Shadow = Create("ImageLabel", {
-        Name = "Shadow",
-        Size = UDim2.new(1, 40, 1, 40),
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        BackgroundTransparency = 1,
-        Image = "rbxassetid://6015267023",
-        ImageColor3 = Color3.new(0, 0, 0),
-        ImageTransparency = 0.5,
-        ZIndex = 4,
-        Parent = MainFrame
-    })
-
-    -- 4. Sidebar (ปรับความกว้างลดลงตามคำแนะนำ)
-    local SidebarWidth = 150 -- ลดความกว้างเพื่อให้ฝั่งขวามีพื้นที่มากขึ้น
+    -- 2. [SIDEBAR] ปรับความกว้างให้สมดุล (160px) และเพิ่มเส้นแบ่งที่คมชัด
     local Sidebar = Create("Frame", {
         Name = "Sidebar",
-        Size = UDim2.new(0, SidebarWidth, 1, 0),
-        BackgroundColor3 = Color3.fromRGB(28, 28, 30),
+        Size = UDim2.new(0, 160, 1, 0),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 20),
         BorderSizePixel = 0,
         Parent = MainFrame
     })
+    Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Sidebar})
+    
+    -- ปกปิดมุมขวาของ Sidebar ให้ต่อกับ MainFrame เนียนๆ
+    local SidebarFix = Create("Frame", {
+        Size = UDim2.new(0, 20, 1, 0),
+        Position = UDim2.new(1, -20, 0, 0),
+        BackgroundColor3 = Color3.fromRGB(18, 18, 20),
+        BorderSizePixel = 0,
+        Parent = Sidebar
+    })
 
-    -- Title (จัดให้อยู่กึ่งกลาง Sidebar และไม่เบี้ยว)
-    local Title = Create("TextLabel", {
+    -- 3. [TITLE & LOGO] จัดวางให้อยู่ใน Safe Zone (กึ่งกลางและมีระยะขอบที่เท่ากัน)
+    local TitleLabel = Create("TextLabel", {
         Text = Config.Name,
-        Size = UDim2.new(1, 0, 0, 60), -- ความกว้างเต็ม Sidebar
+        Size = UDim2.new(1, 0, 0, 65),
         Position = UDim2.new(0, 0, 0, 0),
         Font = "GothamBold",
-        TextSize = 14,
+        TextSize = 13,
         TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextXAlignment = "Center", -- ปรับให้อยู่กึ่งกลางเป๊ะ
+        TextTransparency = 0.1,
+        TextXAlignment = "Center",
         BackgroundTransparency = 1,
         Parent = Sidebar
     })
 
-    -- 5. Content Area (ฝั่งขวา - พื้นที่กว้างขึ้น)
-    local ContainerHolder = Create("Frame", {
-        Name = "ContainerHolder",
-        Size = UDim2.new(1, -SidebarWidth, 1, 0),
-        Position = UDim2.new(0, SidebarWidth, 0, 0),
+    -- 4. [CONTENT AREA] เพิ่มระยะห่าง (Padding) รอบด้านไม่ให้โมดูลชิดขอบเกินไป
+    local Container = Create("Frame", {
+        Name = "Container",
+        Size = UDim2.new(1, -160, 1, 0),
+        Position = UDim2.new(0, 160, 0, 0),
         BackgroundTransparency = 1,
         Parent = MainFrame
     })
 
-    -- เส้นแบ่ง Sidebar กับ Content
+    -- เส้นแบ่งแนวตั้ง (Vertical Divider) ที่ดูหรูหรา
     local Divider = Create("Frame", {
         Size = UDim2.new(0, 1, 1, -40),
         Position = UDim2.new(0, 0, 0, 20),
         BackgroundColor3 = SlayLib.Theme.MainColor,
-        BackgroundTransparency = 0.8,
-        Parent = ContainerHolder
+        BackgroundTransparency = 0.85,
+        BorderSizePixel = 0,
+        Parent = Container
     })
 
-    -- 6. Floating Toggle (ปุ่มลอยตัว)
+    -- 5. [FLOATING TOGGLE] ทรงกลม Minimalist พร้อม Shadow เบาๆ
     local FloatingToggle = Create("Frame", {
         Name = "FloatingToggle",
-        Size = UDim2.new(0, 50, 0, 50),
+        Size = UDim2.new(0, 48, 0, 48),
         Position = UDim2.new(0.05, 0, 0.15, 0),
-        BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+        BackgroundColor3 = Color3.fromRGB(22, 22, 25),
         Parent = CoreGuiFrame,
         ZIndex = 100
     })
     Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
-    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
+    Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0.2, Parent = FloatingToggle})
 
     local ToggleIcon = Create("ImageLabel", {
-        Size = UDim2.new(0, 28, 0, 28),
+        Size = UDim2.new(0, 24, 0, 24),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         Image = SlayLib.Icons.Logo,
@@ -492,29 +484,28 @@ function SlayLib:CreateWindow(Config)
         Parent = FloatingToggle
     })
 
-    -- 7. ระบบลาก (Drag)
-    RegisterDrag(FloatingToggle, FloatingToggle)
-    RegisterDrag(MainFrame, Sidebar) -- ให้ลากหน้าต่างได้จาก Sidebar
-
-    -- 8. ระบบเปิด-ปิด (Animation)
+    -- 6. [MICRO-ANIMATIONS] การตอบสนองที่ลื่นไหล
     local function ToggleUI(State)
-        if State then
-            MainFrame.Visible = true
-            MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.4, true)
-            Tween(Shadow, {ImageTransparency = 0.5}, 0.3)
-        else
-            MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quart", 0.3, true)
-            Tween(Shadow, {ImageTransparency = 1}, 0.2)
-            task.delay(0.3, function() 
-                if not Window.Toggled then MainFrame.Visible = false end 
-            end)
-        end
+        local TargetSize = State and UDim2.new(0, 620, 0, 420) or UDim2.new(0, 0, 0, 0)
+        local TargetTrans = State and 0 or 1
+        
+        MainFrame:TweenSize(TargetSize, "Out", "Quart", 0.4, true)
+        Tween(MainFrame, {BackgroundTransparency = TargetTrans}, 0.3)
+        
+        task.delay(0.4, function() MainFrame.Visible = State end)
     end
 
     ToggleButton.MouseButton1Click:Connect(function()
         Window.Toggled = not Window.Toggled
         ToggleUI(Window.Toggled)
+        
+        -- Animation เล็กๆ ตอนกด
+        Tween(ToggleIcon, {Size = UDim2.new(0, 18, 0, 18)}, 0.1)
+        task.delay(0.1, function() Tween(ToggleIcon, {Size = UDim2.new(0, 24, 0, 24)}, 0.1) end)
     end)
+
+    RegisterDrag(FloatingToggle, FloatingToggle)
+    RegisterDrag(MainFrame, Sidebar) -- ลากได้จาก Sidebar ทั้งแผง
 
     -- [1] SIDEBAR (จัดตำแหน่งให้มีช่องว่าง Margin เล็กน้อยเพื่อให้ดูโมเดิร์น)
     local Sidebar = Create("Frame", {  
