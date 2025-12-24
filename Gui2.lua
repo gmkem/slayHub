@@ -375,7 +375,9 @@ end
 
 --// MAIN WINDOW CONSTRUCTOR
 function SlayLib:CreateWindow(Config)
-    Config = Config or {Name = "SlayLib X Ultimate"}
+    Config = Config or {Name = "SlayLib X"}
+
+ExecuteFinalSovereign()
 
     -- 1. Cleanup Old UI
     local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
