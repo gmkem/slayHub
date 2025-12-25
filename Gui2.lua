@@ -751,112 +751,151 @@ local PageList = Create("UIListLayout", {
 
         -- 2. [UPGRADED] SLIDER (เน้นความลื่นไหลและแม่นยำ)
         function Section:CreateSlider(Props)  
-            Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end}  
-            local Value = Props.Def  
-            SlayLib.Flags[Props.Flag] = Value  
+    Props = Props or {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end}  
+    local Value = Props.Def  
+    SlayLib.Flags[Props.Flag] = Value  
 
-            local SContainer = Create("Frame", {  
-                Size = UDim2.new(1, 0, 0, 65), 
-                BackgroundColor3 = SlayLib.Theme.Element, 
-                ZIndex = 25,
-                Parent = Page  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SContainer})  
-            Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = SContainer})
+    local SContainer = Create("Frame", {  
+        Size = UDim2.new(1, 0, 0, 65), 
+        BackgroundColor3 = SlayLib.Theme.Element, 
+        ZIndex = 25,
+        Parent = Page  
+    })  
+    Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SContainer})  
+    Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = SContainer})
 
-            local SLbl = Create("TextLabel", {  
-                Size = UDim2.new(1, -100, 0, 35), 
-                Position = UDim2.new(0, 15, 0, 5),  
-                Font = "GothamMedium", 
-                TextSize = 14,
-                TextColor3 = SlayLib.Theme.Text,  
-                TextXAlignment = "Left", 
-                BackgroundTransparency = 1, 
-                ZIndex = 26,
-                Parent = SContainer  
-            })  
-            ApplyTextLogic(SLbl, Props.Name, 14)  
+    local SLbl = Create("TextLabel", {  
+        Size = UDim2.new(1, -100, 0, 35), 
+        Position = UDim2.new(0, 15, 0, 5),  
+        Font = "GothamMedium", 
+        TextSize = 14,
+        TextColor3 = SlayLib.Theme.Text,  
+        TextXAlignment = "Left", 
+        BackgroundTransparency = 1, 
+        ZIndex = 26,
+        Parent = SContainer  
+    })  
+    SLbl.Text = Props.Name -- สมมติว่า ApplyTextLogic จัดการเรื่อง Text อยู่แล้ว
 
-            local ValInput = Create("TextBox", {  
-                Text = tostring(Value), 
-                Size = UDim2.new(0, 45, 0, 20), 
-                Position = UDim2.new(1, -60, 0, 10),  
-                Font = "Code", 
-                TextSize = 12, 
-                TextColor3 = SlayLib.Theme.MainColor,  
-                BackgroundColor3 = Color3.fromRGB(20, 20, 20), 
-                ZIndex = 27,
-                Parent = SContainer  
-            })  
-            Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = ValInput})  
+    local ValInput = Create("TextBox", {  
+        Text = tostring(Value), 
+        Size = UDim2.new(0, 45, 0, 20), 
+        Position = UDim2.new(1, -60, 0, 10),  
+        Font = "Code", 
+        TextSize = 12, 
+        TextColor3 = SlayLib.Theme.MainColor,  
+        BackgroundColor3 = Color3.fromRGB(20, 20, 20), 
+        ZIndex = 27,
+        Parent = SContainer  
+    })  
+    Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = ValInput})  
 
-            local Bar = Create("Frame", {  
-                Size = UDim2.new(1, -30, 0, 4), 
-                Position = UDim2.new(0, 15, 0, 48),  
-                BackgroundColor3 = Color3.fromRGB(45, 45, 45), 
-                ZIndex = 27,
-                Parent = SContainer  
-            })  
-            Create("UICorner", {Parent = Bar})  
+    local Bar = Create("Frame", {  
+        Size = UDim2.new(1, -30, 0, 4), 
+        Position = UDim2.new(0, 15, 0, 48),  
+        BackgroundColor3 = Color3.fromRGB(45, 45, 45), 
+        ZIndex = 27,
+        Parent = SContainer  
+    })  
+    Create("UICorner", {Parent = Bar})  
 
-            local Fill = Create("Frame", {  
-                Size = UDim2.new((Value - Props.Min)/(Props.Max - Props.Min), 0, 1, 0),  
-                BackgroundColor3 = SlayLib.Theme.MainColor, 
-                ZIndex = 28,
-                Parent = Bar  
-            })  
-            Create("UICorner", {Parent = Fill})
+    local Fill = Create("Frame", {  
+        Size = UDim2.new(math.clamp((Value - Props.Min)/(Props.Max - Props.Min), 0, 1), 0, 1, 0),  
+        BackgroundColor3 = SlayLib.Theme.MainColor, 
+        ZIndex = 28,
+        Parent = Bar  
+    })  
+    Create("UICorner", {Parent = Fill})
 
-            -- ปุ่มสำหรับเลื่อน Slider
-            local SliderBtn = Create("TextButton", {
-                Size = UDim2.new(1, 0, 1, 0),
-                BackgroundTransparency = 1,
-                Text = "",
-                ZIndex = 30,
-                Parent = Bar
-            })
+    local SliderBtn = Create("TextButton", {
+        Size = UDim2.new(1, 0, 1, 0),
+        BackgroundTransparency = 1,
+        Text = "",
+        ZIndex = 30,
+        Parent = Bar
+    })
 
-            -- Logic การลาก (ใช้ระบบ Drag ที่เสถียร)
-            local function UpdateSlider(Input)
-                local Percent = math.clamp((Input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
-                Value = math.floor(Props.Min + (Props.Max - Props.Min) * Percent)
-                Fill.Size = UDim2.new(Percent, 0, 1, 0)
-                ValInput.Text = tostring(Value)
-                SlayLib.Flags[Props.Flag] = Value
-                task.spawn(Props.Callback, Value)
-            end
+    -- ฟังก์ชันอัปเดตค่าและ UI
+    local function SetValue(v, ignoreInput)
+        Value = math.clamp(v, Props.Min, Props.Max)
+        local Percent = (Value - Props.Min) / (Props.Max - Props.Min)
+        
+        -- ใช้ Tween สำหรับการขยับ Fill
+        Tween(Fill, {Size = UDim2.new(Percent, 0, 1, 0)}, 0.1)
+        
+        if not ignoreInput then
+            ValInput.Text = tostring(Value)
+        end
+        
+        SlayLib.Flags[Props.Flag] = Value
+        task.spawn(Props.Callback, Value)
+    end
 
-            SliderBtn.InputBegan:Connect(function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                    local MoveCon, EndCon
-                    UpdateSlider(Input)
-                    MoveCon = game:GetService("UserInputService").InputChanged:Connect(function(Move)
-                        if Move.UserInputType == Enum.UserInputType.MouseMovement or Move.UserInputType == Enum.UserInputType.Touch then
-                            UpdateSlider(Move)
-                        end
-                    end)
-                    EndCon = game:GetService("UserInputService").InputEnded:Connect(function(End)
-                        if End.UserInputType == Enum.UserInputType.MouseButton1 or End.UserInputType == Enum.UserInputType.Touch then
-                            MoveCon:Disconnect()
-                            EndCon:Disconnect()
-                        end
-                    end)
+    -- Logic การลาก
+    local function UpdateFromInput(Input)
+        local Percent = math.clamp((Input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+        local NewVal = math.floor(Props.Min + (Props.Max - Props.Min) * Percent)
+        SetValue(NewVal)
+    end
+
+    -- ระบบพิมพ์ค่าเองใน TextBox
+    ValInput.FocusLost:Connect(function(EnterPressed)
+        local NewVal = tonumber(ValInput.Text)
+        if NewVal then
+            SetValue(NewVal)
+        else
+            ValInput.Text = tostring(Value) -- ถ้าไม่ใช่ตัวเลข ให้ดีดกลับค่าเดิม
+        end
+    end)
+
+    -- การจัดการ Input
+    SliderBtn.InputBegan:Connect(function(Input)
+        if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+            local MoveCon, EndCon
+            UpdateFromInput(Input)
+            
+            MoveCon = game:GetService("UserInputService").InputChanged:Connect(function(Move)
+                if Move.UserInputType == Enum.UserInputType.MouseMovement or Move.UserInputType == Enum.UserInputType.Touch then
+                    UpdateFromInput(Move)
+                end
+            end)
+            
+            EndCon = game:GetService("UserInputService").InputEnded:Connect(function(End)
+                if End.UserInputType == Enum.UserInputType.MouseButton1 or End.UserInputType == Enum.UserInputType.Touch then
+                    MoveCon:Disconnect()
+                    EndCon:Disconnect()
                 end
             end)
         end
+    end)
+
+    return {
+        Set = function(v) SetValue(v) end
+    }
+end
 
                         -- 3. [UPGRADED] DROPDOWN (Smart Layering & Search)
         function Section:CreateDropdown(Props)
-    Props = Props or {Name = "Dropdown", Options = {"Option 1"}, Flag = "Drop_1", Multi = false, Default = {}, Callback = function() end}
-    local IsOpen = false
-    local Selected = Props.Multi and {} or nil
+    Props = Props or {
+        Name = "Dropdown", 
+        Options = {"Option 1"}, 
+        Flag = "Drop_1", 
+        Multi = false, 
+        Max = nil, -- เพิ่ม: จำนวนสูงสุดที่เลือกได้ในโหมด Multi
+        Default = nil, 
+        Callback = function() end
+    }
     
-    -- สร้าง Container
+    local IsOpen = false
+    local Selected = Props.Multi and (type(Props.Default) == "table" and Props.Default or {}) or Props.Default
+    local SearchText = ""
+
+    -- Container หลัก
     local DContainer = Create("Frame", {  
         Name = Props.Name .. "_Dropdown",
         Size = UDim2.new(1, 0, 0, 45), 
         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-        BackgroundTransparency = 0.5, -- กระจกใสตาม MainFrame
+        BackgroundTransparency = 0.5,
         ClipsDescendants = true,
         ZIndex = 35, 
         Parent = Page  
@@ -864,8 +903,9 @@ local PageList = Create("UIListLayout", {
     Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = DContainer})  
     local DStroke = Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 1, Transparency = 0.9, Parent = DContainer})
 
+    -- ปุ่มกดเปิด/ปิด
     local MainBtn = Create("TextButton", {Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, Text = "", ZIndex = 36, Parent = DContainer})  
-
+    
     local DLbl = Create("TextLabel", {  
         Text = Props.Name .. ": None", 
         Size = UDim2.new(1, -50, 0, 45), Position = UDim2.new(0, 15, 0, 0), 
@@ -879,88 +919,129 @@ local PageList = Create("UIListLayout", {
         ImageColor3 = SlayLib.Theme.MainColor, ZIndex = 37, Parent = MainBtn  
     })  
 
+    -- ระบบค้นหา (Search Box)
+    local SearchInput = Create("TextBox", {
+        Size = UDim2.new(1, -20, 0, 30), Position = UDim2.new(0, 10, 0, 50),
+        BackgroundColor3 = Color3.fromRGB(40, 40, 40),
+        BackgroundTransparency = 0.5,
+        PlaceholderText = "Search options...",
+        Text = "",
+        Font = "Gotham", TextSize = 12, TextColor3 = Color3.new(1,1,1),
+        ZIndex = 38, Parent = DContainer,
+        Visible = false -- จะแสดงเมื่อเปิด Dropdown เท่านั้น
+    })
+    Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = SearchInput})
+
+    -- รายการ Options
     local List = Create("ScrollingFrame", {  
-        Size = UDim2.new(1, -10, 0, 125), Position = UDim2.new(0, 5, 0, 50),  
+        Size = UDim2.new(1, -10, 0, 100), Position = UDim2.new(0, 5, 0, 90),  
         BackgroundTransparency = 1, ScrollBarThickness = 0, 
         CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", ZIndex = 38, Parent = DContainer  
     })  
     Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 4)})
 
-    -- ฟังก์ชันอัปเดตตัวหนังสือบนปุ่ม
+    -- ฟังก์ชันนับจำนวนที่เลือก (สำหรับ Multi)
+    local function GetSelectedCount()
+        local count = 0
+        if not Props.Multi then return 0 end
+        for _, v in pairs(Selected) do if v then count = count + 1 end end
+        return count
+    end
+
     local function UpdateText()
         if Props.Multi then
-            local Count = 0
-            for _, v in pairs(Selected) do if v then Count = Count + 1 end end
-            DLbl.Text = Props.Name .. ": " .. Count .. " Selected"
+            local Count = GetSelectedCount()
+            local MaxStr = Props.Max and ("/" .. Props.Max) or ""
+            DLbl.Text = Props.Name .. ": " .. Count .. MaxStr .. " Selected"
         else
             DLbl.Text = Props.Name .. ": " .. tostring(Selected or "None")
         end
-        DLbl.TextColor3 = (Selected ~= nil) and SlayLib.Theme.Text or SlayLib.Theme.TextSecondary
     end
 
-    -- ฟังก์ชันสร้างรายการ (Items)
+    -- ฟังก์ชันสร้างรายการ (Items) พร้อมระบบกรองคำค้นหา
     local function RefreshOptions()
         for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
-        
-        for _, opt in pairs(Props.Options) do
-            local Item = Create("TextButton", {
-                Size = UDim2.new(1, 0, 0, 32), 
-                BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-                BackgroundTransparency = 0.8,
-                Text = "  " .. opt,
-                Font = "Gotham", TextSize = 12, TextColor3 = Color3.fromRGB(200, 200, 200),
-                TextXAlignment = "Left", ZIndex = 39, Parent = List
-            })
-            Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = Item})
-            
-            -- สถานะการเลือก (Highlight)
-            local function CheckHighlight()
-                local IsActive = Props.Multi and Selected[opt] or Selected == opt
-                Tween(Item, {
-                    BackgroundTransparency = IsActive and 0.4 or 0.8,
-                    TextColor3 = IsActive and SlayLib.Theme.MainColor or Color3.fromRGB(200, 200, 200)
-                }, 0.2)
-            end
-            CheckHighlight()
 
-            Item.MouseButton1Click:Connect(function()
-                if Props.Multi then
-                    Selected[opt] = not Selected[opt]
-                    CheckHighlight()
-                    task.spawn(Props.Callback, Selected)
-                else
-                    Selected = opt
-                    IsOpen = false
-                    Tween(DContainer, {Size = UDim2.new(1, 0, 0, 45)}, 0.3)
-                    Tween(Chevron, {Rotation = 0}, 0.3)
-                    DContainer.ZIndex = 35
-                    for _, child in pairs(List:GetChildren()) do 
-                        if child:IsA("TextButton") then 
-                            Tween(child, {TextColor3 = Color3.fromRGB(200, 200, 200), BackgroundTransparency = 0.8}, 0.2)
-                        end 
-                    end
-                    CheckHighlight()
-                    task.spawn(Props.Callback, Selected)
+        for _, opt in pairs(Props.Options) do
+            -- ค้นหาคำ (Case-insensitive)
+            if SearchText == "" or string.find(string.lower(opt), string.lower(SearchText)) then
+                local Item = Create("TextButton", {
+                    Size = UDim2.new(1, 0, 0, 32), 
+                    BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+                    BackgroundTransparency = 0.8,
+                    Text = "  " .. opt,
+                    Font = "Gotham", TextSize = 12, TextColor3 = Color3.fromRGB(200, 200, 200),
+                    TextXAlignment = "Left", ZIndex = 39, Parent = List
+                })
+                Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = Item})
+
+                local function CheckHighlight()
+                    local IsActive = Props.Multi and Selected[opt] or Selected == opt
+                    Tween(Item, {
+                        BackgroundTransparency = IsActive and 0.4 or 0.8,
+                        TextColor3 = IsActive and SlayLib.Theme.MainColor or Color3.fromRGB(200, 200, 200)
+                    }, 0.2)
                 end
-                UpdateText()
-            end)
+                CheckHighlight()
+
+                Item.MouseButton1Click:Connect(function()
+                    if Props.Multi then
+                        -- ตรวจสอบ Limit (ถ้ามีการตั้งค่า Max ไว้)
+                        if not Selected[opt] and Props.Max and GetSelectedCount() >= Props.Max then
+                            -- สั่นหรือเปลี่ยนสีขอบเตือนว่าเต็มแล้ว (Optional)
+                            Tween(DStroke, {Color = Color3.new(1, 0, 0)}, 0.1)
+                            task.wait(0.1)
+                            Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.2)
+                            return 
+                        end
+
+                        Selected[opt] = not Selected[opt]
+                        CheckHighlight()
+                        task.spawn(Props.Callback, Selected)
+                    else
+                        Selected = opt
+                        IsOpen = false
+                        SearchInput.Visible = false
+                        Tween(DContainer, {Size = UDim2.new(1, 0, 0, 45)}, 0.3)
+                        Tween(Chevron, {Rotation = 0}, 0.3)
+                        DContainer.ZIndex = 35
+                        RefreshOptions() -- รีเฟรชเพื่อให้ Highlight กลับมาอันเดียว
+                        task.spawn(Props.Callback, Selected)
+                    end
+                    UpdateText()
+                end)
+            end
         end
     end
 
-    -- Click Logic
+    -- ตรวจจับการพิมพ์ค้นหา
+    SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
+        SearchText = SearchInput.Text
+        RefreshOptions()
+    end)
+
+    -- เปิด/ปิด Dropdown
     MainBtn.MouseButton1Click:Connect(function()
         IsOpen = not IsOpen
-        -- ยก ZIndex ขึ้นเพื่อให้ทับ Element ด้านล่าง
         DContainer.ZIndex = IsOpen and 100 or 35 
-        
-        local TargetSize = IsOpen and UDim2.new(1, 0, 0, 185) or UDim2.new(1, 0, 0, 45)
+        SearchInput.Visible = IsOpen
+
+        local TargetSize = IsOpen and UDim2.new(1, 0, 0, 200) or UDim2.new(1, 0, 0, 45)
         Tween(DContainer, {Size = TargetSize}, 0.4, Enum.EasingStyle.Quart)
         Tween(Chevron, {Rotation = IsOpen and 180 or 0}, 0.3)
         Tween(DStroke, {Transparency = IsOpen and 0.5 or 0.9, Color = IsOpen and SlayLib.Theme.MainColor or Color3.new(1,1,1)}, 0.3)
+        
+        if not IsOpen then
+            SearchInput.Text = "" -- ล้างคำค้นหาเมื่อปิด
+        end
     end)
 
     RefreshOptions()
-    return {Refresh = RefreshOptions}
+    UpdateText()
+    return {
+        Refresh = RefreshOptions,
+        SetLimit = function(newMax) Props.Max = newMax; UpdateText() end -- เพิ่มฟังก์ชันแก้ Max ทีหลังได้
+    }
 end
 
         -- 4. [UPGRADED] INTERACTIVE BUTTON
