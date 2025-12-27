@@ -726,6 +726,7 @@ local MusicList = {
     ["bubble gum clairo [thai song]"] = "140424585532023",
     ["p4rkr drama [thai song]"] = "85953515558394",
     ["รักฉันไหม [thai song]"] = "83560804637366",
+    ["บ่าวกรรมกร [thai song]"] = "135262236244950",
 }
 
 local SongOptions = {}
