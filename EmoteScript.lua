@@ -319,15 +319,47 @@ task.spawn(function()
     end
 end)
 
--- Toggle GUI Visibility (Smooth)
+-- Toggle GUI Visibility (Enhanced Animation)
+local OpenTweenInfo = TweenInfo.new(0.4, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
+local CloseTweenInfo = TweenInfo.new(0.35, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
+
+local function ShowMain()
+    Main.Visible = true
+    Main.BackgroundTransparency = 1
+    Main.Size = UDim2.new(0, 380, 0, 320)
+    Main.Position = UDim2.new(0.5, -190, 0.5, -160)
+
+    -- Fade In + Scale Up
+    TweenService:Create(Main, OpenTweenInfo, {
+        BackgroundTransparency = 0,
+        Size = UDim2.new(0, 400, 0, 340),
+        Position = UDim2.new(0.5, -200, 0.5, -170)
+    }):Play()
+
+    -- Glow effect on border
+    TweenService:Create(Stroke, TweenInfo.new(0.5, Enum.EasingStyle.Sine), {Transparency = 0.2}):Play()
+end
+
+local function HideMain()
+    -- Fade Out + Shrink Down
+    local hideTween = TweenService:Create(Main, CloseTweenInfo, {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 360, 0, 300),
+        Position = UDim2.new(0.5, -180, 0.5, -150)
+    })
+    TweenService:Create(Stroke, TweenInfo.new(0.3, Enum.EasingStyle.Sine), {Transparency = 0.7}):Play()
+
+    hideTween:Play()
+    hideTween.Completed:Connect(function()
+        Main.Visible = false
+    end)
+end
+
 ToggleBtn.MouseButton1Click:Connect(function()
     if not Main.Visible then
-        Main.Visible = true
-        TweenService:Create(Main, TweenInfo.new(0.4, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Size = UDim2.new(0,400,0,340)}):Play()
+        ShowMain()
     else
-        local tween = TweenService:Create(Main, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0,0,0,0)})
-        tween:Play()
-        tween.Completed:Connect(function() Main.Visible = false end)
+        HideMain()
     end
 end)
 
