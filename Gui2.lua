@@ -1216,40 +1216,22 @@ function SlayLib:SaveConfig(Name)
 end
 
 function SlayLib:LoadConfig(Name)
+    local HttpService = game:GetService("HttpService")
     local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
     if isfile(FullPath) then
         local Data = HttpService:JSONDecode(readfile(FullPath))
         SlayLib.Flags = Data
-        SlayLib:Notify({
-            Title = "System",
-            Content = "Config Loaded!",
-            Type = "Success",
-            Duration = 3
-        })
-        
-        -- ✅ อัปเดต UI ทุกตัวให้ตรงกับค่า Config
-        for _, element in pairs(SlayLib.Elements or {}) do
-            local flag = element.Flag
-            local value = SlayLib.Flags[flag]
-            if value ~= nil then
-                if element.Type == "Toggle" and element.Set then
-                    element:Set(value)
-                elseif element.Type == "Slider" and element.Set then
-                    element:Set(value)
-                elseif element.Type == "Dropdown" and element.Refresh then
-                    element.Refresh()
-                elseif element.Type == "Input" and element.Set then
-                    element:Set(value)
-                end
+        SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
+
+        -- ✅ อัปเดตค่าใน UI ตาม Config ที่โหลด
+        for _, el in pairs(SlayLib.Elements or {}) do
+            local v = SlayLib.Flags[el.Flag]
+            if v ~= nil and el.Set then
+                el:Set(v)
             end
         end
     else
-        SlayLib:Notify({
-            Title = "System",
-            Content = "Config not found!",
-            Type = "Error",
-            Duration = 3
-        })
+        SlayLib:Notify({Title = "System", Content = "Config not found!", Type = "Error", Duration = 3})
     end
 end
 
