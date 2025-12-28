@@ -783,6 +783,37 @@ MusicSection:CreateButton({
     end
 })
 
+-- ปุ่มใหม่: Play House Music (ใช้เพลงจาก Dropdown)
+MusicSection:CreateButton({
+    Name = "Play House Music",
+    Callback = function()
+        local selectedSong = SlayLib.Flags["SelectSong"]  -- ดึงเพลงจาก Dropdown
+        if not selectedSong or selectedSong == "" then
+            SlayLib:Notify({
+                Title = "No Song Selected",
+                Content = "กรุณาเลือกเพลงก่อนเล่น House Music",
+                Type = "Warning",
+                Duration = 5
+            })
+            return
+        end
+        
+        local args = {
+            "PickHouseMusicText",
+            selectedSong, -- ใช้ ID ที่เลือกจาก Dropdown
+            [4] = true
+        }
+        game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1Player1sHous1e"):FireServer(unpack(args))
+        
+        SlayLib:Notify({
+            Title = "Playing House Music",
+            Content = "กำลังเล่นเพลง ID: " .. selectedSong .. " (House Music)",
+            Type = "Success",
+            Duration = 5
+        })
+    end
+})
+
 ------------------------------------------------------------
 -- Notify
 ------------------------------------------------------------
