@@ -96,43 +96,44 @@ Adjust()
 
 end
 
---// DRAGGING SYSTEM (PRO VERSION)
+--// DRAGGING SYSTEM
+local UserInputService = game:GetService("UserInputService")
+
 local function RegisterDrag(Frame, Handle)
-local Dragging = false
-local DragInput, DragStart, StartPos
+    local Dragging = false
+    local DragInput, DragStart, StartPos
 
-Handle.InputBegan:Connect(function(input)  
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then  
-        Dragging = true  
-        DragStart = input.Position  
-        StartPos = Frame.Position  
+    Handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            Dragging = true
+            DragStart = input.Position
+            StartPos = Frame.Position
 
-        input.Changed:Connect(function()  
-            if input.UserInputState == Enum.UserInputState.End then  
-                Dragging = false  
-            end  
-        end)  
-    end  
-end)  
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    Dragging = false
+                end
+            end)
+        end
+    end)
 
-Handle.InputChanged:Connect(function(input)  
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then  
-        DragInput = input  
-    end  
-end)  
+    Handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            DragInput = input
+        end
+    end)
 
-UserInputService.InputChanged:Connect(function(input)  
-    if input == DragInput and Dragging then  
-        local Delta = input.Position - DragStart  
-        Frame.Position = UDim2.new(  
-            StartPos.X.Scale,   
-            StartPos.X.Offset + Delta.X,   
-            StartPos.Y.Scale,   
-            StartPos.Y.Offset + Delta.Y  
-        )  
-    end  
-end)
-
+    UserInputService.InputChanged:Connect(function(input)
+        if Dragging and input == DragInput then
+            local Delta = input.Position - DragStart
+            Frame.Position = UDim2.new(
+                StartPos.X.Scale,
+                StartPos.X.Offset + Delta.X,
+                StartPos.Y.Scale,
+                StartPos.Y.Offset + Delta.Y
+            )
+        end
+    end)
 end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
@@ -420,17 +421,35 @@ ExecuteFinalSovereign()
     Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Sidebar})
 
     -- Title: ปรับแก้ให้อยู่กึ่งกลาง Sidebar ไม่เบี้ยวไปฝั่งใดฝั่งหนึ่ง
-    local Title = Create("TextLabel", {
-        Text = Config.Name,
-        Size = UDim2.new(1, 0, 0, 65), -- ความกว้างเต็ม Sidebar 100%
-        Position = UDim2.new(0, 0, 0, 0),
-        Font = "GothamBold",
-        TextSize = 14,
-        TextColor3 = Color3.fromRGB(255, 255, 255),
-        TextXAlignment = "Center", -- บังคับจัดกึ่งกลางแนวนอน
-        BackgroundTransparency = 1,
-        Parent = Sidebar
-    })
+    -- Title ที่ยืดหยุ่นกับข้อความยาว
+local Title = Create("TextLabel", {
+    Text = Config.Name,
+    Size = UDim2.new(1, -10, 0, 70),
+    Position = UDim2.new(0, 5, 0, 0),
+    Font = Enum.Font.GothamBold,
+    TextSize = 16,
+    TextColor3 = Color3.fromRGB(255, 255, 255),
+    TextXAlignment = Enum.TextXAlignment.Center,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    TextWrapped = true, -- ✅ อนุญาตให้ขึ้นบรรทัดใหม่
+    LineHeight = 1.1, -- ให้ระยะห่างบรรทัดกำลังดี
+    BackgroundTransparency = 1,
+    Parent = Sidebar
+})
+
+-- ✅ ฟังก์ชันย่อขนาดอัตโนมัติเมื่อข้อความยาวเกิน
+task.defer(function()
+    local TextService = game:GetService("TextService")
+    local maxWidth = SidebarWidth - 20
+    local textSize = 16
+    local textBounds = TextService:GetTextSize(Config.Name, textSize, Enum.Font.GothamBold, Vector2.new(math.huge, 70))
+
+    if textBounds.X > maxWidth then
+        local ratio = maxWidth / textBounds.X
+        local newSize = math.max(12, math.floor(textSize * ratio)) -- จำกัดไม่ให้เล็กเกิน 12
+        Title.TextSize = newSize
+    end
+end)
 
     -- 5. [CONTENT AREA] - แก้ปัญหาขอบโมดูลโดนทับ (Padding Fix)
     local ContainerHolder = Create("Frame", {
@@ -586,17 +605,29 @@ ExecuteFinalSovereign()
         Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = TabBtn})
         
         local TabLbl = Create("TextLabel", {
-            Text = Name,
-            Size = UDim2.new(1, -40, 1, 0),
-            Position = UDim2.new(0, 35, 0, 0),
-            Font = "GothamMedium",
-            TextSize = 13,
-            TextColor3 = SlayLib.Theme.TextSecondary,
-            TextXAlignment = "Left",
-            BackgroundTransparency = 1,
-            ZIndex = 16,
-            Parent = TabBtn
-        })
+    Text = Name,
+    Size = UDim2.new(1, -40, 1, 0),
+    Position = UDim2.new(0, 35, 0, 0),
+    Font = Enum.Font.GothamMedium,
+    TextSize = 13,
+    TextColor3 = SlayLib.Theme.TextSecondary,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    TextWrapped = true, -- ✅ รองรับข้อความยาว
+    LineHeight = 1.0,
+    BackgroundTransparency = 1,
+    ZIndex = 16,
+    Parent = TabBtn
+})
+
+-- ปรับขนาดฟอนต์ถ้าชื่อยาวเกิน
+task.defer(function()
+    local TextService = game:GetService("TextService")
+    local bounds = TextService:GetTextSize(Name, 13, Enum.Font.GothamMedium, Vector2.new(95, math.huge))
+    if bounds.X > 95 then
+        TabLbl.TextSize = 11
+    end
+end)
 
         local TabIcon = Create("ImageLabel", {
             Size = UDim2.new(0, 18, 0, 18),
@@ -906,12 +937,32 @@ end
     -- ปุ่มกดเปิด/ปิด
     local MainBtn = Create("TextButton", {Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, Text = "", ZIndex = 36, Parent = DContainer})  
     
-    local DLbl = Create("TextLabel", {  
-        Text = Props.Name .. ": None", 
-        Size = UDim2.new(1, -50, 0, 45), Position = UDim2.new(0, 15, 0, 0), 
-        Font = "GothamMedium", TextSize = 13, TextColor3 = SlayLib.Theme.TextSecondary, 
-        TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 37, Parent = MainBtn  
-    })  
+    -- ✅ รองรับข้อความยาว / ขึ้นบรรทัดใหม่ / ย่อขนาดอัตโนมัติ
+local DLbl = Create("TextLabel", {
+    Text = Props.Name .. ": None",
+    Size = UDim2.new(1, -50, 0, 45),
+    Position = UDim2.new(0, 15, 0, 0),
+    Font = Enum.Font.GothamMedium,
+    TextSize = 13,
+    TextColor3 = SlayLib.Theme.TextSecondary,
+    TextXAlignment = Enum.TextXAlignment.Left,
+    TextYAlignment = Enum.TextYAlignment.Center,
+    TextWrapped = true, -- ✅ อนุญาตให้ตัดบรรทัด
+    LineHeight = 1.0,
+    BackgroundTransparency = 1,
+    ZIndex = 37,
+    Parent = MainBtn
+})
+
+-- ✅ ปรับขนาดอัตโนมัติถ้าข้อความยาวเกิน
+task.defer(function()
+    local TextService = game:GetService("TextService")
+    local bounds = TextService:GetTextSize(DLbl.Text, 13, Enum.Font.GothamMedium, Vector2.new(DLbl.AbsoluteSize.X, math.huge))
+    if bounds.X > DLbl.AbsoluteSize.X then
+        local ratio = DLbl.AbsoluteSize.X / bounds.X
+        DLbl.TextSize = math.clamp(math.floor(13 * ratio), 11, 13)
+    end
+end)
 
     local Chevron = Create("ImageLabel", {  
         Size = UDim2.new(0, 14, 0, 14), Position = UDim2.new(1, -30, 0.5, -7),  
@@ -1153,20 +1204,53 @@ end -- จบ CreateWindow
 
 --// AUTO-SAVE LOGIC (GRAND ADDITION)
 function SlayLib:SaveConfig(Name)
-local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-local Data = HttpService:JSONEncode(SlayLib.Flags)
-writefile(FullPath, Data)
-SlayLib:Notify({Title = "System", Content = "Config Saved Successfully!", Type = "Success", Duration = 3})
+    local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
+    local Data = HttpService:JSONEncode(SlayLib.Flags)
+    writefile(FullPath, Data)
+    SlayLib:Notify({
+        Title = "System",
+        Content = "Config Saved Successfully!",
+        Type = "Success",
+        Duration = 3
+    })
 end
 
 function SlayLib:LoadConfig(Name)
-local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
-if isfile(FullPath) then
-local Data = HttpService:JSONDecode(readfile(FullPath))
-SlayLib.Flags = Data
-SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
--- ในระบบจริงต้องวน Loop เพื่ออัปเดต UI ด้วย
-end
+    local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
+    if isfile(FullPath) then
+        local Data = HttpService:JSONDecode(readfile(FullPath))
+        SlayLib.Flags = Data
+        SlayLib:Notify({
+            Title = "System",
+            Content = "Config Loaded!",
+            Type = "Success",
+            Duration = 3
+        })
+        
+        -- ✅ อัปเดต UI ทุกตัวให้ตรงกับค่า Config
+        for _, element in pairs(SlayLib.Elements or {}) do
+            local flag = element.Flag
+            local value = SlayLib.Flags[flag]
+            if value ~= nil then
+                if element.Type == "Toggle" and element.Set then
+                    element:Set(value)
+                elseif element.Type == "Slider" and element.Set then
+                    element:Set(value)
+                elseif element.Type == "Dropdown" and element.Refresh then
+                    element.Refresh()
+                elseif element.Type == "Input" and element.Set then
+                    element:Set(value)
+                end
+            end
+        end
+    else
+        SlayLib:Notify({
+            Title = "System",
+            Content = "Config not found!",
+            Type = "Error",
+            Duration = 3
+        })
+    end
 end
 
 return SlayLib
