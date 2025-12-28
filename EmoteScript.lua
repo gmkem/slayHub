@@ -88,6 +88,25 @@ Instance.new("UICorner",Main).CornerRadius=UDim.new(0,10)
 local Stroke=Instance.new("UIStroke",Main)
 Stroke.Color=Theme.Accent Stroke.Thickness=1.3 Stroke.Transparency=0.5
 
+-- Title Bar
+local Title = Instance.new("TextLabel", Main)
+Title.Size = UDim2.new(1, -20, 0, 40)
+Title.Position = UDim2.new(0, 10, 0, 5)
+Title.BackgroundTransparency = 1
+Title.Text = "SlayHub X Emote Script"
+Title.TextColor3 = Theme.Accent
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 20
+Title.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Divider Line
+local Line = Instance.new("Frame", Main)
+Line.Size = UDim2.new(1, -20, 0, 1)
+Line.Position = UDim2.new(0, 10, 0, 43)
+Line.BackgroundColor3 = Theme.Accent
+Line.BorderSizePixel = 0
+Line.BackgroundTransparency = 0.4
+
 -- Stable Drag Function
 local function MakeDraggable(obj)
     local dragging, dragInput, dragStart, startPos
@@ -191,29 +210,52 @@ local function CreateCard(name,id,parent)
     Instance.new("UICorner",card).CornerRadius=UDim.new(0,8)
 
     local img=Instance.new("ImageLabel",card)
-    img.Size=UDim2.new(0,70,0,70) img.Position=UDim2.new(0,5,0,5) img.BackgroundTransparency=1
+    img.Size=UDim2.new(0,70,0,70)
+    img.Position=UDim2.new(0,5,0,5)
+    img.BackgroundTransparency=1
     img.Image="rbxthumb://type=Asset&id="..id.."&w=150&h=150"
     Instance.new("UICorner",img)
 
     local lbl=Instance.new("TextLabel",card)
-    lbl.Size=UDim2.new(1,-120,1,0) lbl.Position=UDim2.new(0,85,0,0)
-    lbl.BackgroundTransparency=1 lbl.Text=name lbl.TextColor3=Theme.Text
-    lbl.Font=Enum.Font.GothamMedium lbl.TextSize=14 lbl.TextXAlignment="Left"
+    lbl.Size=UDim2.new(1,-120,1,0)
+    lbl.Position=UDim2.new(0,85,0,0)
+    lbl.BackgroundTransparency=1
+    lbl.Text=name
+    lbl.TextColor3=Theme.Text
+    lbl.Font=Enum.Font.GothamMedium
+    lbl.TextSize=14
+    lbl.TextXAlignment="Left"
 
-    local favBtn=Instance.new("TextButton",card)
-    favBtn.Size=UDim2.new(0,30,0,30) favBtn.Position=UDim2.new(1,-35,0.5,-15)
-    favBtn.BackgroundTransparency=1
-    favBtn.Text=table.find(FavoritedEmotes,id) and "★" or "☆"
-    favBtn.TextColor3=Theme.Fav favBtn.TextSize=20
-    favBtn.MouseButton1Click:Connect(function()
-        local idx=table.find(FavoritedEmotes,id)
-        if idx then table.remove(FavoritedEmotes,idx) favBtn.Text="☆" else table.insert(FavoritedEmotes,id) favBtn.Text="★" end
-        SaveFavs()
+    -- ปุ่มเล่น (สร้างก่อน)
+    local playBtn=Instance.new("TextButton",card)
+    playBtn.Size=UDim2.new(1,0,1,0)
+    playBtn.BackgroundTransparency=1
+    playBtn.Text=""
+    playBtn.ZIndex = 1
+    playBtn.MouseButton1Click:Connect(function()
+        PlayEmote(name,id)
     end)
 
-    local playBtn=Instance.new("TextButton",card)
-    playBtn.Size=UDim2.new(1,0,1,0) playBtn.BackgroundTransparency=1 playBtn.Text=""
-    playBtn.MouseButton1Click:Connect(function() PlayEmote(name,id) end)
+    -- ปุ่มดาว (อยู่บนสุด)
+    local favBtn=Instance.new("TextButton",card)
+    favBtn.Size=UDim2.new(0,30,0,30)
+    favBtn.Position=UDim2.new(1,-35,0.5,-15)
+    favBtn.BackgroundTransparency=1
+    favBtn.Text=table.find(FavoritedEmotes,id) and "★" or "☆"
+    favBtn.TextColor3=Theme.Fav
+    favBtn.TextSize=20
+    favBtn.ZIndex = 2
+    favBtn.MouseButton1Click:Connect(function()
+        local idx=table.find(FavoritedEmotes,id)
+        if idx then
+            table.remove(FavoritedEmotes,idx)
+            favBtn.Text="☆"
+        else
+            table.insert(FavoritedEmotes,id)
+            favBtn.Text="★"
+        end
+        SaveFavs()
+    end)
 end
 
 -- Freeze Toggle (Fixed walking & animation)
