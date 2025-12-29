@@ -748,21 +748,20 @@ local Dropdown = MusicSection:CreateDropdown({
     end
 })
 
--- ปุ่มเล่นเพลง
+-- ปุ่มเล่นเพลงหลัก (ส่ง 3 รีโมท)
 MusicSection:CreateButton({
     Name = "Play",
     Callback = function()
         if not SelectedSongID then
             SlayLib:Notify({
-                Title="Music Player",
-                Content="กรุณาเลือกเพลงก่อนเล่น!",
-                Type="Warning",
-                Duration=4
+                Title = "Music Player",
+                Content = "กรุณาเลือกเพลงก่อนเล่น!",
+                Type = "Warning",
+                Duration = 4
             })
             return
         end
 
-        -- ส่ง Remote ทั้ง 3 ตัวพร้อมกัน
         local songID = SelectedSongID
         local args1 = {"PickingScooterMusicText", songID, [4] = true}
         local args2 = {"ToolMusicText", songID, [4] = true}
@@ -773,22 +772,20 @@ MusicSection:CreateButton({
         RE:WaitForChild("PlayerToolEvent"):FireServer(unpack(args2))
         RE:WaitForChild("1Hors1eRemot1e"):FireServer(unpack(args3))
 
-        -- แจ้งเตือนว่าเล่นเพลงอะไร
         SlayLib:Notify({
-            Title="กำลังเล่นเพลง",
-            Content=SelectedSongName.." (ID: "..songID..")",
-            Type="Success",
-            Duration=6
+            Title = "กำลังเล่นเพลง",
+            Content = SelectedSongName.." (ID: "..songID..")",
+            Type = "Success",
+            Duration = 6
         })
     end
 })
 
--- ปุ่มใหม่: Play House Music (ใช้เพลงจาก Dropdown)
+-- ปุ่มใหม่: Play House Music (ใช้เพลงจาก Dropdown เดียวกัน)
 MusicSection:CreateButton({
     Name = "Play House Music",
     Callback = function()
-        local selectedSong = SlayLib.Flags["SelectSong"]  -- ดึงเพลงจาก Dropdown
-        if not selectedSong or selectedSong == "" then
+        if not SelectedSongID then
             SlayLib:Notify({
                 Title = "No Song Selected",
                 Content = "กรุณาเลือกเพลงก่อนเล่น House Music",
@@ -797,19 +794,21 @@ MusicSection:CreateButton({
             })
             return
         end
-        
+
+        local songID = SelectedSongID
         local args = {
             "PickHouseMusicText",
-            songID, -- ใช้ ID ที่เลือกจาก Dropdown
+            songID,
             [4] = true
         }
+
         game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1Player1sHous1e"):FireServer(unpack(args))
-        
+
         SlayLib:Notify({
-            Title="กำลังเล่นเพลง",
-            Content=SelectedSongName.." (ID: "..songID..")",
-            Type="Success",
-            Duration=6
+            Title = "กำลังเล่นเพลง (House)",
+            Content = SelectedSongName.." (ID: "..songID..")",
+            Type = "Success",
+            Duration = 6
         })
     end
 })
