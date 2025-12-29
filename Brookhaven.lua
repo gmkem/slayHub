@@ -800,16 +800,16 @@ MusicSection:CreateButton({
         
         local args = {
             "PickHouseMusicText",
-            selectedSong, -- ใช้ ID ที่เลือกจาก Dropdown
+            songID, -- ใช้ ID ที่เลือกจาก Dropdown
             [4] = true
         }
         game:GetService("ReplicatedStorage"):WaitForChild("RE"):WaitForChild("1Player1sHous1e"):FireServer(unpack(args))
         
         SlayLib:Notify({
-            Title = "Playing House Music",
-            Content = "กำลังเล่นเพลง ID: " .. selectedSong .. " (House Music)",
-            Type = "Success",
-            Duration = 5
+            Title="กำลังเล่นเพลง",
+            Content=SelectedSongName.." (ID: "..songID..")",
+            Type="Success",
+            Duration=6
         })
     end
 })
