@@ -140,8 +140,12 @@ function SlayLib.new(options)
     self.ToggleBtn.Activated:Connect(function()
         self.Main.Visible = not self.Main.Visible
         if self.Main.Visible then
-            self.Main:TweenScale(Vector2.new(1, 1), Enum.EasingDirection.Out, Enum.EasingStyle.Back, 0.3, true)
-        end
+    self.Main.Size = UDim2.fromOffset(0, 0) -- ทำให้เล็กลงก่อนขยาย
+    Tween(self.Main, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+        Size = UDim2.fromOffset(500, 320)
+    })
+end
+
     end)
 
     -- Sidebar Container
@@ -582,7 +586,7 @@ function SlayLib:CreateTab(name, icon)
             opt_btn.Activated:Connect(function()
                 main_btn.Text = "  " .. d_name .. " : " .. tostring(opt_name)
                 expanded = false
-                Tween(d_frame, TweenInfo.new(0.4, Enum.EasingStyle.QuartOut), {Size = UDim2.new(0.96, 0, 0, 40)})
+                Tween(d_frame, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {Size = UDim2.new(0.96, 0, 0, 40)})
                 Tween(arrow, TweenInfo.new(0.3), {Rotation = 0})
                 callback(opt_name)
             end)
@@ -880,10 +884,10 @@ function SlayLib:Notify(config)
 
     -- Animation
     n_frame.Position = UDim2.fromScale(-1.2, 0)
-    Tween(n_frame, TweenInfo.new(0.5, Enum.EasingStyle.BackOut), {Position = UDim2.fromScale(0, 0)})
+    Tween(n_frame, TweenInfo.new(0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position = UDim2.fromScale(0, 0)})
     
     task.delay(duration, function()
-        Tween(n_frame, TweenInfo.new(0.5, Enum.EasingStyle.QuadIn), {Position = UDim2.fromScale(-1.2, 0)})
+        Tween(n_frame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.fromScale(-1.2, 0)})
         task.wait(0.5)
         n_frame:Destroy()
     end)
@@ -944,7 +948,7 @@ end
 function SlayLib:Destroy()
     if self.Gui then
         -- เล่นแอนิเมชั่นปิดก่อนลบ
-        local closeTween = TS:Create(self.Main, TweenInfo.new(0.4, Enum.EasingStyle.QuartIn), {
+        local closeTween = TS:Create(self.Main, TweenInfo.new(0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
             Size = UDim2.fromOffset(0, 0),
             BackgroundTransparency = 1
         })
