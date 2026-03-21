@@ -1,320 +1,428 @@
 --[[
-  ROBLOX GUI LIBRARY - "DARK GLASS" THEME (V2)
-  This version mimics the visual structure of the provided image (Central header icon, specific colors).
+    SlayLib - Custom Edition
+    Theme: Dark Frosted Glass
+    Features: Multi-tabs, Smooth Animations, Mobile Support, User Identity
 ]]
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
+local RunService = game:GetService("RunService")
 local LocalPlayer = game:GetService("Players").LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 
-local UILibrary = {}
-UILibrary.__index = UILibrary
+local SlayLib = {}
+SlayLib.__index = SlayLib
 
--- --- THEME CONFIGURATION --- (Based on the image)
+-- Configuration
 local Theme = {
-    -- Main background (Simulated dark glass with a hint of purple/blue)
-    Background = Color3.fromRGB(35, 35, 40), 
-    
-    -- Lighter gray for interactive elements
-    Interactive = Color3.fromRGB(55, 55, 60), 
-    InteractiveOn = Color3.fromRGB(110, 110, 120), -- For toggles
-    
-    -- Text colors
-    Text = Color3.fromRGB(220, 220, 225),
-    TextSub = Color3.fromRGB(170, 170, 175),
-    
-    -- Accent colors (Based on the image)
-    TitleTextColor = Color3.fromRGB(180, 180, 180),
-    IconBorderColor = Color3.fromRGB(0, 160, 255), -- Blue border for icon
-    CloseButtonColor = Color3.fromRGB(200, 50, 50), -- Red
-    
-    -- User Info Colors
-    UserStatusBg = Color3.fromRGB(45, 45, 50),
-    UserNameColor = Color3.fromRGB(240, 240, 240),
+    Main = Color3.fromRGB(25, 25, 30),
+    Secondary = Color3.fromRGB(40, 40, 45),
+    Accent = Color3.fromRGB(0, 160, 255),
+    Text = Color3.fromRGB(240, 240, 245),
+    TextDark = Color3.fromRGB(160, 160, 165),
+    Stroke = Color3.fromRGB(65, 65, 75),
+    Ripple = Color3.fromRGB(255, 255, 255)
 }
 
--- --- INTERNAL UTIL FUNCTIONS ---
-
-local function applyUICorner(parent, radius)
+-- Utility: Apply Rounded Corners & Stroke
+local function AddDecor(obj, radius, strokeColor)
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 6)
-    corner.Parent = parent
-    return corner
+    corner.CornerRadius = UDim.new(0, radius or 8)
+    corner.Parent = obj
+    
+    if strokeColor then
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = strokeColor
+        stroke.Thickness = 1
+        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+        stroke.Parent = obj
+    end
 end
 
--- Function to create the frosted glass effect simulation
-local function createFrostedBackground(parent)
-    local bgFrame = Instance.new("Frame")
-    bgFrame.Name = "DarkGlassEffect"
-    bgFrame.Size = UDim2.fromScale(1, 1)
-    bgFrame.BackgroundColor3 = Theme.Background
-    bgFrame.BackgroundTransparency = 0.5 -- Adjusted for translucency
-    bgFrame.ZIndex = -1 -- Place below all other UI
-    bgFrame.Parent = parent
-    applyUICorner(bgFrame, 10)
-    return bgFrame
+-- Utility: Smooth Draggable
+local function MakeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = obj.Position
+        end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            local delta = input.Position - dragStart
+            TweenService:Create(obj, TweenInfo.new(0.15, Enum.EasingStyle.QuadOut), {
+                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            }):Play()
+        end
+    end)
+    obj.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
 end
 
--- --- MAIN LIBRARY OBJECT CREATION ---
+function SlayLib.new(hubName)
+    local self = setmetatable({}, SlayLib)
+    
+    -- Main ScreenGui
+    local ScreenGui = Instance.new("ScreenGui")
+    ScreenGui.Name = "SlayLib_GUI"
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    ScreenGui.ResetOnSpawn = false
+    self.Gui = ScreenGui
 
-function UILibrary.new(title)
-    local self = setmetatable({}, UILibrary)
+    -- Main Container
+    local MainFrame = Instance.new("Frame")
+    MainFrame.Name = "MainFrame"
+    MainFrame.Size = UDim2.fromOffset(580, 380)
+    MainFrame.Position = UDim2.fromScale(0.5, 0.5)
+    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    MainFrame.BackgroundColor3 = Theme.Main
+    MainFrame.BackgroundTransparency = 0.25 -- Glass effect
+    MainFrame.BorderSizePixel = 0
+    MainFrame.ClipsDescendants = true
+    MainFrame.Parent = ScreenGui
+    AddDecor(MainFrame, 10, Theme.Stroke)
+    MakeDraggable(MainFrame)
 
-    -- 1. Create ScreenGui
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "DarkGlassMenu_V2"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    self.ScreenGui = screenGui
+    -- Sidebar Area
+    local Sidebar = Instance.new("Frame")
+    Sidebar.Size = UDim2.new(0, 160, 1, 0)
+    Sidebar.BackgroundColor3 = Theme.Secondary
+    Sidebar.BackgroundTransparency = 0.5
+    Sidebar.Parent = MainFrame
+    AddDecor(Sidebar, 10)
 
-    -- 2. Main Frame
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.fromOffset(600, 420) -- Slightly taller for new layout
-    mainFrame.Position = UDim2.fromScale(0.5, 0.5)
-    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- For shadow
-    mainFrame.BackgroundTransparency = 1 -- Hide parent color, use effect frame
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Active = true
-    mainFrame.Parent = screenGui
-    applyUICorner(mainFrame, 10)
-    self.MainFrame = mainFrame
+    -- Hub Name
+    local Title = Instance.new("TextLabel")
+    Title.Text = hubName:upper()
+    Title.Size = UDim2.new(1, 0, 0, 50)
+    Title.TextColor3 = Theme.Text
+    Title.Font = Enum.Font.GothamBold
+    Title.TextSize = 16
+    Title.BackgroundTransparency = 1
+    Title.Parent = Sidebar
 
-    -- 3. Apply Background Effect Frame (Translucent)
-    createFrostedBackground(mainFrame)
-
-    -- --- HEADER / TOP BAR AREA (Mimicking the image) ---
-
-    local header = Instance.new("Frame")
-    header.Name = "Header"
-    header.Size = UDim2.new(1, -20, 0, 40) -- Padding 10 on each side
-    header.Position = UDim2.fromOffset(10, 5)
-    header.BackgroundTransparency = 1
-    header.Parent = mainFrame
-
-    -- Title Label (Right aligned based on image placement)
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Name = "TitleLabel"
-    titleLabel.Text = title or "Dark Glass Menu"
-    titleLabel.TextSize = 18
-    titleLabel.TextColor3 = Theme.TitleTextColor
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Right
-    titleLabel.Size = UDim2.new(1, -100, 1, 0) -- Leave space for close button
-    titleLabel.Position = UDim2.fromOffset(0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Font = Enum.Font.SourceSansSemibold
-    titleLabel.Parent = header
-
-    -- Central Icon
-    local iconFrame = Instance.new("ImageLabel")
-    iconFrame.Name = "CentralIcon"
-    iconFrame.Size = UDim2.fromOffset(45, 45) -- Slightly larger for presence
-    iconFrame.Position = UDim2.new(0.5, 0, 0.5, 0) -- PERFECT CENTER
-    iconFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    iconFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    iconFrame.Image = "rbxassetid://13160451101" -- Default ninja icon (replace if needed)
-    iconFrame.BorderSizePixel = 0
-    iconFrame.Parent = mainFrame
-    applyUICorner(iconFrame, 22.5) -- Make circle
-
-    -- Blue border around the icon
-    local iconBorder = Instance.new("UIStroke")
-    iconBorder.Color = Theme.IconBorderColor
-    iconBorder.Thickness = 2
-    iconBorder.Parent = iconFrame
-
-    -- Close Button (Red)
-    local closeButton = Instance.new("TextButton")
-    closeButton.Name = "CloseButton"
-    closeButton.Text = "X"
-    closeButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeButton.TextSize = 18
-    closeButton.Size = UDim2.fromOffset(28, 28)
-    closeButton.Position = UDim2.new(1, -5, 0.5, 0)
-    closeButton.AnchorPoint = Vector2.new(1, 0.5)
-    closeButton.BackgroundColor3 = Theme.CloseButtonColor
-    closeButton.Parent = header
-    applyUICorner(closeButton, 14) -- Circle
-
-    closeButton.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
+    -- Tab Scrolling Frame
+    local TabScroll = Instance.new("ScrollingFrame")
+    TabScroll.Size = UDim2.new(1, 0, 1, -120)
+    TabScroll.Position = UDim2.fromOffset(0, 55)
+    TabScroll.BackgroundTransparency = 1
+    TabScroll.ScrollBarThickness = 0
+    TabScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabScroll.Parent = Sidebar
+    
+    local TabList = Instance.new("UIListLayout")
+    TabList.Padding = UDim.new(0, 4)
+    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    TabList.Parent = TabScroll
+    TabList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        TabScroll.CanvasSize = UDim2.fromOffset(0, TabList.AbsoluteContentSize.Y)
     end)
 
+    -- User Status Section
+    local UserInfo = Instance.new("Frame")
+    UserInfo.Size = UDim2.new(0.9, 0, 0, 50)
+    UserInfo.Position = UDim2.new(0.05, 0, 1, -60)
+    UserInfo.BackgroundColor3 = Theme.Main
+    UserInfo.BackgroundTransparency = 0.4
+    UserInfo.Parent = Sidebar
+    AddDecor(UserInfo, 8, Theme.Stroke)
 
-    -- --- SIDE BAR AND CONTENT CONTAINER ---
+    local UserImage = Instance.new("ImageLabel")
+    UserImage.Size = UDim2.fromOffset(38, 38)
+    UserImage.Position = UDim2.fromOffset(6, 6)
+    UserImage.Image = game:GetService("Players"):GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
+    UserImage.BackgroundTransparency = 1
+    UserImage.Parent = UserInfo
+    AddDecor(UserImage, 19)
 
-    -- The dividing vertical line
-    local dividerLine = Instance.new("Frame")
-    dividerLine.Name = "Divider"
-    dividerLine.Size = UDim2.new(0, 1, 1, -60) -- Leave space for header/userstatus
-    dividerLine.Position = UDim2.fromOffset(150, 50)
-    dividerLine.BackgroundColor3 = Color3.fromRGB(100, 100, 100)
-    dividerLine.BackgroundTransparency = 0.8
-    dividerLine.Parent = mainFrame
+    local UserName = Instance.new("TextLabel")
+    UserName.Text = LocalPlayer.DisplayName
+    UserName.Size = UDim2.new(1, -55, 1, 0)
+    UserName.Position = UDim2.fromOffset(50, 0)
+    UserName.TextColor3 = Theme.Text
+    UserName.TextSize = 12
+    UserName.Font = Enum.Font.GothamSemibold
+    UserName.TextXAlignment = Enum.TextXAlignment.Left
+    UserName.BackgroundTransparency = 1
+    UserName.Parent = UserInfo
 
-    -- Side Bar for Tabs
-    local sideBar = Instance.new("ScrollingFrame")
-    sideBar.Name = "SideBar"
-    sideBar.Size = UDim2.new(0, 140, 1, -110) -- Leave space for header and user info
-    sideBar.Position = UDim2.fromOffset(10, 50)
-    sideBar.BackgroundTransparency = 1
-    sideBar.ScrollBarThickness = 0 -- Hide scrollbar for clean look
-    sideBar.Parent = mainFrame
-    self.SideBar = sideBar
+    -- Pages Container
+    local Pages = Instance.new("Frame")
+    Pages.Size = UDim2.new(1, -170, 1, -10)
+    Pages.Position = UDim2.fromOffset(165, 5)
+    Pages.BackgroundTransparency = 1
+    Pages.Parent = MainFrame
 
-    local tabLayout = Instance.new("UIListLayout")
-    tabLayout.Padding = UDim.new(0, 5)
-    tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    tabLayout.Parent = sideBar
-
-    -- Content Container (Right Side)
-    local contentContainer = Instance.new("Frame")
-    contentContainer.Name = "ContentContainer"
-    contentContainer.Size = UDim2.new(1, -160, 1, -60)
-    contentContainer.Position = UDim2.fromOffset(160, 50)
-    contentContainer.BackgroundTransparency = 1
-    contentContainer.Parent = mainFrame
-    self.ContentContainer = contentContainer
-
-
-    -- --- USER STATUS AREA (Bottom of SideBar) ---
-
-    local userStatusFrame = Instance.new("Frame")
-    userStatusFrame.Name = "UserStatusFrame"
-    userStatusFrame.Size = UDim2.new(0, 140, 0, 50)
-    userStatusFrame.Position = UDim2.new(0, 10, 1, -60)
-    userStatusFrame.BackgroundColor3 = Theme.UserStatusBg
-    userStatusFrame.BorderSizePixel = 0
-    userStatusFrame.ClipsDescendants = true
-    userStatusFrame.Parent = mainFrame
-    applyUICorner(userStatusFrame, 10)
-
-    local userAvatar = Instance.new("ImageLabel")
-    userAvatar.Name = "Avatar"
-    userAvatar.Size = UDim2.fromOffset(40, 40)
-    userAvatar.Position = UDim2.fromOffset(5, 5)
-    userAvatar.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    userAvatar.BackgroundTransparency = 1
-    userAvatar.Parent = userStatusFrame
-    applyUICorner(userAvatar, 20) -- Circle
-
-    -- Fetch Avatar Thumbnail
-    local userId = LocalPlayer.UserId
-    local thumbType = Enum.ThumbnailType.HeadShot
-    local thumbSize = Enum.ThumbnailSize.Size420x420
-    local content, isReady = game:GetService("Players"):GetThumbnailAsync(userId, thumbType, thumbSize)
-    if isReady then
-        userAvatar.Image = content
-    end
-
-    local userName = Instance.new("TextLabel")
-    userName.Name = "Username"
-    userName.Text = LocalPlayer.Name
-    userName.TextColor3 = Theme.UserNameColor
-    userName.TextSize = 14
-    userName.TextTruncate = Enum.TextTruncate.AtEnd -- For long names
-    userName.TextXAlignment = Enum.TextXAlignment.Left
-    userName.Size = UDim2.new(1, -55, 1, 0)
-    userName.Position = UDim2.fromOffset(50, 0)
-    userName.BackgroundTransparency = 1
-    userName.Font = Enum.Font.SourceSans
-    userName.Parent = userStatusFrame
-
-    self.Tabs = {}
+    self.MainFrame = MainFrame
+    self.Pages = Pages
+    self.TabScroll = TabScroll
     self.CurrentTab = nil
 
     return self
 end
 
--- --- TAB AND ELEMENT CREATION METHODS (Same logic as V1, just style updates) ---
-
-function UILibrary:CreateTab(name)
+function SlayLib:CreateTab(name)
     local tab = {}
-    tab.Library = self
-
+    
     -- Tab Button
-    local tabButton = Instance.new("TextButton")
-    tabButton.Name = name .. "_TabButton"
-    tabButton.Text = name
-    tabButton.TextColor3 = Theme.TextSub
-    tabButton.TextSize = 14
-    tabButton.Size = UDim2.new(1, 0, 0, 30)
-    tabButton.BackgroundColor3 = Theme.Interactive
-    tabButton.BackgroundTransparency = 1 -- Default to transparent
-    tabButton.Font = Enum.Font.SourceSans
-    tabButton.Parent = self.SideBar
-    applyUICorner(tabButton, 6)
+    local TabBtn = Instance.new("TextButton")
+    TabBtn.Size = UDim2.new(0.9, 0, 0, 36)
+    TabBtn.BackgroundColor3 = Theme.Accent
+    TabBtn.BackgroundTransparency = 1
+    TabBtn.Text = name
+    TabBtn.TextColor3 = Theme.TextDark
+    TabBtn.Font = Enum.Font.GothamSemibold
+    TabBtn.TextSize = 13
+    TabBtn.Parent = self.TabScroll
+    AddDecor(TabBtn, 6)
 
-    -- Tab Content ScrollFrame
-    local tabContent = Instance.new("ScrollingFrame")
-    tabContent.Name = name .. "_Content"
-    tabContent.Size = UDim2.fromScale(1, 1)
-    tabContent.BackgroundTransparency = 1
-    tabContent.ScrollBarThickness = 2
-    tabContent.ScrollBarImageColor3 = Theme.Interactive
-    tabContent.Visible = false -- Hidden initially
-    tabContent.Parent = self.ContentContainer
+    -- Page Container
+    local Page = Instance.new("ScrollingFrame")
+    Page.Size = UDim2.fromScale(1, 1)
+    Page.BackgroundTransparency = 1
+    Page.Visible = false
+    Page.ScrollBarThickness = 3
+    Page.ScrollBarImageColor3 = Theme.Accent
+    Page.Parent = self.Pages
+    
+    local PageList = Instance.new("UIListLayout")
+    PageList.Padding = UDim.new(0, 8)
+    PageList.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    PageList.SortOrder = Enum.SortOrder.LayoutOrder
+    PageList.Parent = Page
+    PageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        Page.CanvasSize = UDim2.fromOffset(0, PageList.AbsoluteContentSize.Y + 10)
+    end)
 
-    local contentLayout = Instance.new("UIListLayout")
-    contentLayout.Padding = UDim.new(0, 5)
-    contentLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-    contentLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    contentLayout.Parent = tabContent
-
-    tab.Content = tabContent
-    tab.Button = tabButton
-
-    -- Select Tab Logic
-    local function selectTab()
-        if self.CurrentTab then
-            self.CurrentTab.Content.Visible = false
-            self.CurrentTab.Button.TextColor3 = Theme.TextSub
-            self.CurrentTab.Button.BackgroundTransparency = 1
+    TabBtn.MouseButton1Click:Connect(function()
+        for _, v in pairs(self.Pages:GetChildren()) do
+            if v:IsA("ScrollingFrame") then v.Visible = false end
         end
-        self.CurrentTab = tab
-        tabContent.Visible = true
-        tabButton.TextColor3 = Theme.Text
-        tabButton.BackgroundTransparency = 0.8 -- Highlight
+        for _, v in pairs(self.TabScroll:GetChildren()) do
+            if v:IsA("TextButton") then 
+                TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}):Play()
+            end
+        end
+        Page.Visible = true
+        TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = Theme.Text}):Play()
+    end)
+
+    -- Auto-select first tab
+    if #self.TabScroll:GetChildren() == 2 then -- 1 layout + 1 btn
+        Page.Visible = true
+        TabBtn.BackgroundTransparency = 0.8
+        TabBtn.TextColor3 = Theme.Text
     end
 
-    tabButton.MouseButton1Click:Connect(selectTab)
-
-    -- Select first tab by default
-    if not self.CurrentTab then
-        selectTab()
-    end
-
-    -- --- ELEMENT CREATION --- (CreateButton, CreateToggle, CreateSlider, CreateDropdown remain the same as V1)
+    -- // Elements \\ --
 
     function tab:CreateButton(text, callback)
-        local button = Instance.new("TextButton")
-        button.Name = text .. "_Button"
-        button.Text = text
-        button.TextColor3 = Theme.Text
-        button.TextSize = 14
-        button.Size = UDim2.new(0.95, 0, 0, 30)
-        button.BackgroundColor3 = Theme.Interactive
-        button.Font = Enum.Font.SourceSans
-        button.Parent = tabContent
-        applyUICorner(button, 6)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0.96, 0, 0, 38)
+        btn.BackgroundColor3 = Theme.Secondary
+        btn.BackgroundTransparency = 0.3
+        btn.Text = "  " .. text
+        btn.TextColor3 = Theme.Text
+        btn.TextXAlignment = Enum.TextXAlignment.Left
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 13
+        btn.AutoButtonColor = false
+        btn.Parent = Page
+        AddDecor(btn, 6, Theme.Stroke)
 
-        button.MouseButton1Click:Connect(function()
-            -- Click animation
-            local tween = TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Theme.InteractiveOn})
-            tween:Play()
-            tween.Completed:Wait()
-            TweenService:Create(button, TweenInfo.new(0.1), {BackgroundColor3 = Theme.Interactive}):Play()
-
-            if callback then callback() end
+        btn.MouseButton1Click:Connect(function()
+            local ripple = Instance.new("Frame")
+            ripple.Size = UDim2.fromOffset(0, 0)
+            ripple.Position = UDim2.fromOffset(Mouse.X - btn.AbsolutePosition.X, Mouse.Y - btn.AbsolutePosition.Y)
+            ripple.BackgroundColor3 = Theme.Ripple
+            ripple.BackgroundTransparency = 0.6
+            ripple.Parent = btn
+            AddDecor(ripple, 150)
+            
+            TweenService:Create(ripple, TweenInfo.new(0.5, Enum.EasingStyle.QuadOut), {
+                Size = UDim2.fromOffset(350, 350),
+                Position = ripple.Position - UDim2.fromOffset(175, 175),
+                BackgroundTransparency = 1
+            }):Play()
+            
+            task.delay(0.5, function() ripple:Destroy() end)
+            callback()
         end)
     end
 
-    -- (Add CreateToggle, CreateSlider, CreateDropdown functions from V1 here if you need them. 
-    --  They are omitted for length, as they work exactly the same way but with updated theme colors.)
+    function tab:CreateToggle(text, default, callback)
+        local toggled = default or false
+        local toggleFrame = Instance.new("Frame")
+        toggleFrame.Size = UDim2.new(0.96, 0, 0, 40)
+        toggleFrame.BackgroundColor3 = Theme.Secondary
+        toggleFrame.BackgroundTransparency = 0.3
+        toggleFrame.Parent = Page
+        AddDecor(toggleFrame, 6, Theme.Stroke)
 
-    table.insert(self.Tabs, tab)
+        local label = Instance.new("TextLabel")
+        label.Text = "  " .. text
+        label.Size = UDim2.fromScale(1, 1)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Theme.Text
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.Parent = toggleFrame
+
+        local box = Instance.new("Frame")
+        box.Size = UDim2.fromOffset(42, 22)
+        box.Position = UDim2.new(1, -50, 0.5, -11)
+        box.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        box.Parent = toggleFrame
+        AddDecor(box, 11, Theme.Stroke)
+
+        local inner = Instance.new("Frame")
+        inner.Size = UDim2.fromOffset(18, 18)
+        inner.Position = toggled and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2)
+        inner.BackgroundColor3 = toggled and Theme.Accent or Theme.TextDark
+        inner.Parent = box
+        AddDecor(inner, 9)
+
+        toggleFrame.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                toggled = not toggled
+                local targetPos = toggled and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2)
+                local targetColor = toggled and Theme.Accent or Theme.TextDark
+                TweenService:Create(inner, TweenInfo.new(0.2, Enum.EasingStyle.BackOut), {Position = targetPos, BackgroundColor3 = targetColor}):Play()
+                callback(toggled)
+            end
+        end)
+    end
+
+    function tab:CreateSlider(text, min, max, default, callback)
+        local slider = Instance.new("Frame")
+        slider.Size = UDim2.new(0.96, 0, 0, 55)
+        slider.BackgroundColor3 = Theme.Secondary
+        slider.BackgroundTransparency = 0.3
+        slider.Parent = Page
+        AddDecor(slider, 6, Theme.Stroke)
+
+        local label = Instance.new("TextLabel")
+        label.Text = "  " .. text
+        label.Size = UDim2.new(1, 0, 0, 30)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Theme.Text
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.Parent = slider
+
+        local valueLabel = Instance.new("TextLabel")
+        valueLabel.Text = tostring(default)
+        valueLabel.Size = UDim2.new(1, -10, 0, 30)
+        valueLabel.BackgroundTransparency = 1
+        valueLabel.TextColor3 = Theme.Accent
+        valueLabel.TextXAlignment = Enum.TextXAlignment.Right
+        valueLabel.Font = Enum.Font.GothamBold
+        valueLabel.TextSize = 13
+        valueLabel.Parent = slider
+
+        local tray = Instance.new("Frame")
+        tray.Size = UDim2.new(0.92, 0, 0, 6)
+        tray.Position = UDim2.new(0.04, 0, 0, 40)
+        tray.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
+        tray.Parent = slider
+        AddDecor(tray, 3)
+
+        local fill = Instance.new("Frame")
+        fill.Size = UDim2.fromScale(math.clamp((default - min) / (max - min), 0, 1), 1)
+        fill.BackgroundColor3 = Theme.Accent
+        fill.Parent = tray
+        AddDecor(fill, 3)
+
+        local dragging = false
+        local function update()
+            local percent = math.clamp((Mouse.X - tray.AbsolutePosition.X) / tray.AbsoluteSize.X, 0, 1)
+            local value = math.floor(min + (max - min) * percent)
+            fill.Size = UDim2.fromScale(percent, 1)
+            valueLabel.Text = tostring(value)
+            callback(value)
+        end
+
+        tray.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = true
+                update()
+            end
+        end)
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                dragging = false
+            end
+        end)
+        UserInputService.InputChanged:Connect(function(input)
+            if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+                update()
+            end
+        end)
+    end
+
+    function tab:CreateDropdown(text, list, callback)
+        local dropped = false
+        local dropFrame = Instance.new("Frame")
+        dropFrame.Size = UDim2.new(0.96, 0, 0, 40)
+        dropFrame.BackgroundColor3 = Theme.Secondary
+        dropFrame.BackgroundTransparency = 0.3
+        dropFrame.ClipsDescendants = true
+        dropFrame.Parent = Page
+        AddDecor(dropFrame, 6, Theme.Stroke)
+
+        local label = Instance.new("TextButton")
+        label.Text = "  " .. text .. " : " .. (list[1] or "...")
+        label.Size = UDim2.new(1, 0, 0, 40)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Theme.Text
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Font = Enum.Font.Gotham
+        label.TextSize = 13
+        label.Parent = dropFrame
+
+        local container = Instance.new("Frame")
+        container.Size = UDim2.new(1, 0, 0, #list * 30)
+        container.Position = UDim2.fromOffset(0, 40)
+        container.BackgroundTransparency = 1
+        container.Parent = dropFrame
+        
+        local layout = Instance.new("UIListLayout")
+        layout.Parent = container
+
+        for _, v in pairs(list) do
+            local opt = Instance.new("TextButton")
+            opt.Size = UDim2.new(1, 0, 0, 30)
+            opt.BackgroundTransparency = 1
+            opt.Text = "      " .. v
+            opt.TextColor3 = Theme.TextDark
+            opt.Font = Enum.Font.Gotham
+            opt.TextSize = 12
+            opt.TextXAlignment = Enum.TextXAlignment.Left
+            opt.Parent = container
+
+            opt.MouseButton1Click:Connect(function()
+                label.Text = "  " .. text .. " : " .. v
+                dropped = false
+                TweenService:Create(dropFrame, TweenInfo.new(0.3, Enum.EasingStyle.QuartOut), {Size = UDim2.new(0.96, 0, 0, 40)}):Play()
+                callback(v)
+            end)
+        end
+
+        label.MouseButton1Click:Connect(function()
+            dropped = not dropped
+            local targetSize = dropped and UDim2.new(0.96, 0, 0, 40 + (#list * 30)) or UDim2.new(0.96, 0, 0, 40)
+            TweenService:Create(dropFrame, TweenInfo.new(0.3, Enum.EasingStyle.QuartOut), {Size = targetSize}):Play()
+        end)
+    end
+
     return tab
 end
 
-return UILibrary
+return SlayLib
