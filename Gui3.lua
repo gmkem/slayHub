@@ -426,9 +426,6 @@ function SlayLib:CreateTab(name, icon)
         end)
     end
 
-    return tab
-end
-
 -- [[ SLAYLIB GRAND MASTER V5 - PART 3: ADVANCED COMPONENTS ]]
 
     -- // COMPONENT: SLIDER \\ --
