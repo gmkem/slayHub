@@ -1,474 +1,291 @@
---[[
-    SlayLib - Ultimate Custom Edition V3
-    "The Peak of Roblox UI Libraries"
-    - Fully Draggable (Main & Toggle Button)
-    - Mobile Support (100%)
-    - Integrated Notification System
-    - Dynamic Content Scaling
+--[[ 
+    SLAYLIB: GRAND MASTER EDITION
+    Professional High-End UI Library for Roblox
 ]]
 
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
+local ContentProvider = game:GetService("ContentProvider")
 local LocalPlayer = game:GetService("Players").LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
-local SlayLib = {}
+local SlayLib = {
+    Flags = {},
+    Theme = {
+        Main = Color3.fromRGB(15, 15, 20),
+        Secondary = Color3.fromRGB(25, 25, 30),
+        Accent = Color3.fromRGB(0, 160, 255),
+        Outline = Color3.fromRGB(45, 45, 50),
+        Text = Color3.fromRGB(255, 255, 255),
+        TextDark = Color3.fromRGB(160, 160, 165),
+        TopBar = Color3.fromRGB(30, 30, 35)
+    }
+}
 SlayLib.__index = SlayLib
 
--- Configuration & Themes
-local Theme = {
-    Main = Color3.fromRGB(20, 20, 25),
-    Secondary = Color3.fromRGB(30, 30, 35),
-    Accent = Color3.fromRGB(0, 160, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    TextDark = Color3.fromRGB(150, 150, 155),
-    Stroke = Color3.fromRGB(60, 60, 70),
-    Success = Color3.fromRGB(46, 204, 113),
-}
-
--- // Utility Functions \\ --
-local function AddDecor(obj, radius, strokeColor, strokeTrans)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 8)
-    corner.Parent = obj
-    
-    if strokeColor then
-        local stroke = Instance.new("UIStroke")
-        stroke.Color = strokeColor
-        stroke.Thickness = 1
-        stroke.Transparency = strokeTrans or 0
-        stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-        stroke.Parent = obj
-        return stroke
-    end
+-- // Internal Utilities \\ --
+local function Create(class, props)
+    local obj = Instance.new(class)
+    for k, v in pairs(props) do obj[k] = v end
+    return obj
 end
 
-local function MakeDraggable(obj)
-    local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = obj.Position
-        end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            local delta = input.Position - dragStart
-            TweenService:Create(obj, TweenInfo.new(0.1, Enum.EasingStyle.QuadOut), {
-                Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            }):Play()
-        end
-    end)
-    obj.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
+local function Round(obj, radius)
+    local c = Create("UICorner", {CornerRadius = UDim.new(0, radius or 8), Parent = obj})
+    return c
+end
+
+local function Stroke(obj, color, thickness, trans)
+    local s = Create("UIStroke", {
+        Color = color or SlayLib.Theme.Outline,
+        Thickness = thickness or 1,
+        Transparency = trans or 0,
+        ApplyStrokeMode = Enum.ApplyStrokeMode.Border,
+        Parent = obj
+    })
+    return s
+end
+
+local function Ripple(obj)
+    obj.ClipsDescendants = true
+    obj.MouseButton1Click:Connect(function()
+        local r = Create("Frame", {
+            Size = UDim2.fromOffset(0, 0),
+            Position = UDim2.fromOffset(Mouse.X - obj.AbsolutePosition.X, Mouse.Y - obj.AbsolutePosition.Y),
+            BackgroundColor3 = Color3.new(1, 1, 1),
+            BackgroundTransparency = 0.8,
+            Parent = obj
+        })
+        Round(r, 1000)
+        TweenService:Create(r, TweenInfo.new(0.5, Enum.EasingStyle.QuadOut), {
+            Size = UDim2.fromOffset(obj.AbsoluteSize.X * 2, obj.AbsoluteSize.X * 2),
+            Position = UDim2.fromOffset(obj.AbsoluteSize.X/2 - obj.AbsoluteSize.X, obj.AbsoluteSize.Y/2 - obj.AbsoluteSize.X),
+            BackgroundTransparency = 1
+        }):Play()
+        task.delay(0.5, function() r:Destroy() end)
     end)
 end
 
--- // Notification System \\ --
-local NotifGui = Instance.new("ScreenGui")
-NotifGui.Name = "SlayNotif"
-NotifGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-
-local NotifContainer = Instance.new("Frame")
-NotifContainer.Size = UDim2.new(0, 250, 1, 0)
-NotifContainer.Position = UDim2.new(1, -260, 0, 10)
-NotifContainer.BackgroundTransparency = 1
-NotifContainer.Parent = NotifGui
-
-local NotifList = Instance.new("UIListLayout")
-NotifList.VerticalAlignment = Enum.VerticalAlignment.Top
-NotifList.Padding = UDim.new(0, 10)
-NotifList.Parent = NotifContainer
-
-function SlayLib:Notify(title, desc, duration)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 60)
-    frame.BackgroundColor3 = Theme.Main
-    frame.BackgroundTransparency = 0.2
-    frame.Parent = NotifContainer
-    AddDecor(frame, 8, Theme.Accent)
-    
-    local t = Instance.new("TextLabel")
-    t.Text = " " .. title
-    t.Size = UDim2.new(1, 0, 0, 25)
-    t.TextColor3 = Theme.Accent
-    t.Font = Enum.Font.GothamBold
-    t.TextSize = 14
-    t.TextXAlignment = Enum.TextXAlignment.Left
-    t.BackgroundTransparency = 1
-    t.Parent = frame
-    
-    local d = Instance.new("TextLabel")
-    d.Text = " " .. desc
-    d.Size = UDim2.new(1, 0, 1, -25)
-    d.Position = UDim2.fromOffset(0, 25)
-    d.TextColor3 = Theme.Text
-    d.Font = Enum.Font.Gotham
-    d.TextSize = 12
-    d.TextXAlignment = Enum.TextXAlignment.Left
-    d.BackgroundTransparency = 1
-    d.Parent = frame
-
-    frame.Position = UDim2.fromScale(1.5, 0)
-    TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.BackOut), {Position = UDim2.fromScale(0, 0)}):Play()
-    
-    task.delay(duration or 3, function()
-        TweenService:Create(frame, TweenInfo.new(0.5, Enum.EasingStyle.QuadIn), {Position = UDim2.fromScale(1.5, 0)}):Play()
-        task.wait(0.5)
-        frame:Destroy()
-    end)
-end
-
--- // Library Constructor \\ --
-function SlayLib.new(hubName)
+-- // Core Logic \\ --
+function SlayLib.new(config)
     local self = setmetatable({}, SlayLib)
+    config = config or {Name = "SLAYLIB GM", LoadingText = "Initializing Engine..."}
     
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "SlayLib_Ultimate"
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-    ScreenGui.ResetOnSpawn = false
-    self.Gui = ScreenGui
-
-    -- Open/Close Button (Toggle Button)
-    local ToggleBtn = Instance.new("ImageButton")
-    ToggleBtn.Name = "SlayToggle"
-    ToggleBtn.Size = UDim2.fromOffset(45, 45)
-    ToggleBtn.Position = UDim2.new(0.05, 0, 0.15, 0)
-    ToggleBtn.BackgroundColor3 = Theme.Main
-    ToggleBtn.Image = "rbxassetid://13160451101" -- Ninja Icon
-    ToggleBtn.Parent = ScreenGui
-    AddDecor(ToggleBtn, 22.5, Theme.Accent)
-    MakeDraggable(ToggleBtn)
-
+    -- Screen GUI
+    self.Gui = Create("ScreenGui", {Name = "SlayLib_GrandMaster", Parent = LocalPlayer:WaitForChild("PlayerGui"), IgnoreGuiInset = true})
+    
     -- Main Window
-    local MainFrame = Instance.new("Frame")
-    MainFrame.Name = "MainFrame"
-    MainFrame.Size = UDim2.fromOffset(580, 380)
-    MainFrame.Position = UDim2.fromScale(0.5, 0.5)
-    MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-    MainFrame.BackgroundColor3 = Theme.Main
-    MainFrame.BackgroundTransparency = 0.2
-    MainFrame.ClipsDescendants = true
-    MainFrame.Parent = ScreenGui
-    AddDecor(MainFrame, 10, Theme.Stroke)
-    MakeDraggable(MainFrame)
+    self.Main = Create("Frame", {
+        Name = "Main",
+        Size = UDim2.fromOffset(620, 420),
+        Position = UDim2.fromScale(0.5, 0.5),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        BackgroundColor3 = SlayLib.Theme.Main,
+        BackgroundTransparency = 0.1,
+        Parent = self.Gui
+    })
+    Round(self.Main, 12)
+    Stroke(self.Main)
 
-    -- Handle Toggle Click
+    -- Floating Toggle Button (For Mobile)
+    local ToggleBtn = Create("ImageButton", {
+        Size = UDim2.fromOffset(50, 50),
+        Position = UDim2.new(0, 20, 0.5, 0),
+        BackgroundColor3 = SlayLib.Theme.Secondary,
+        Image = "rbxassetid://13160451101",
+        Parent = self.Gui
+    })
+    Round(ToggleBtn, 25)
+    Stroke(ToggleBtn, SlayLib.Theme.Accent, 2)
+    
+    -- Draggable Toggle
+    local draggingBtn, dragStartBtn, startPosBtn
+    ToggleBtn.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggingBtn = true dragStartBtn = i.Position startPosBtn = ToggleBtn.Position end end)
+    UserInputService.InputChanged:Connect(function(i) if draggingBtn then local delta = i.Position - dragStartBtn ToggleBtn.Position = UDim2.new(startPosBtn.X.Scale, startPosBtn.X.Offset + delta.X, startPosBtn.Y.Scale, startPosBtn.Y.Offset + delta.Y) end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then draggingBtn = false end end)
+    
     ToggleBtn.MouseButton1Click:Connect(function()
-        MainFrame.Visible = not MainFrame.Visible
-        local targetScale = MainFrame.Visible and 1 or 0
-        MainFrame:TweenSize(MainFrame.Visible and UDim2.fromOffset(580, 380) or UDim2.fromOffset(0,0), "Out", "Quart", 0.3, true)
+        self.Main.Visible = not self.Main.Visible
+        if self.Main.Visible then
+            self.Main:TweenSize(UDim2.fromOffset(620, 420), "Out", "Back", 0.3, true)
+        end
     end)
 
-    -- Sidebar
-    local Sidebar = Instance.new("Frame")
-    Sidebar.Size = UDim2.new(0, 165, 1, 0)
-    Sidebar.BackgroundColor3 = Theme.Secondary
-    Sidebar.BackgroundTransparency = 0.5
-    Sidebar.Parent = MainFrame
-    AddDecor(Sidebar, 10)
-
-    local Title = Instance.new("TextLabel")
-    Title.Text = hubName:upper()
-    Title.Size = UDim2.new(1, 0, 0, 60)
-    Title.TextColor3 = Theme.Accent
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 18
-    Title.BackgroundTransparency = 1
-    Title.Parent = Sidebar
-
-    -- Tab Scrolling
-    local TabScroll = Instance.new("ScrollingFrame")
-    TabScroll.Size = UDim2.new(1, 0, 1, -130)
-    TabScroll.Position = UDim2.fromOffset(0, 60)
-    TabScroll.BackgroundTransparency = 1
-    TabScroll.ScrollBarThickness = 0
-    TabScroll.Parent = Sidebar
+    -- Content Area
+    self.Sidebar = Create("Frame", {Size = UDim2.new(0, 180, 1, 0), BackgroundColor3 = SlayLib.Theme.Secondary, BackgroundTransparency = 0.5, Parent = self.Main})
+    Round(self.Sidebar, 12)
     
-    local TabList = Instance.new("UIListLayout")
-    TabList.Padding = UDim.new(0, 5)
-    TabList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    TabList.Parent = TabScroll
+    local Title = Create("TextLabel", {
+        Text = config.Name,
+        Size = UDim2.new(1, 0, 0, 50),
+        TextColor3 = SlayLib.Theme.Accent,
+        Font = Enum.Font.GothamBold,
+        TextSize = 20,
+        BackgroundTransparency = 1,
+        Parent = self.Sidebar
+    })
 
-    -- User Status (Bottom)
-    local UserInfo = Instance.new("Frame")
-    UserInfo.Size = UDim2.new(0.9, 0, 0, 50)
-    UserInfo.Position = UDim2.new(0.05, 0, 1, -60)
-    UserInfo.BackgroundColor3 = Theme.Main
-    UserInfo.BackgroundTransparency = 0.4
-    UserInfo.Parent = Sidebar
-    AddDecor(UserInfo, 8, Theme.Stroke)
+    self.TabHolder = Create("ScrollingFrame", {
+        Size = UDim2.new(1, 0, 1, -120),
+        Position = UDim2.fromOffset(0, 60),
+        BackgroundTransparency = 1,
+        ScrollBarThickness = 0,
+        Parent = self.Sidebar
+    })
+    Create("UIListLayout", {Padding = UDim.new(0, 6), HorizontalAlignment = "Center", Parent = self.TabHolder})
 
-    local UserImage = Instance.new("ImageLabel")
-    UserImage.Size = UDim2.fromOffset(36, 36)
-    UserImage.Position = UDim2.fromOffset(7, 7)
-    UserImage.Image = game:GetService("Players"):GetUserThumbnailAsync(LocalPlayer.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size420x420)
-    UserImage.BackgroundTransparency = 1
-    UserImage.Parent = UserInfo
-    AddDecor(UserImage, 18)
+    self.PageHolder = Create("Frame", {Size = UDim2.new(1, -195, 1, -20), Position = UDim2.fromOffset(185, 10), BackgroundTransparency = 1, Parent = self.Main})
 
-    local UserName = Instance.new("TextLabel")
-    UserName.Text = LocalPlayer.DisplayName
-    UserName.Size = UDim2.new(1, -55, 1, 0)
-    UserName.Position = UDim2.fromOffset(50, 0)
-    UserName.TextColor3 = Theme.Text
-    UserName.TextSize = 12
-    UserName.Font = Enum.Font.GothamSemibold
-    UserName.TextXAlignment = Enum.TextXAlignment.Left
-    UserName.BackgroundTransparency = 1
-    UserName.Parent = UserInfo
+    -- User Profile
+    local Profile = Create("Frame", {Size = UDim2.new(0.9, 0, 0, 50), Position = UDim2.new(0.05, 0, 1, -60), BackgroundColor3 = SlayLib.Theme.Main, Parent = self.Sidebar})
+    Round(Profile, 10)
+    Stroke(Profile)
+    
+    local Avatar = Create("ImageLabel", {Size = UDim2.fromOffset(36, 36), Position = UDim2.fromOffset(7, 7), BackgroundTransparency = 1, Parent = Profile})
+    Avatar.Image = game:GetService("Players"):GetUserThumbnailAsync(LocalPlayer.UserId, "HeadShot", "Size420x420")
+    Round(Avatar, 18)
+    
+    Create("TextLabel", {Text = LocalPlayer.DisplayName, Size = UDim2.new(1, -55, 1, 0), Position = UDim2.fromOffset(50, 0), TextColor3 = SlayLib.Theme.Text, Font = "GothamSemibold", TextSize = 12, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = Profile})
 
-    -- Container for Pages
-    local Pages = Instance.new("Frame")
-    Pages.Size = UDim2.new(1, -175, 1, -20)
-    Pages.Position = UDim2.fromOffset(170, 10)
-    Pages.BackgroundTransparency = 1
-    Pages.Parent = MainFrame
-
-    self.MainFrame = MainFrame
-    self.Pages = Pages
-    self.TabScroll = TabScroll
+    -- Draggable Main
+    local drag, dragInput, dragStart, startPos
+    self.Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = true dragStart = i.Position startPos = self.Main.Position end end)
+    UserInputService.InputChanged:Connect(function(i) if drag then local delta = i.Position - dragStart self.Main.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y) end end)
+    UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then drag = false end end)
 
     return self
 end
 
-function SlayLib:CreateTab(name)
-    local tab = {}
+function SlayLib:CreateTab(name, icon)
+    local tab = {Active = false}
     
-    local TabBtn = Instance.new("TextButton")
-    TabBtn.Size = UDim2.new(0.9, 0, 0, 38)
-    TabBtn.BackgroundColor3 = Theme.Accent
-    TabBtn.BackgroundTransparency = 1
-    TabBtn.Text = name
-    TabBtn.TextColor3 = Theme.TextDark
-    TabBtn.Font = Enum.Font.GothamSemibold
-    TabBtn.TextSize = 13
-    TabBtn.Parent = self.TabScroll
-    AddDecor(TabBtn, 6)
+    local TabBtn = Create("TextButton", {
+        Size = UDim2.new(0.9, 0, 0, 40),
+        BackgroundColor3 = SlayLib.Theme.Accent,
+        BackgroundTransparency = 1,
+        Text = "    " .. name,
+        TextColor3 = SlayLib.Theme.TextDark,
+        Font = "GothamSemibold",
+        TextSize = 13,
+        TextXAlignment = "Left",
+        Parent = self.TabHolder
+    })
+    Round(TabBtn, 8)
+    Ripple(TabBtn)
 
-    local Page = Instance.new("ScrollingFrame")
-    Page.Size = UDim2.fromScale(1, 1)
-    Page.BackgroundTransparency = 1
-    Page.Visible = false
-    Page.ScrollBarThickness = 2
-    Page.ScrollBarImageColor3 = Theme.Accent
-    Page.Parent = self.Pages
-    
-    local PageList = Instance.new("UIListLayout")
-    PageList.Padding = UDim.new(0, 10)
-    PageList.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    PageList.Parent = Page
-
-    -- Auto-resize Canvas
-    PageList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        Page.CanvasSize = UDim2.fromOffset(0, PageList.AbsoluteContentSize.Y + 20)
+    local Page = Create("ScrollingFrame", {
+        Size = UDim2.fromScale(1, 1),
+        BackgroundTransparency = 1,
+        Visible = false,
+        ScrollBarThickness = 2,
+        ScrollBarImageColor3 = SlayLib.Theme.Accent,
+        Parent = self.PageHolder
+    })
+    local Layout = Create("UIListLayout", {Padding = UDim.new(0, 10), HorizontalAlignment = "Center", Parent = Page})
+    Layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        Page.CanvasSize = UDim2.fromOffset(0, Layout.AbsoluteContentSize.Y + 20)
     end)
 
     TabBtn.MouseButton1Click:Connect(function()
-        for _, v in pairs(self.Pages:GetChildren()) do
-            if v:IsA("ScrollingFrame") then v.Visible = false end
-        end
-        for _, v in pairs(self.TabScroll:GetChildren()) do
-            if v:IsA("TextButton") then 
-                TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}):Play()
-            end
-        end
+        for _, v in pairs(self.PageHolder:GetChildren()) do v.Visible = false end
+        for _, v in pairs(self.TabHolder:GetChildren()) do if v:IsA("TextButton") then TweenService:Create(v, TweenInfo.new(0.3), {BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.TextDark}):Play() end end
         Page.Visible = true
-        TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = Theme.Text}):Play()
+        TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundTransparency = 0.8, TextColor3 = SlayLib.Theme.Text}):Play()
     end)
 
-    if #self.TabScroll:GetChildren() == 2 then
-        Page.Visible = true
-        TabBtn.BackgroundTransparency = 0.8
-        TabBtn.TextColor3 = Theme.Text
+    -- Element Factory
+    function tab:CreateButton(txt, cb)
+        local b = Create("TextButton", {Size = UDim2.new(0.98, 0, 0, 45), BackgroundColor3 = SlayLib.Theme.Secondary, Text = "  " .. txt, TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 14, TextXAlignment = "Left", AutoButtonColor = false, Parent = Page})
+        Round(b)
+        Stroke(b)
+        Ripple(b)
+        b.MouseButton1Click:Connect(cb)
     end
 
-    -- // Elements \\ --
-
-    function tab:CreateButton(text, callback)
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0.96, 0, 0, 40)
-        btn.BackgroundColor3 = Theme.Secondary
-        btn.BackgroundTransparency = 0.4
-        btn.Text = "  " .. text
-        btn.TextColor3 = Theme.Text
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Font = Enum.Font.Gotham
-        btn.TextSize = 13
-        btn.AutoButtonColor = false
-        btn.Parent = Page
-        AddDecor(btn, 6, Theme.Stroke, 0.5)
-
-        btn.MouseButton1Click:Connect(function()
-            local ripple = Instance.new("Frame")
-            ripple.Size = UDim2.fromOffset(0, 0)
-            ripple.Position = UDim2.fromOffset(Mouse.X - btn.AbsolutePosition.X, Mouse.Y - btn.AbsolutePosition.Y)
-            ripple.BackgroundColor3 = Theme.Text
-            ripple.BackgroundTransparency = 0.8
-            ripple.Parent = btn
-            AddDecor(ripple, 150)
-            TweenService:Create(ripple, TweenInfo.new(0.5), {Size = UDim2.fromOffset(350, 350), BackgroundTransparency = 1}):Play()
-            task.delay(0.5, function() ripple:Destroy() end)
-            callback()
-        end)
-    end
-
-    function tab:CreateToggle(text, default, callback)
-        local toggled = default or false
-        local f = Instance.new("Frame")
-        f.Size = UDim2.new(0.96, 0, 0, 42)
-        f.BackgroundColor3 = Theme.Secondary
-        f.BackgroundTransparency = 0.4
-        f.Parent = Page
-        AddDecor(f, 6, Theme.Stroke, 0.5)
-
-        local l = Instance.new("TextLabel")
-        l.Text = "  " .. text
-        l.Size = UDim2.fromScale(1, 1)
-        l.BackgroundTransparency = 1
-        l.TextColor3 = Theme.Text
-        l.TextXAlignment = Enum.TextXAlignment.Left
-        l.Font = Enum.Font.Gotham
-        l.Parent = f
-
-        local b = Instance.new("Frame")
-        b.Size = UDim2.fromOffset(40, 20)
-        b.Position = UDim2.new(1, -50, 0.5, -10)
-        b.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-        b.Parent = f
-        AddDecor(b, 10, Theme.Stroke)
-
-        local i = Instance.new("Frame")
-        i.Size = UDim2.fromOffset(16, 16)
-        i.Position = toggled and UDim2.fromOffset(22, 2) or UDim2.fromOffset(2, 2)
-        i.BackgroundColor3 = toggled and Theme.Accent or Theme.TextDark
-        i.Parent = b
-        AddDecor(i, 8)
-
-        f.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+    function tab:CreateToggle(txt, def, cb)
+        local toggled = def
+        local f = Create("Frame", {Size = UDim2.new(0.98, 0, 0, 45), BackgroundColor3 = SlayLib.Theme.Secondary, Parent = Page})
+        Round(f) Stroke(f)
+        
+        local l = Create("TextLabel", {Text = "  " .. txt, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 14, TextXAlignment = "Left", Parent = f})
+        local box = Create("Frame", {Size = UDim2.fromOffset(44, 22), Position = UDim2.new(1, -55, 0.5, -11), BackgroundColor3 = Color3.fromRGB(20,20,25), Parent = f})
+        Round(box, 11) Stroke(box)
+        
+        local p = Create("Frame", {Size = UDim2.fromOffset(18, 18), Position = toggled and UDim2.fromOffset(24, 2) or UDim2.fromOffset(2, 2), BackgroundColor3 = toggled and SlayLib.Theme.Accent or SlayLib.Theme.TextDark, Parent = box})
+        Round(p, 9)
+        
+        f.InputBegan:Connect(function(i)
+            if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then
                 toggled = not toggled
-                local targetX = toggled and 22 or 2
-                TweenService:Create(i, TweenInfo.new(0.25, Enum.EasingStyle.BackOut), {Position = UDim2.fromOffset(targetX, 2), BackgroundColor3 = toggled and Theme.Accent or Theme.TextDark}):Play()
-                callback(toggled)
+                TweenService:Create(p, TweenInfo.new(0.2, Enum.EasingStyle.BackOut), {Position = toggled and UDim2.fromOffset(24, 2) or UDim2.fromOffset(2, 2), BackgroundColor3 = toggled and SlayLib.Theme.Accent or SlayLib.Theme.TextDark}):Play()
+                cb(toggled)
             end
         end)
     end
 
-    function tab:CreateSlider(text, min, max, default, callback)
-        local s = Instance.new("Frame")
-        s.Size = UDim2.new(0.96, 0, 0, 60)
-        s.BackgroundColor3 = Theme.Secondary
-        s.BackgroundTransparency = 0.4
-        s.Parent = Page
-        AddDecor(s, 6, Theme.Stroke, 0.5)
-
-        local l = Instance.new("TextLabel")
-        l.Text = "  " .. text
-        l.Size = UDim2.new(1, 0, 0, 35)
-        l.BackgroundTransparency = 1
-        l.TextColor3 = Theme.Text
-        l.TextXAlignment = Enum.TextXAlignment.Left
-        l.Font = Enum.Font.Gotham
-        l.Parent = s
-
-        local vL = Instance.new("TextLabel")
-        vL.Text = tostring(default) .. " "
-        vL.Size = UDim2.new(1, 0, 0, 35)
-        vL.BackgroundTransparency = 1
-        vL.TextColor3 = Theme.Accent
-        vL.TextXAlignment = Enum.TextXAlignment.Right
-        vL.Font = Enum.Font.GothamBold
-        vL.Parent = s
-
-        local bar = Instance.new("Frame")
-        bar.Size = UDim2.new(0.92, 0, 0, 6)
-        bar.Position = UDim2.new(0.04, 0, 0, 45)
-        bar.BackgroundColor3 = Color3.fromRGB(30,30,35)
-        bar.Parent = s
-        AddDecor(bar, 3)
-
-        local fill = Instance.new("Frame")
-        fill.Size = UDim2.fromScale(math.clamp((default - min) / (max - min), 0, 1), 1)
-        fill.BackgroundColor3 = Theme.Accent
-        fill.Parent = bar
-        AddDecor(fill, 3)
-
+    function tab:CreateSlider(txt, min, max, def, cb)
+        local s = Create("Frame", {Size = UDim2.new(0.98, 0, 0, 65), BackgroundColor3 = SlayLib.Theme.Secondary, Parent = Page})
+        Round(s) Stroke(s)
+        local l = Create("TextLabel", {Text = "  " .. txt, Size = UDim2.new(1, 0, 0, 35), BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.Text, Font = "Gotham", Parent = s, TextXAlignment = "Left"})
+        local vL = Create("TextLabel", {Text = tostring(def) .. " ", Size = UDim2.new(1, 0, 0, 35), BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.Accent, Font = "GothamBold", Parent = s, TextXAlignment = "Right"})
+        
+        local bar = Create("Frame", {Size = UDim2.new(0.94, 0, 0, 8), Position = UDim2.new(0.03, 0, 0, 45), BackgroundColor3 = Color3.fromRGB(15,15,20), Parent = s})
+        Round(bar, 4) Stroke(bar)
+        local fill = Create("Frame", {Size = UDim2.fromScale((def-min)/(max-min), 1), BackgroundColor3 = SlayLib.Theme.Accent, Parent = bar})
+        Round(fill, 4)
+        
         local function update()
             local p = math.clamp((Mouse.X - bar.AbsolutePosition.X) / bar.AbsoluteSize.X, 0, 1)
             local val = math.floor(min + (max - min) * p)
             fill.Size = UDim2.fromScale(p, 1)
             vL.Text = tostring(val) .. " "
-            callback(val)
+            cb(val)
         end
-
-        bar.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-                local conn
-                conn = RunService.RenderStepped:Connect(update)
-                UserInputService.InputEnded:Connect(function(input2)
-                    if input2.UserInputType == Enum.UserInputType.MouseButton1 or input2.UserInputType == Enum.UserInputType.Touch then
-                        conn:Disconnect()
-                    end
-                end)
-            end
-        end)
+        bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then local c c = RunService.RenderStepped:Connect(update) UserInputService.InputEnded:Connect(function(i2) if i2.UserInputType == Enum.UserInputType.MouseButton1 or i2.UserInputType == Enum.UserInputType.Touch then c:Disconnect() end end) end end)
     end
 
-    function tab:CreateDropdown(text, options, callback)
-        local expanded = false
-        local d = Instance.new("Frame")
-        d.Size = UDim2.new(0.96, 0, 0, 40)
-        d.BackgroundColor3 = Theme.Secondary
-        d.BackgroundTransparency = 0.4
-        d.ClipsDescendants = true
-        d.Parent = Page
-        AddDecor(d, 6, Theme.Stroke, 0.5)
-
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, 40)
-        btn.BackgroundTransparency = 1
-        btn.Text = "  " .. text .. " : " .. (options[1] or "None")
-        btn.TextColor3 = Theme.Text
-        btn.TextXAlignment = Enum.TextXAlignment.Left
-        btn.Font = Enum.Font.Gotham
-        btn.Parent = d
-
-        local container = Instance.new("Frame")
-        container.Size = UDim2.new(1, 0, 0, #options * 32)
-        container.Position = UDim2.fromOffset(0, 40)
-        container.BackgroundTransparency = 1
-        container.Parent = d
-        Instance.new("UIListLayout", container)
-
-        btn.MouseButton1Click:Connect(function()
-            expanded = not expanded
-            TweenService:Create(d, TweenInfo.new(0.4, Enum.EasingStyle.QuartOut), {Size = expanded and UDim2.new(0.96, 0, 0, 40 + (#options * 32)) or UDim2.fromOffset(d.AbsoluteSize.X, 40)}):Play()
+    function tab:CreateKeybind(txt, def, cb)
+        local bind = def.Name
+        local f = Create("Frame", {Size = UDim2.new(0.98, 0, 0, 45), BackgroundColor3 = SlayLib.Theme.Secondary, Parent = Page})
+        Round(f) Stroke(f)
+        Create("TextLabel", {Text = "  " .. txt, Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextColor3 = SlayLib.Theme.Text, Font = "Gotham", Parent = f, TextXAlignment = "Left"})
+        
+        local bBox = Create("TextButton", {Text = bind, Size = UDim2.fromOffset(80, 25), Position = UDim2.new(1, -90, 0.5, -12), BackgroundColor3 = SlayLib.Theme.Main, TextColor3 = SlayLib.Theme.Accent, Font = "GothamBold", Parent = f})
+        Round(bBox) Stroke(bBox)
+        
+        bBox.MouseButton1Click:Connect(function()
+            bBox.Text = "..."
+            local i = UserInputService.InputBegan:Wait()
+            if i.UserInputType == Enum.UserInputType.Keyboard then
+                bBox.Text = i.KeyCode.Name
+                bind = i.KeyCode
+            end
         end)
+        UserInputService.InputBegan:Connect(function(i, g) if not g and i.KeyCode == bind then cb() end end)
+    end
 
-        for _, v in pairs(options) do
-            local o = Instance.new("TextButton")
-            o.Size = UDim2.new(1, 0, 0, 32)
-            o.BackgroundTransparency = 1
-            o.Text = "      " .. v
-            o.TextColor3 = Theme.TextDark
-            o.TextXAlignment = Enum.TextXAlignment.Left
-            o.Font = Enum.Font.Gotham
-            o.Parent = container
-            o.MouseButton1Click:Connect(function()
-                btn.Text = "  " .. text .. " : " .. v
-                expanded = false
-                TweenService:Create(d, TweenInfo.new(0.4), {Size = UDim2.new(0.96, 0, 0, 40)}):Play()
-                callback(v)
-            end)
-        end
+    if #self.TabHolder:GetChildren() == 2 then 
+        Page.Visible = true 
+        TabBtn.BackgroundTransparency = 0.8
+        TabBtn.TextColor3 = SlayLib.Theme.Text
     end
 
     return tab
+end
+
+-- // Notifications \\ --
+function SlayLib:Notification(title, desc)
+    local n = Create("Frame", {Size = UDim2.fromOffset(250, 70), Position = UDim2.new(1, 10, 0, 20), BackgroundColor3 = SlayLib.Theme.Main, Parent = self.Gui})
+    Round(n) Stroke(n, SlayLib.Theme.Accent)
+    Create("TextLabel", {Text = " " .. title, Size = UDim2.new(1, 0, 0, 30), TextColor3 = SlayLib.Theme.Accent, Font = "GothamBold", TextSize = 14, TextXAlignment = "Left", BackgroundTransparency = 1, Parent = n})
+    Create("TextLabel", {Text = " " .. desc, Size = UDim2.new(1, 0, 1, -30), Position = UDim2.fromOffset(0, 30), TextColor3 = SlayLib.Theme.Text, Font = "Gotham", TextSize = 12, TextXAlignment = "Left", TextWrapped = true, BackgroundTransparency = 1, Parent = n})
+    
+    n:TweenPosition(UDim2.new(1, -260, 0, 20), "Out", "Back", 0.5)
+    task.delay(4, function()
+        n:TweenPosition(UDim2.new(1, 10, 0, 20), "In", "Quad", 0.5)
+        task.wait(0.5) n:Destroy()
+    end)
 end
 
 return SlayLib
