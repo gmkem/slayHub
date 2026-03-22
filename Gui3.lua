@@ -60,25 +60,31 @@ local function Tween(obj, info, goal)
 end
 
 -- [Advanced Draggable Logic: Mobile & PC Optimized]
-local function MakeDraggable(obj, handler)
-    handler = handler or obj
-    local dragStart, startPos, dragging
-    
-    handler.InputBegan:Connect(function(input)
+local function MakeDraggable(obj)
+    local dragging, dragInput, dragStart, startPos
+    obj.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = obj.Position
-            
-            local connection
-            connection = input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                    connection:Disconnect()
-                end
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
+    obj.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    game:GetService("RunService").RenderStepped:Connect(function()
+        if dragging and dragInput then
+            local delta = dragInput.Position - dragStart
+            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
     
     UIS.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
