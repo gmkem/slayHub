@@ -837,6 +837,43 @@ function SlayLib:CreateWindow(Props)
 
     return Window
 end -- จบ CreateWindow
+--// [9] EXAMPLE USAGE (ส่วนทดสอบรันสคริปต์)
+-- พี่ Fluke สามารถก๊อปส่วนนี้ไปลองรันดูได้เลยครับ
 
+local Window = SlayLib:CreateWindow({
+    Name = "APEX PREDATOR V2"
+})
+
+local Tab1 = Window:CreateTab("Main Hub")
+local Section1 = Tab1:CreateSection("Combat")
+
+Section1:CreateToggle("Killaura", "kill_aura", false, function(State)
+    print("Killaura is now:", State)
+end)
+
+Section1:CreateSlider("Attack Range", "attack_range", 1, 50, 1, 15, function(Value)
+    print("Range set to:", Value)
+end)
+
+Section1:CreateKeybind("Attack Key", "attack_key", Enum.KeyCode.R, function(Key)
+    print("Attack bound to:", Key.Name)
+end)
+
+local Tab2 = Window:CreateTab("Settings")
+local Section2 = Tab2:CreateSection("Interface")
+
+Section2:CreateDropdown("Theme Mode", "ui_theme", {"Dark", "Light", "High Contrast", "Neon"}, "Dark", function(Option)
+    print("Theme changed to:", Option)
+end)
+
+Section2:CreateColorPicker("Accent Color", "accent_color", Color3.fromRGB(140, 90, 255), function(Color)
+    print("New Color Selected")
+end)
+
+Section2:CreateButton("Destroy UI", function()
+    game:GetService("CoreGui").SlayApex_Premium:Destroy()
+end)
+
+print("SLAYLIB V2 LOADED SUCCESSFULLY!")
 
 return SlayLib
