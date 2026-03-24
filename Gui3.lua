@@ -1,194 +1,167 @@
---[[ 
-    FLUKITO TITAN ENGINE V6 - THE ULTIMATE FRAMEWORK
-    [+] FULLY ANIMATED / MOBILE SUPPORT / SEARCH SYSTEM / CONFIG SYSTEM
-]]
-
-local Library = {
+local SlayLib = {
+    Folder = "SlayLib_Configs",
     Flags = {},
+    Elements = {},
     Theme = {
-        Main = Color3.fromRGB(15, 15, 20),
-        Sidebar = Color3.fromRGB(20, 20, 26),
-        Accent = Color3.fromRGB(0, 170, 255),
-        Outline = Color3.fromRGB(35, 35, 45),
-        Element = Color3.fromRGB(25, 25, 32),
-        Hover = Color3.fromRGB(40, 40, 50),
+        Main = Color3.fromRGB(140, 90, 255),
+        BG = Color3.fromRGB(12, 12, 14),
+        Side = Color3.fromRGB(18, 18, 22),
+        Element = Color3.fromRGB(25, 25, 30),
+        Stroke = Color3.fromRGB(45, 45, 50),
         Text = Color3.fromRGB(255, 255, 255),
-        SecondaryText = Color3.fromRGB(160, 160, 165)
-    },
-    Tabs = {},
-    ConfigFolder = "FlukitoV6_Configs"
+        TextSecondary = Color3.fromRGB(170, 170, 180)
+    }
 }
 
 --// Services
-local UIS = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
-local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local HttpService = game:GetService("HttpService")
 
---// Utility Engine
-local function Tween(obj, goal, duration)
-    TweenService:Create(obj, TweenInfo.new(duration or 0.3, Enum.EasingStyle.Quart), goal):Play()
+--// Utility Logic
+local function Tween(obj, goal, time)
+    return TweenService:Create(obj, TweenInfo.new(time or 0.3, Enum.EasingStyle.Quart), goal):Play()
 end
 
-local function MakeDraggable(obj)
+local function MakeDraggable(frame, handle)
     local dragging, dragInput, dragStart, startPos
-    obj.InputBegan:Connect(function(input)
+    handle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = obj.Position
+            dragging = true; dragStart = input.Position; startPos = frame.Position
             input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-    UIS.InputChanged:Connect(function(input)
+    UserInputService.InputChanged:Connect(function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
-            obj.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
     end)
 end
 
---// UI Construction (Base Layer)
-local ScreenGui = Instance.new("ScreenGui", CoreGui)
-ScreenGui.Name = "TitanEngine_" .. HttpService:GenerateGUID(false)
+--// 1. NOTIFICATION SYSTEM
+function SlayLib:Notify(Config)
+    Config = Config or {Title = "SYSTEM", Content = "Message", Duration = 3}
+    local NotifGui = CoreGui:FindFirstChild("SlayNotifs") or Instance.new("ScreenGui", CoreGui)
+    NotifGui.Name = "SlayNotifs"
+    
+    local Holder = NotifGui:FindFirstChild("Holder") or Instance.new("Frame", NotifGui)
+    if not NotifGui:FindFirstChild("Holder") then
+        Holder.Name = "Holder"; Holder.Size = UDim2.new(0, 300, 1, 0); Holder.Position = UDim2.new(1, -310, 0, 0); Holder.BackgroundTransparency = 1
+        local Layout = Instance.new("UIListLayout", Holder); Layout.VerticalAlignment = "Bottom"; Layout.Padding = UDim.new(0, 10)
+    end
 
-local Main = Instance.new("Frame", ScreenGui)
-Main.Size = UDim2.new(0, 600, 0, 450)
-Main.Position = UDim2.new(0.5, -300, 0.5, -225)
-Main.BackgroundColor3 = Library.Theme.Main
-Main.BorderSizePixel = 0
-Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 12)
-Instance.new("UIStroke", Main).Color = Library.Theme.Outline
-MakeDraggable(Main)
+    local Box = Instance.new("Frame", Holder)
+    Box.Size = UDim2.new(1, 0, 0, 0); Box.BackgroundColor3 = SlayLib.Theme.BG; Box.ClipsDescendants = true
+    local Corner = Instance.new("UICorner", Box); local Stroke = Instance.new("UIStroke", Box); Stroke.Color = SlayLib.Theme.Main
+    
+    local Ttl = Instance.new("TextLabel", Box); Ttl.Size = UDim2.new(1, -20, 0, 25); Ttl.Position = UDim2.new(0, 10, 0, 5); Ttl.Text = Config.Title; Ttl.TextColor3 = SlayLib.Theme.Main; Ttl.Font = "GothamBold"; Ttl.BackgroundTransparency = 1; Ttl.TextXAlignment = "Left"
+    local Cnt = Instance.new("TextLabel", Box); Cnt.Size = UDim2.new(1, -20, 0, 40); Cnt.Position = UDim2.new(0, 10, 0, 25); Cnt.Text = Config.Content; Cnt.TextColor3 = Color3.new(1,1,1); Cnt.Font = "Gotham"; Cnt.TextWrapped = true; Cnt.BackgroundTransparency = 1; Cnt.TextXAlignment = "Left"; Cnt.TextSize = 12
 
---// Sidebar & Navigation
-local Sidebar = Instance.new("Frame", Main)
-Sidebar.Size = UDim2.new(0, 180, 1, 0)
-Sidebar.BackgroundColor3 = Library.Theme.Sidebar
-Sidebar.BorderSizePixel = 0
-Instance.new("UICorner", Sidebar)
-
-local TabHolder = Instance.new("ScrollingFrame", Sidebar)
-TabHolder.Size = UDim2.new(1, 0, 1, -120)
-TabHolder.Position = UDim2.new(0, 0, 0, 80)
-TabHolder.BackgroundTransparency = 1; TabHolder.ScrollBarThickness = 0
-local TabList = Instance.new("UIListLayout", TabHolder)
-TabList.Padding = UDim.new(0, 6); TabList.HorizontalAlignment = "Center"
-
---// Main Container (Pages)
-local Container = Instance.new("Frame", Main)
-Container.Size = UDim2.new(1, -195, 1, -20)
-Container.Position = UDim2.new(0, 185, 0, 10)
-Container.BackgroundTransparency = 1
-
---// [ TAB ENGINE ]
-function Library:CreateTab(name)
-    local TabBtn = Instance.new("TextButton", TabHolder)
-    TabBtn.Size = UDim2.new(0.9, 0, 0, 38)
-    TabBtn.BackgroundColor3 = Library.Theme.Element
-    TabBtn.Text = "  " .. name; TabBtn.TextColor3 = Library.Theme.SecondaryText
-    TabBtn.Font = "GothamSemibold"; TabBtn.TextSize = 13; TabBtn.TextXAlignment = "Left"
-    Instance.new("UICorner", TabBtn)
-
-    local Page = Instance.new("ScrollingFrame", Container)
-    Page.Size = UDim2.new(1, 0, 1, 0)
-    Page.BackgroundTransparency = 1; Page.Visible = false; Page.ScrollBarThickness = 2
-    local PageLayout = Instance.new("UIListLayout", Page)
-    PageLayout.Padding = UDim.new(0, 10); PageLayout.HorizontalAlignment = "Center"
-
-    TabBtn.MouseButton1Click:Connect(function()
-        for _, v in pairs(Container:GetChildren()) do v.Visible = false end
-        for _, v in pairs(TabHolder:GetChildren()) do if v:IsA("TextButton") then Tween(v, {TextColor3 = Library.Theme.SecondaryText, BackgroundColor3 = Library.Theme.Element}) end end
-        Page.Visible = true; Tween(TabBtn, {TextColor3 = Library.Theme.Accent, BackgroundColor3 = Library.Theme.Hover})
+    task.spawn(function()
+        Tween(Box, {Size = UDim2.new(1, 0, 0, 70)}, 0.4)
+        task.wait(Config.Duration)
+        Tween(Box, {Size = UDim2.new(1, 0, 0, 0)}, 0.4)
+        task.wait(0.4); Box:Destroy()
     end)
+end
 
-    local Tab = {}
+--// 2. LOADING SCREEN
+local function ShowLoading()
+    local LoadGui = Instance.new("ScreenGui", CoreGui)
+    local Main = Instance.new("Frame", LoadGui); Main.Size = UDim2.new(1, 0, 1, 0); Main.BackgroundColor3 = Color3.new(0,0,0)
+    local Logo = Instance.new("TextLabel", Main); Logo.Size = UDim2.new(0, 200, 0, 50); Logo.Position = UDim2.new(0.5, -100, 0.5, -25); Logo.Text = "SLAYLIB X"; Logo.TextColor3 = SlayLib.Theme.Main; Logo.Font = "GothamBold"; Logo.TextSize = 40; Logo.BackgroundTransparency = 1
+    
+    local Bar = Instance.new("Frame", Main); Bar.Size = UDim2.new(0, 0, 0, 2); Bar.Position = UDim2.new(0.5, -100, 0.5, 30); Bar.BackgroundColor3 = SlayLib.Theme.Main
+    
+    Tween(Bar, {Size = UDim2.new(0, 200, 0, 2)}, 1.5)
+    task.wait(1.8)
+    Tween(Main, {BackgroundTransparency = 1}, 0.5)
+    Tween(Logo, {TextTransparency = 1}, 0.5)
+    Tween(Bar, {BackgroundTransparency = 1}, 0.5)
+    task.wait(0.5); LoadGui:Destroy()
+end
 
-    -- [[ MODULE: BUTTON ]]
-    function Tab:AddButton(text, callback)
-        local B = Instance.new("TextButton", Page)
-        B.Size = UDim2.new(1, -10, 0, 40); B.BackgroundColor3 = Library.Theme.Element
-        B.Text = text; B.TextColor3 = Library.Theme.Text; B.Font = "Gotham"; B.TextSize = 14
-        Instance.new("UICorner", B)
-        B.MouseButton1Click:Connect(callback)
-    end
+--// 3. MAIN WINDOW
+function SlayLib:CreateWindow(Config)
+    Config = Config or {Name = "SlayLib X"}
+    ShowLoading()
 
-    -- [[ MODULE: TOGGLE (ANIMATED) ]]
-    function Tab:AddToggle(text, flag, callback)
-        Library.Flags[flag] = false
-        local T = Instance.new("TextButton", Page)
-        T.Size = UDim2.new(1, -10, 0, 42); T.BackgroundColor3 = Library.Theme.Element
-        T.Text = "  " .. text; T.TextColor3 = Library.Theme.Text; T.TextXAlignment = "Left"
-        T.Font = "Gotham"; T.TextSize = 14; Instance.new("UICorner", T)
+    local MainGui = Instance.new("ScreenGui", CoreGui)
+    MainGui.Name = "SlayV2_Main"
 
-        local Switch = Instance.new("Frame", T)
-        Switch.Size = UDim2.new(0, 38, 0, 20); Switch.Position = UDim2.new(1, -48, 0.5, -10)
-        Switch.BackgroundColor3 = Color3.fromRGB(50, 50, 60); Instance.new("UICorner", Switch).CornerRadius = UDim.new(1, 0)
+    -- Floating Toggle
+    local Tgl = Instance.new("TextButton", MainGui); Tgl.Size = UDim2.new(0, 50, 0, 50); Tgl.Position = UDim2.new(0.05, 0, 0.1, 0); Tgl.BackgroundColor3 = SlayLib.Theme.BG; Tgl.Text = "S"; Tgl.TextColor3 = SlayLib.Theme.Main; Tgl.Font = "GothamBold"; Tgl.TextSize = 24
+    Instance.new("UICorner", Tgl).CornerRadius = UDim.new(1, 0); local TS = Instance.new("UIStroke", Tgl); TS.Color = SlayLib.Theme.Main; TS.Thickness = 2; MakeDraggable(Tgl, Tgl)
 
-        local Dot = Instance.new("Frame", Switch)
-        Dot.Size = UDim2.new(0, 14, 0, 14); Dot.Position = UDim2.new(0, 3, 0.5, -7)
-        Dot.BackgroundColor3 = Color3.new(1,1,1); Instance.new("UICorner", Dot).CornerRadius = UDim.new(1, 0)
+    -- Main Window
+    local Main = Instance.new("Frame", MainGui); Main.Size = UDim2.new(0, 580, 0, 380); Main.Position = UDim2.new(0.5, 0, 0.5, 0); Main.AnchorPoint = Vector2.new(0.5, 0.5); Main.BackgroundColor3 = SlayLib.Theme.BG; Main.Visible = true
+    Instance.new("UICorner", Main); local MS = Instance.new("UIStroke", Main); MS.Color = SlayLib.Theme.Stroke
+    
+    Tgl.MouseButton1Click:Connect(function() Main.Visible = not Main.Visible end)
 
-        T.MouseButton1Click:Connect(function()
-            Library.Flags[flag] = not Library.Flags[flag]
-            local s = Library.Flags[flag]
-            Tween(Switch, {BackgroundColor3 = s and Library.Theme.Accent or Color3.fromRGB(50, 50, 60)})
-            Tween(Dot, {Position = s and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)})
-            callback(s)
-        end)
-    end
+    local Sidebar = Instance.new("Frame", Main); Sidebar.Size = UDim2.new(0, 160, 1, 0); Sidebar.BackgroundColor3 = SlayLib.Theme.Side; Instance.new("UICorner", Sidebar)
+    local Container = Instance.new("Frame", Main); Container.Size = UDim2.new(1, -180, 1, -20); Container.Position = UDim2.new(0, 170, 0, 10); Container.BackgroundTransparency = 1
+    
+    MakeDraggable(Main, Sidebar)
 
-    -- [[ MODULE: COLOR PICKER (ADVANCED) ]]
-    function Tab:AddColorPicker(text, default, flag, callback)
-        Library.Flags[flag] = default
-        local CP = Instance.new("Frame", Page)
-        CP.Size = UDim2.new(1, -10, 0, 45); CP.BackgroundColor3 = Library.Theme.Element; Instance.new("UICorner", CP)
+    local Tabs = {First = nil}
+    function Tabs:CreateTab(Name)
+        local TabBtn = Instance.new("TextButton", Sidebar); TabBtn.Size = UDim2.new(0, 140, 0, 35); TabBtn.Position = UDim2.new(0, 10, 0, 60 + (#Sidebar:GetChildren()*40)); TabBtn.BackgroundColor3 = SlayLib.Theme.Element; TabBtn.Text = Name; TabBtn.TextColor3 = SlayLib.Theme.TextSecondary; TabBtn.Font = "GothamMedium"; Instance.new("UICorner", TabBtn)
         
-        local Title = Instance.new("TextLabel", CP)
-        Title.Size = UDim2.new(1, 0, 1, 0); Title.Position = UDim2.new(0, 10, 0, 0); Title.Text = text
-        Title.TextColor3 = Library.Theme.Text; Title.Font = "Gotham"; Title.TextSize = 14; Title.TextXAlignment = "Left"; Title.BackgroundTransparency = 1
+        local Page = Instance.new("ScrollingFrame", Container); Page.Size = UDim2.new(1, 0, 1, 0); Page.BackgroundTransparency = 1; Page.Visible = false; Page.ScrollBarThickness = 0
+        local Layout = Instance.new("UIListLayout", Page); Layout.Padding = UDim.new(0, 10)
 
-        local ColorPreview = Instance.new("TextButton", CP)
-        ColorPreview.Size = UDim2.new(0, 40, 0, 24); ColorPreview.Position = UDim2.new(1, -50, 0.5, -12)
-        ColorPreview.BackgroundColor3 = default; ColorPreview.Text = ""; Instance.new("UICorner", ColorPreview)
-        
-        -- (Logic สำหรับเปิดหน้าต่างเลือกสีจะยาวมาก มักแยกเป็นโมดูลเสริม)
-        ColorPreview.MouseButton1Click:Connect(function()
-            -- logic สำหรับ Color Picking แบบ Real-time
-            callback(ColorPreview.BackgroundColor3)
+        TabBtn.MouseButton1Click:Connect(function()
+            for _, v in pairs(Container:GetChildren()) do v.Visible = false end
+            Page.Visible = true
         end)
+
+        if not Tabs.First then Tabs.First = true; Page.Visible = true; TabBtn.TextColor3 = SlayLib.Theme.Main end
+
+        local Elements = {}
+
+        -- BUTTON
+        function Elements:CreateButton(Text, Callback)
+            local B = Instance.new("TextButton", Page); B.Size = UDim2.new(1, -5, 0, 40); B.BackgroundColor3 = SlayLib.Theme.Element; B.Text = "  " .. Text; B.TextColor3 = Color3.new(1,1,1); B.Font = "GothamMedium"; B.TextXAlignment = "Left"; Instance.new("UICorner", B); local s = Instance.new("UIStroke", B); s.Color = SlayLib.Theme.Stroke
+            B.MouseButton1Click:Connect(Callback)
+        end
+
+        -- TOGGLE
+        function Elements:CreateToggle(Text, Flag, Callback)
+            SlayLib.Flags[Flag] = false
+            local T = Instance.new("TextButton", Page); T.Size = UDim2.new(1, -5, 0, 40); T.BackgroundColor3 = SlayLib.Theme.Element; T.Text = "  " .. Text; T.TextColor3 = Color3.new(1,1,1); T.Font = "GothamMedium"; T.TextXAlignment = "Left"; Instance.new("UICorner", T)
+            local Box = Instance.new("Frame", T); Box.Size = UDim2.new(0, 35, 0, 18); Box.Position = UDim2.new(1, -45, 0.5, -9); Box.BackgroundColor3 = Color3.fromRGB(50,50,50); Instance.new("UICorner", Box).CornerRadius = UDim.new(1,0)
+            local Dot = Instance.new("Frame", Box); Dot.Size = UDim2.new(0, 14, 0, 14); Dot.Position = UDim2.new(0, 2, 0.5, -7); Dot.BackgroundColor3 = Color3.new(1,1,1); Instance.new("UICorner", Dot).CornerRadius = UDim.new(1,0)
+
+            T.MouseButton1Click:Connect(function()
+                SlayLib.Flags[Flag] = not SlayLib.Flags[Flag]
+                Tween(Box, {BackgroundColor3 = SlayLib.Flags[Flag] and SlayLib.Theme.Main or Color3.fromRGB(50,50,50)}, 0.2)
+                Tween(Dot, {Position = SlayLib.Flags[Flag] and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)}, 0.2)
+                Callback(SlayLib.Flags[Flag])
+            end)
+        end
+
+        -- SLIDER
+        function Elements:CreateSlider(Text, Min, Max, Def, Flag, Callback)
+            SlayLib.Flags[Flag] = Def
+            local S = Instance.new("Frame", Page); S.Size = UDim2.new(1, -5, 0, 50); S.BackgroundColor3 = SlayLib.Theme.Element; Instance.new("UICorner", S)
+            local Lab = Instance.new("TextLabel", S); Lab.Size = UDim2.new(1, 0, 0, 25); Lab.Text = "  " .. Text .. " : " .. Def; Lab.TextColor3 = Color3.new(1,1,1); Lab.BackgroundTransparency = 1; Lab.TextXAlignment = "Left"
+            local Bar = Instance.new("Frame", S); Bar.Size = UDim2.new(1, -20, 0, 4); Bar.Position = UDim2.new(0, 10, 0, 35); Bar.BackgroundColor3 = Color3.fromRGB(50,50,50)
+            local Fill = Instance.new("Frame", Bar); Fill.Size = UDim2.new((Def-Min)/(Max-Min), 0, 1, 0); Fill.BackgroundColor3 = SlayLib.Theme.Main
+
+            local function Update(input)
+                local pos = math.clamp((input.Position.X - Bar.AbsolutePosition.X) / Bar.AbsoluteSize.X, 0, 1)
+                local val = math.floor(Min + (Max-Min)*pos)
+                Fill.Size = UDim2.new(pos, 0, 1, 0); Lab.Text = "  " .. Text .. " : " .. val; SlayLib.Flags[Flag] = val; Callback(val)
+            end
+            Bar.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 or i.UserInputType == Enum.UserInputType.Touch then Update(i) end end)
+        end
+
+        return Elements
     end
-
-    -- (เพิ่มโมดูลอื่นๆ เช่น AddSlider, AddDropdown, AddKeybind ที่นี่...)
-    return Tab
+    return Tabs
 end
 
---// Notification System (Smooth Slide)
-function Library:Notify(title, msg)
-    local N = Instance.new("Frame", ScreenGui)
-    N.Size = UDim2.new(0, 260, 0, 65); N.Position = UDim2.new(1, 10, 1, -80)
-    N.BackgroundColor3 = Library.Theme.Element; Instance.new("UICorner", N)
-    Instance.new("UIStroke", N).Color = Library.Theme.Accent
-
-    local T = Instance.new("TextLabel", N)
-    T.Size = UDim2.new(1, -20, 0, 30); T.Position = UDim2.new(0, 10, 0, 5); T.Text = title
-    T.TextColor3 = Library.Theme.Accent; T.Font = "GothamBold"; T.TextSize = 15; T.TextXAlignment = "Left"; T.BackgroundTransparency = 1
-
-    local D = Instance.new("TextLabel", N)
-    D.Size = UDim2.new(1, -20, 0, 20); D.Position = UDim2.new(0, 10, 0, 32); D.Text = msg
-    D.TextColor3 = Library.Theme.Text; D.Font = "Gotham"; D.TextSize = 12; D.TextXAlignment = "Left"; D.BackgroundTransparency = 1
-
-    Tween(N, {Position = UDim2.new(1, -270, 1, -80)})
-    task.delay(4, function() Tween(N, {Position = UDim2.new(1, 10, 1, -80)}); task.wait(0.5); N:Destroy() end)
-end
-
---// ระบบ Auto-Save Config (ใช้เขียนลงไฟล์)
-function Library:SaveConfig()
-    if writefile then
-        local data = HttpService:JSONEncode(Library.Flags)
-        writefile(Library.ConfigFolder .. "/config.json", data)
-    end
-end
-
-return Library
+return SlayLib
