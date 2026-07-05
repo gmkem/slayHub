@@ -1090,9 +1090,43 @@ end)
     RefreshOptions()
     UpdateText()
     return {
-        Refresh = RefreshOptions,
-        SetLimit = function(newMax) Props.Max = newMax; UpdateText() end -- เพิ่มฟังก์ชันแก้ Max ทีหลังได้
-    }
+    Refresh = function(NewOptions)
+        if NewOptions then
+            Props.Options = NewOptions
+        end
+
+        RefreshOptions()
+        UpdateText()
+    end,
+
+    SetOptions = function(NewOptions)
+        Props.Options = NewOptions or {}
+        RefreshOptions()
+        UpdateText()
+    end,
+
+    Set = function(Value)
+        if Props.Multi then
+            Selected = type(Value) == "table" and Value or {}
+        else
+            Selected = Value
+        end
+
+        UpdateText()
+        RefreshOptions()
+
+        SlayLib.Flags[Props.Flag] = Selected
+    end,
+
+    Get = function()
+        return Selected
+    end,
+
+    SetLimit = function(NewMax)
+        Props.Max = NewMax
+        UpdateText()
+    end
+}
 end
 
         -- 4. [UPGRADED] INTERACTIVE BUTTON
