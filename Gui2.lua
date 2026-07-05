@@ -57,6 +57,24 @@ if not isfolder(SlayLib.Folder) then
 	makefolder(SlayLib.Folder)
 end
 
+--// [NEW] List every saved config's name (without folder/extension), used by
+--// the popup config manager. Wrapped in pcall since listfiles behaves
+--// slightly differently across executors.
+function SlayLib:ListConfigs()
+	local names = {}
+	local ok, files = pcall(listfiles, SlayLib.Folder)
+	if ok and files then
+		for _, path in ipairs(files) do
+			local fileName = path:match("([^/\\]+)%.json$")
+			if fileName then
+				table.insert(names, fileName)
+			end
+		end
+	end
+	table.sort(names)
+	return names
+end
+
 --// UTILITY FUNCTIONS (THE BRAIN)
 local function Create(class, props)
 	local obj = Instance.new(class)
@@ -72,9 +90,23 @@ end
 local function MergeDefaults(props, defaults)
 	props = props or {}
 	for k, v in pairs(defaults) do
+		local function DeepCopy(t)
+	local new = {}
+	for k,v in pairs(t) do
+		new[k] = (type(v) == "table") and DeepCopy(v) or v
+	end
+	return new
+end
+
+local function MergeDefaults(props, defaults)
+	props = props or {}
+	for k, v in pairs(defaults) do
 		if props[k] == nil then
-			props[k] = v
+			props[k] = (type(v) == "table") and DeepCopy(v) or v
 		end
+	end
+	return props
+end
 	end
 	return props
 end
@@ -87,6 +119,100 @@ local function Tween(obj, goal, time, style, dir)
 	local t = TweenService:Create(obj, GetTweenInfo(time, style, dir), goal)
 	t:Play()
 	return t
+end
+
+--// [NEW] THEME SWITCHER SYSTEM
+-- A handful of ready-made accent colors. SlayLib:SetTheme("Blue") (or pass a
+-- raw Color3) updates SlayLib.Theme.MainColor/NotificationColor and live
+-- re-colors every registered instance. Anything created with a color that
+-- should follow the theme calls RegisterThemed(instance, "Property") once.
+SlayLib.ThemePresets = {
+	Purple = Color3.fromRGB(120, 80, 255),
+	Blue   = Color3.fromRGB(70, 140, 255),
+	Red    = Color3.fromRGB(255, 70, 70),
+	Green  = Color3.fromRGB(60, 200, 120),
+	Orange = Color3.fromRGB(255, 150, 60),
+	Pink   = Color3.fromRGB(255, 90, 170),
+}
+SlayLib.ThemePresetOrder = {"Purple", "Blue", "Red", "Green", "Orange", "Pink"}
+SlayLib.ThemeRegistry = {}
+
+local function RegisterThemed(instance, prop)
+	table.insert(SlayLib.ThemeRegistry, {Instance = instance, Prop = prop})
+	return instance
+end
+
+function SlayLib:SetTheme(nameOrColor)
+	local color
+	if typeof(nameOrColor) == "Color3" then
+		color = nameOrColor
+	else
+		color = SlayLib.ThemePresets[nameOrColor]
+	end
+	if not color then return end
+
+	SlayLib.Theme.MainColor = color
+	SlayLib.Theme.NotificationColor = color
+
+	for i = #SlayLib.ThemeRegistry, 1, -1 do
+		local entry = SlayLib.ThemeRegistry[i]
+		if entry.Instance and entry.Instance.Parent then
+			Tween(entry.Instance, {[entry.Prop] = color}, 0.3)
+		else
+			-- Clean up references to destroyed instances so this list
+			-- doesn't grow forever across tab/window rebuilds.
+			table.remove(SlayLib.ThemeRegistry, i)
+		end
+	end
+end
+
+--// [NEW] TOOLTIP SYSTEM
+-- Attach a small floating tooltip to any GuiObject: AttachTooltip(frame, "Explanation text")
+local SlayTooltipGui = nil
+local function AttachTooltip(GuiObject, Text)
+	if not Text or Text == "" then return end
+
+	if not SlayTooltipGui or not SlayTooltipGui.Parent then
+		SlayTooltipGui = Create("ScreenGui", {
+			Name = "SlayTooltipGui", Parent = game:GetService("CoreGui"),
+			DisplayOrder = 99998, IgnoreGuiInset = true
+		})
+	end
+
+	local TipFrame = Create("Frame", {
+		Name = "Tip", Visible = false, BackgroundColor3 = Color3.fromRGB(20, 20, 20),
+		AutomaticSize = Enum.AutomaticSize.XY, ZIndex = 500, Parent = SlayTooltipGui
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = TipFrame})
+	local TipStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1, Transparency = 0.4, Parent = TipFrame})
+	RegisterThemed(TipStroke, "Color")
+	Create("UIPadding", {
+		PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8),
+		PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5), Parent = TipFrame
+	})
+	Create("TextLabel", {
+		Text = Text, Font = Enum.Font.GothamMedium, TextSize = 12,
+		TextColor3 = Color3.fromRGB(230, 230, 230), BackgroundTransparency = 1,
+		Size = UDim2.new(0, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.XY,
+		ZIndex = 501, Parent = TipFrame
+	})
+
+	GuiObject.MouseEnter:Connect(function()
+		TipFrame.Visible = true
+	end)
+	GuiObject.MouseMoved:Connect(function(x, y)
+		TipFrame.Position = UDim2.new(0, x + 16, 0, y + 16)
+	end)
+	GuiObject.MouseLeave:Connect(function()
+		TipFrame.Visible = false
+	end)
+	GuiObject.AncestryChanged:Connect(function(_, parent)
+	if not parent and TipFrame then
+		TipFrame:Destroy()
+		TipFrame = nil
+	end
+end)
+
 end
 
 --// SMART TEXT SCALING LOGIC
@@ -253,7 +379,7 @@ function SlayLib:Notify(Config)
 		local waited = 0
 		repeat
 			task.wait()
-			waited += task.wait
+			waited += task.wait()
 		until TextArea.AbsoluteSize.Y > 0 or waited > 2 or not NotifFrame.Parent
 		if not NotifFrame.Parent then return end
 
@@ -385,6 +511,7 @@ function SlayLib:CreateWindow(Config)
 	Config = MergeDefaults(Config, {Name = "SlayLib X"})
 
 	ExecuteFinalSovereign()
+	SlayLib.ThemeRegistry = {}
 
 	local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
 	if OldUI then OldUI:Destroy() end
@@ -410,6 +537,7 @@ function SlayLib:CreateWindow(Config)
 	})
 	Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
 	local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = MainFrame})
+	RegisterThemed(MainStroke, "Color")
 
 	-- [FIX] REMOVED the entire duplicate/legacy sidebar block that used to
 	-- exist here (a second "Sidebar" frame at width 155 with its own Title,
@@ -429,7 +557,8 @@ function SlayLib:CreateWindow(Config)
 		ZIndex = 100
 	})
 	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = FloatingToggle})
-	Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
+	local FloatToggleStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Parent = FloatingToggle})
+	RegisterThemed(FloatToggleStroke, "Color")
 
 	local ToggleIcon = Create("ImageLabel", {
 		Size = UDim2.new(0, 26, 0, 26),
@@ -440,6 +569,7 @@ function SlayLib:CreateWindow(Config)
 		BackgroundTransparency = 1,
 		Parent = FloatingToggle
 	})
+	RegisterThemed(ToggleIcon, "ImageColor3")
 
 	local ToggleButton = Create("TextButton", {
 		Size = UDim2.new(1, 0, 1, 0),
@@ -502,16 +632,58 @@ function SlayLib:CreateWindow(Config)
 	})
 	ApplyTextLogic(LibTitle, Config.Name, 17)
 
+	-- [NEW] GLOBAL SEARCH BAR
+	-- Filters the tab list by tab name AND by the name of any element inside
+	-- a tab (toggles, sliders, buttons, etc). If a search matches an element
+	-- in a tab that isn't currently open, that tab is opened automatically
+	-- and the matching element is briefly highlighted.
+	local SearchBox = Create("Frame", {
+		Name = "SearchBox",
+		Size = UDim2.new(1, -20, 0, 30),
+		Position = UDim2.new(0, 10, 0, 72),
+		BackgroundColor3 = Color3.fromRGB(30, 30, 32),
+		ZIndex = 11,
+		Parent = Sidebar
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = SearchBox})
+	local SearchStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1, Transparency = 0.7, Parent = SearchBox})
+	RegisterThemed(SearchStroke, "Color")
+
+	local SearchGlass = Create("ImageLabel", {
+		Size = UDim2.new(0, 13, 0, 13),
+		Position = UDim2.new(0, 9, 0.5, -6.5),
+		Image = SlayLib.Icons.Search,
+		ImageColor3 = SlayLib.Theme.TextSecondary,
+		BackgroundTransparency = 1,
+		ZIndex = 12,
+		Parent = SearchBox
+	})
+
+	local SearchInput = Create("TextBox", {
+		Size = UDim2.new(1, -32, 1, 0),
+		Position = UDim2.new(0, 28, 0, 0),
+		BackgroundTransparency = 1,
+		PlaceholderText = "Search...",
+		Text = "",
+		Font = Enum.Font.Gotham,
+		TextSize = 13,
+		TextColor3 = SlayLib.Theme.Text,
+		TextXAlignment = Enum.TextXAlignment.Left,
+		ClearTextOnFocus = false,
+		ZIndex = 12,
+		Parent = SearchBox
+	})
+
 	local TabScroll = Create("ScrollingFrame", {
 		Name = "TabScroll",
-		Size = UDim2.new(1, -10, 1, -85),
-		Position = UDim2.new(0, 5, 0, 75),
+		Size = UDim2.new(1, -10, 1, -118),
+		Position = UDim2.new(0, 5, 0, 108),
 		BackgroundTransparency = 1,
 		ScrollBarThickness = 0,
 		ZIndex = 11,
 		Parent = Sidebar,
 		CanvasSize = UDim2.new(0,0,0,0),
-		AutomaticCanvasSize = "Y"
+		AutomaticCanvasSize = Enum.AutomaticSize.Y
 	})
 	local TabLayout = Create("UIListLayout", {
 		Parent = TabScroll,
@@ -532,9 +704,66 @@ function SlayLib:CreateWindow(Config)
 
 	RegisterDrag(MainFrame, SideHeader)
 
+	-- [NEW] Briefly flashes an element's border to draw the eye to it after a search jump.
+	local function HighlightFrame(Frame)
+		local Flash = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 2, Transparency = 0, Parent = Frame})
+		RegisterThemed(Flash, "Color")
+		Tween(Flash, {Transparency = 1}, 1.1, Enum.EasingStyle.Quad)
+		task.delay(1.2, function()
+			if Flash then Flash:Destroy() end
+		end)
+	end
+
+	-- [NEW] SEARCH BAR LOGIC
+	SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
+		local query = string.lower(SearchInput.Text)
+
+		if query == "" then
+			for _, t in ipairs(Window.Tabs) do
+				t.TabBtn.Visible = true
+			end
+			return
+		end
+
+		local JumpTarget, JumpTab
+
+		for _, t in ipairs(Window.Tabs) do
+			local tabNameMatch = string.find(string.lower(t.Name), query, 1, true) ~= nil
+			local elementMatch = nil
+
+			for _, item in ipairs(t.SearchItems) do
+				if item.Name and string.find(string.lower(tostring(item.Name)), query, 1, true) then
+					elementMatch = item
+					break
+				end
+			end
+
+			t.TabBtn.Visible = tabNameMatch or (elementMatch ~= nil)
+
+			if not JumpTarget and elementMatch and not tabNameMatch then
+				JumpTarget, JumpTab = elementMatch, t
+			end
+		end
+
+		-- If the only reason a tab matched is because an element inside it
+		-- matched (not the tab's own name), open that tab and scroll/flash
+		-- the matching element so the user doesn't have to hunt for it.
+		if JumpTarget and Window.CurrentTab and Window.CurrentTab.Page ~= JumpTab.Page then
+			JumpTab.Activate()
+			task.defer(function()
+				local frame = JumpTarget.Frame
+				if frame and frame.Parent then
+					JumpTab.Page.CanvasPosition = Vector2.new(0, math.max(0, frame.AbsolutePosition.Y - JumpTab.Page.AbsolutePosition.Y - 20))
+					HighlightFrame(frame)
+				end
+			end)
+		end
+	end)
+
 	--// [TAB CREATOR LOGIC]
 	function Window:CreateTab(Name, IconID)
 		local Tab = {Active = false}
+		local SearchItems = {} -- [NEW] populated by every element this tab creates, used by the search bar
 
 		local TabBtn = Create("TextButton", {
 			Size = UDim2.new(1, -10, 0, 38),
@@ -588,7 +817,7 @@ function SlayLib:CreateWindow(Config)
 			ScrollBarThickness = 2,
 			ScrollBarImageColor3 = SlayLib.Theme.MainColor,
 			CanvasSize = UDim2.new(0, 0, 0, 0),
-			AutomaticCanvasSize = "Y",
+			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 20,
 			ClipsDescendants = false,
 			Parent = PageContainer
@@ -608,7 +837,9 @@ function SlayLib:CreateWindow(Config)
 			SortOrder = Enum.SortOrder.LayoutOrder
 		})
 
-		TabBtn.MouseButton1Click:Connect(function()
+		-- [FIX/NEW] Pulled out of the click connection so the search bar can
+		-- also jump to this tab programmatically, not just a mouse click.
+		local function ActivateTab()
 			if Window.CurrentTab then
 				Window.CurrentTab.Page.Visible = false
 				Tween(Window.CurrentTab.Btn, {BackgroundTransparency = 1}, 0.2)
@@ -620,7 +851,9 @@ function SlayLib:CreateWindow(Config)
 			Tween(TabBtn, {BackgroundTransparency = 0.85, BackgroundColor3 = SlayLib.Theme.MainColor}, 0.2)
 			Tween(TabLbl, {TextColor3 = SlayLib.Theme.MainColor}, 0.2)
 			Tween(TabIcon, {ImageColor3 = SlayLib.Theme.MainColor}, 0.2)
-		end)
+		end
+
+		TabBtn.MouseButton1Click:Connect(ActivateTab)
 
 		if not Window.CurrentTab then
 			Window.CurrentTab = {Page = Page, Btn = TabBtn, Lbl = TabLbl, Icon = TabIcon}
@@ -631,6 +864,13 @@ function SlayLib:CreateWindow(Config)
 			TabIcon.ImageColor3 = SlayLib.Theme.MainColor
 		end
 
+		-- [NEW] Register this tab so the global search bar can filter/jump to it.
+		-- (Window.Tabs existed before but was never actually populated.)
+		table.insert(Window.Tabs, {
+			Name = Name, TabBtn = TabBtn, Page = Page,
+			Activate = ActivateTab, SearchItems = SearchItems
+		})
+
 		-- // [SECTION CREATOR]
 		function Tab:CreateSection(SName)
 			local Section = {}
@@ -640,7 +880,7 @@ function SlayLib:CreateWindow(Config)
 				ZIndex = 26,
 				Parent = Page
 			})
-			Create("TextLabel", {
+			local SectLbl = Create("TextLabel", {
 				Text = SName:upper(),
 				Size = UDim2.new(1, 0, 1, 0),
 				Font = "GothamBold",
@@ -651,6 +891,7 @@ function SlayLib:CreateWindow(Config)
 				ZIndex = 27,
 				Parent = SectFrame
 			})
+			RegisterThemed(SectLbl, "TextColor3")
 
 			-- 1. TOGGLE
 			function Section:CreateToggle(Props)
@@ -658,7 +899,7 @@ function SlayLib:CreateWindow(Config)
 				-- so a call like CreateToggle({Name="X", Flag="Y"}) no longer
 				-- crashes on click with "attempt to call a nil value" because
 				-- Callback was nil.
-				Props = MergeDefaults(Props, {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end})
+				Props = MergeDefaults(Props, {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end, Tooltip = nil})
 				local TState = Props.CurrentValue
 				SlayLib.Flags[Props.Flag] = TState
 
@@ -671,6 +912,8 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = TContainer})
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = TContainer})
+				AttachTooltip(TContainer, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = TContainer})
 
 				local TLbl = Create("TextLabel", {
 					Size = UDim2.new(1, -70, 1, 0),
@@ -736,7 +979,7 @@ function SlayLib:CreateWindow(Config)
 
 			-- 2. SLIDER
 			function Section:CreateSlider(Props)
-				Props = MergeDefaults(Props, {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end})
+				Props = MergeDefaults(Props, {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end, Tooltip = nil})
 
 				-- [FIX] Guard against Max == Min (or Max < Min), which used to
 				-- cause a divide-by-zero -> NaN -> broken UDim2/fill size.
@@ -755,6 +998,8 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SContainer})
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = SContainer})
+				AttachTooltip(SContainer, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = SContainer})
 
 				local SLbl = Create("TextLabel", {
 					Size = UDim2.new(1, -100, 0, 35),
@@ -781,6 +1026,7 @@ function SlayLib:CreateWindow(Config)
 					Parent = SContainer
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = ValInput})
+				RegisterThemed(ValInput, "TextColor3")
 
 				local Bar = Create("Frame", {
 					Size = UDim2.new(1, -30, 0, 4),
@@ -798,6 +1044,7 @@ function SlayLib:CreateWindow(Config)
 					Parent = Bar
 				})
 				Create("UICorner", {Parent = Fill})
+				RegisterThemed(Fill, "BackgroundColor3")
 
 				local SliderBtn = Create("TextButton", {
 					Size = UDim2.new(1, 0, 1, 0),
@@ -809,7 +1056,8 @@ function SlayLib:CreateWindow(Config)
 
 				local function SetValue(v, ignoreInput)
 					Value = math.clamp(v, Props.Min, Props.Max)
-					local Percent = (Value - Props.Min) / (Props.Max - Props.Min)
+					local range = math.max(Props.Max - Props.Min, 1)
+local Percent = (Value - Props.Min) / range
 
 					Tween(Fill, {Size = UDim2.new(Percent, 0, 1, 0)}, 0.1)
 
@@ -879,11 +1127,18 @@ function SlayLib:CreateWindow(Config)
 					Multi = false,
 					Max = nil,
 					Default = nil,
-					Callback = function() end
+					Callback = function() end,
+					Tooltip = nil
 				})
 
 				local IsOpen = false
-				local Selected = Props.Multi and (type(Props.Default) == "table" and Props.Default or {}) or Props.Default
+				local Selected
+
+if Props.Multi then
+	Selected = (type(Props.Default) == "table" and Props.Default) or {}
+else
+	Selected = Props.Default or Props.Options[1]
+end
 				local SearchText = ""
 
 				local DContainer = Create("Frame", {
@@ -897,6 +1152,8 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = DContainer})
 				local DStroke = Create("UIStroke", {Color = Color3.new(1,1,1), Thickness = 1, Transparency = 0.9, Parent = DContainer})
+				AttachTooltip(DContainer, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = DContainer})
 
 				local MainBtn = Create("TextButton", {Size = UDim2.new(1, 0, 0, 45), BackgroundTransparency = 1, Text = "", ZIndex = 36, Parent = DContainer})
 
@@ -930,6 +1187,7 @@ function SlayLib:CreateWindow(Config)
 					Image = SlayLib.Icons.Chevron, BackgroundTransparency = 1,
 					ImageColor3 = SlayLib.Theme.MainColor, ZIndex = 37, Parent = MainBtn
 				})
+				RegisterThemed(Chevron, "ImageColor3")
 
 				local SearchInput = Create("TextBox", {
 					Size = UDim2.new(1, -20, 0, 30), Position = UDim2.new(0, 10, 0, 50),
@@ -946,7 +1204,7 @@ function SlayLib:CreateWindow(Config)
 				local List = Create("ScrollingFrame", {
 					Size = UDim2.new(1, -10, 0, 100), Position = UDim2.new(0, 5, 0, 90),
 					BackgroundTransparency = 1, ScrollBarThickness = 0,
-					CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = "Y", ZIndex = 38, Parent = DContainer
+					CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 38, Parent = DContainer
 				})
 				Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 4)})
 
@@ -1001,7 +1259,8 @@ function SlayLib:CreateWindow(Config)
 										return
 									end
 
-									Selected[opt] = not Selected[opt]
+									Selected = Selected or {}
+Selected[opt] = not Selected[opt]
 									CheckHighlight()
 									task.spawn(Props.Callback, Selected)
 								else
@@ -1092,7 +1351,7 @@ function SlayLib:CreateWindow(Config)
 
 			-- 4. BUTTON
 			function Section:CreateButton(Props)
-				Props = MergeDefaults(Props, {Name = "Action Button", Callback = function() end})
+				Props = MergeDefaults(Props, {Name = "Action Button", Callback = function() end, Tooltip = nil})
 
 				local BFrame = Create("TextButton", {
 					Size = UDim2.new(1, 0, 0, 42),
@@ -1101,6 +1360,8 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = BFrame})
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = BFrame})
+				AttachTooltip(BFrame, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = BFrame})
 
 				local BLbl = Create("TextLabel", {
 					Size = UDim2.new(1, 0, 1, 0), Font = "GothamBold", TextSize = 13,
@@ -1121,7 +1382,7 @@ function SlayLib:CreateWindow(Config)
 				-- [FIX] Added Flag support (was completely missing before, so
 				-- input values could never be part of SlayLib.Flags / saved
 				-- configs) and a safe default Callback.
-				Props = MergeDefaults(Props, {Name = "Input Field", Placeholder = "Value...", Flag = nil, Callback = function() end})
+				Props = MergeDefaults(Props, {Name = "Input Field", Placeholder = "Value...", Flag = nil, Callback = function() end, Tooltip = nil})
 
 				local IContainer = Create("Frame", {
 					Size = UDim2.new(1, 0, 0, 52),
@@ -1131,6 +1392,8 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = IContainer})
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = IContainer})
+				AttachTooltip(IContainer, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = IContainer})
 
 				local ILbl = Create("TextLabel", {
 					Size = UDim2.new(0, 150, 1, 0), Position = UDim2.new(0, 15, 0, 0),
@@ -1145,6 +1408,7 @@ function SlayLib:CreateWindow(Config)
 					TextColor3 = SlayLib.Theme.MainColor, Font = "Gotham", TextSize = 13, ZIndex = 27, Parent = IContainer
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = Box})
+				RegisterThemed(Box, "TextColor3")
 
 				if Props.Flag then
 					SlayLib.Flags[Props.Flag] = Box.Text
@@ -1185,6 +1449,7 @@ function SlayLib:CreateWindow(Config)
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = PContainer})
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.7, Parent = PContainer})
+				table.insert(SearchItems, {Name = Props.Title, Frame = PContainer})
 
 				Create("UIPadding", {
 					Parent = PContainer,
@@ -1199,6 +1464,7 @@ function SlayLib:CreateWindow(Config)
 					TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1,
 					TextXAlignment = "Left", ZIndex = 26, LayoutOrder = 1, Parent = PContainer
 				})
+				RegisterThemed(PTtl, "TextColor3")
 				PTtl.Text = Props.Title
 
 				local PCnt = Create("TextLabel", {
@@ -1208,6 +1474,225 @@ function SlayLib:CreateWindow(Config)
 					ZIndex = 26, LayoutOrder = 2, Parent = PContainer
 				})
 				PCnt.Text = Props.Content
+			end
+
+			-- 7. [NEW] THEME SWITCHER
+			-- A row of color swatches. Clicking one calls SlayLib:SetTheme(name)
+			-- which live-recolors every registered accent across the whole UI.
+			function Section:CreateThemeSwitcher(Props)
+				Props = MergeDefaults(Props, {Name = "Theme"})
+
+				local Container = Create("Frame", {
+					Size = UDim2.new(1, 0, 0, 48),
+					BackgroundColor3 = SlayLib.Theme.Element,
+					ZIndex = 25, Parent = Page
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Container})
+				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = Container})
+				table.insert(SearchItems, {Name = Props.Name, Frame = Container})
+
+				local Lbl = Create("TextLabel", {
+					Size = UDim2.new(0, 90, 1, 0), Position = UDim2.new(0, 15, 0, 0),
+					Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.Text,
+					TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 26, Parent = Container
+				})
+				Lbl.Text = Props.Name
+
+				local SwatchHolder = Create("Frame", {
+					Size = UDim2.new(1, -115, 1, 0), Position = UDim2.new(0, 105, 0, 0),
+					BackgroundTransparency = 1, ZIndex = 26, Parent = Container
+				})
+				Create("UIListLayout", {
+					Parent = SwatchHolder, FillDirection = Enum.FillDirection.Horizontal,
+					VerticalAlignment = Enum.VerticalAlignment.Center,
+					HorizontalAlignment = Enum.HorizontalAlignment.Right,
+					Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder
+				})
+
+				local Rings = {}
+				for _, name in ipairs(SlayLib.ThemePresetOrder) do
+					local color = SlayLib.ThemePresets[name]
+					local Swatch = Create("TextButton", {
+						Size = UDim2.new(0, 22, 0, 22), BackgroundColor3 = color, Text = "",
+						ZIndex = 27, Parent = SwatchHolder, AutoButtonColor = false
+					})
+					Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = Swatch})
+					local Ring = Create("UIStroke", {
+						Color = Color3.new(1, 1, 1), Thickness = 2,
+						Transparency = (SlayLib.Theme.MainColor == color) and 0 or 1,
+						Parent = Swatch
+					})
+					Rings[name] = Ring
+					AttachTooltip(Swatch, name)
+
+					Swatch.MouseButton1Click:Connect(function()
+						SlayLib:SetTheme(name)
+						for n, r in pairs(Rings) do
+							Tween(r, {Transparency = (n == name) and 0 or 1}, 0.2)
+						end
+					end)
+				end
+			end
+
+			-- 8. [NEW] POPUP CONFIG SELECTOR
+			-- Adds a "save as" row plus a "..." button that opens a modal
+			-- popup listing every config saved via SlayLib:SaveConfig, with
+			-- Load / Delete actions per entry.
+			function Section:CreateConfigManager(Props)
+				Props = MergeDefaults(Props, {Name = "Config Manager"})
+
+				local Container = Create("Frame", {
+					Size = UDim2.new(1, 0, 0, 52),
+					BackgroundColor3 = SlayLib.Theme.Element,
+					ZIndex = 25, Parent = Page
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = Container})
+				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = Container})
+				table.insert(SearchItems, {Name = Props.Name, Frame = Container})
+
+				local NameBox = Create("TextBox", {
+					Size = UDim2.new(1, -140, 0, 30), Position = UDim2.new(0, 15, 0.5, -15),
+					BackgroundColor3 = Color3.fromRGB(20, 20, 20), Text = "", PlaceholderText = "Config name...",
+					TextColor3 = SlayLib.Theme.MainColor, Font = "Gotham", TextSize = 13, ZIndex = 26, Parent = Container
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = NameBox})
+				RegisterThemed(NameBox, "TextColor3")
+
+				local SaveBtn = Create("TextButton", {
+					Size = UDim2.new(0, 58, 0, 30), Position = UDim2.new(1, -120, 0.5, -15),
+					BackgroundColor3 = SlayLib.Theme.MainColor, Text = "Save", Font = "GothamBold", TextSize = 12,
+					TextColor3 = Color3.new(1, 1, 1), ZIndex = 26, Parent = Container, AutoButtonColor = false
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = SaveBtn})
+				RegisterThemed(SaveBtn, "BackgroundColor3")
+
+				local ManageBtn = Create("TextButton", {
+					Size = UDim2.new(0, 54, 0, 30), Position = UDim2.new(1, -58, 0.5, -15),
+					BackgroundColor3 = Color3.fromRGB(40, 40, 40), Text = "...", Font = "GothamBold", TextSize = 16,
+					TextColor3 = SlayLib.Theme.Text, ZIndex = 26, Parent = Container, AutoButtonColor = false
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = ManageBtn})
+				AttachTooltip(ManageBtn, "Browse saved configs")
+
+				SaveBtn.MouseButton1Click:Connect(function()
+					local nm = NameBox.Text
+					if nm == "" then
+						SlayLib:Notify({Title = "System", Content = "Type a config name first", Type = "Warning", Duration = 3})
+						return
+					end
+					SlayLib:SaveConfig(nm)
+				end)
+
+				local function OpenPopup()
+					local Existing = game:GetService("CoreGui"):FindFirstChild("SlayConfigPopup")
+					if Existing then Existing:Destroy() end
+
+					local PopupGui = Create("ScreenGui", {
+						Name = "SlayConfigPopup", Parent = game:GetService("CoreGui"),
+						DisplayOrder = 99999, IgnoreGuiInset = true
+					})
+
+					local Dim = Create("Frame", {
+						Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0),
+						BackgroundTransparency = 1, ZIndex = 1, Parent = PopupGui
+					})
+					Tween(Dim, {BackgroundTransparency = 0.45}, 0.25)
+					local CloseArea = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 1, Parent = Dim})
+
+					local Panel = Create("Frame", {
+						Size = UDim2.new(0, 300, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+						AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, 0),
+						BackgroundColor3 = Color3.fromRGB(22, 22, 24), ZIndex = 2, Parent = PopupGui
+					})
+					Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = Panel})
+					local PanelStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = Panel})
+					RegisterThemed(PanelStroke, "Color")
+					Create("UIPadding", {
+						PaddingTop = UDim.new(0, 14), PaddingBottom = UDim.new(0, 14),
+						PaddingLeft = UDim.new(0, 14), PaddingRight = UDim.new(0, 14), Parent = Panel
+					})
+					Create("UIListLayout", {Parent = Panel, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder})
+
+					local Header = Create("TextLabel", {
+						Size = UDim2.new(1, 0, 0, 20), Text = "SAVED CONFIGS", Font = "GothamBold", TextSize = 13,
+						TextColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1, TextXAlignment = "Left",
+						LayoutOrder = 1, ZIndex = 3, Parent = Panel
+					})
+					RegisterThemed(Header, "TextColor3")
+
+					local List = Create("ScrollingFrame", {
+						Size = UDim2.new(1, 0, 0, 180), BackgroundTransparency = 1, ScrollBarThickness = 3,
+						ScrollBarImageColor3 = SlayLib.Theme.MainColor, CanvasSize = UDim2.new(0, 0, 0, 0),
+						AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 3, LayoutOrder = 2, Parent = Panel
+					})
+					Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
+
+					local function RefreshList()
+						for _, c in pairs(List:GetChildren()) do
+							if c:IsA("Frame") then c:Destroy() end
+						end
+
+						local configs = SlayLib:ListConfigs()
+						if #configs == 0 then
+							Create("TextLabel", {
+								Size = UDim2.new(1, 0, 0, 30), Text = "No saved configs yet", Font = "Gotham", TextSize = 12,
+								TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1, ZIndex = 4, Parent = List
+							})
+							return
+						end
+
+						for _, cname in ipairs(configs) do
+							local Row = Create("Frame", {Size = UDim2.new(1, 0, 0, 34), BackgroundColor3 = Color3.fromRGB(32, 32, 34), ZIndex = 4, Parent = List})
+							Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = Row})
+							Create("TextLabel", {
+								Size = UDim2.new(1, -80, 1, 0), Position = UDim2.new(0, 10, 0, 0), Text = cname,
+								Font = "GothamMedium", TextSize = 12, TextColor3 = SlayLib.Theme.Text, TextXAlignment = "Left",
+								BackgroundTransparency = 1, ZIndex = 5, Parent = Row
+							})
+							local LoadBtn = Create("TextButton", {
+								Size = UDim2.new(0, 32, 0, 24), Position = UDim2.new(1, -72, 0.5, -12),
+								BackgroundColor3 = SlayLib.Theme.MainColor, Text = "Load", TextSize = 10, Font = "GothamBold",
+								TextColor3 = Color3.new(1, 1, 1), ZIndex = 5, Parent = Row, AutoButtonColor = false
+							})
+							Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = LoadBtn})
+							RegisterThemed(LoadBtn, "BackgroundColor3")
+
+							local DelBtn = Create("TextButton", {
+								Size = UDim2.new(0, 32, 0, 24), Position = UDim2.new(1, -36, 0.5, -12),
+								BackgroundColor3 = SlayLib.Theme.Error, Text = "Del", TextSize = 10, Font = "GothamBold",
+								TextColor3 = Color3.new(1, 1, 1), ZIndex = 5, Parent = Row, AutoButtonColor = false
+							})
+							Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = DelBtn})
+
+							LoadBtn.MouseButton1Click:Connect(function()
+								SlayLib:LoadConfig(cname)
+							end)
+							DelBtn.MouseButton1Click:Connect(function()
+								SlayLib:DeleteConfig(cname)
+								RefreshList()
+							end)
+						end
+					end
+					RefreshList()
+
+					local CloseBtn = Create("TextButton", {
+						Size = UDim2.new(1, 0, 0, 32), Text = "Close", Font = "GothamBold", TextSize = 13,
+						BackgroundColor3 = Color3.fromRGB(40, 40, 40), TextColor3 = SlayLib.Theme.Text,
+						ZIndex = 3, LayoutOrder = 3, Parent = Panel, AutoButtonColor = false
+					})
+					Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = CloseBtn})
+
+					local function ClosePopup()
+						Tween(Dim, {BackgroundTransparency = 1}, 0.2)
+						task.delay(0.2, function()
+							if PopupGui then PopupGui:Destroy() end
+						end)
+					end
+					CloseBtn.MouseButton1Click:Connect(ClosePopup)
+					CloseArea.MouseButton1Click:Connect(ClosePopup)
+				end
+
+				ManageBtn.MouseButton1Click:Connect(OpenPopup)
 			end
 
 			return Section
@@ -1226,7 +1711,9 @@ function SlayLib:SaveConfig(Name)
 	local ok, err = pcall(function()
 		local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
 		local Data = HttpService:JSONEncode(SlayLib.Flags)
-		writefile(FullPath, Data)
+		pcall(function()
+	writefile(FullPath, Data)
+end)
 	end)
 
 	if ok then
@@ -1257,23 +1744,48 @@ function SlayLib:LoadConfig(Name)
 	-- [FIX] Wrapped in pcall: a corrupted/edited-by-hand JSON file used to
 	-- throw inside JSONDecode and hard-crash the script instead of showing
 	-- a clean error notification.
-	local ok, DataOrErr = pcall(function()
-		return HttpService:JSONDecode(readfile(FullPath))
-	end)
+	local ok, data = pcall(function()
+	return HttpService:JSONDecode(readfile(FullPath))
+end)
 
 	if not ok then
 		SlayLib:Notify({Title = "System", Content = "Config file is corrupted!", Type = "Error", Duration = 4})
 		return
 	end
 
-	SlayLib.Flags = DataOrErr
+	if type(DataOrErr) ~= "table" then return end
 	SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
 
-	for _, el in pairs(SlayLib.Elements or {}) do
-		local v = SlayLib.Flags[el.Flag]
-		if v ~= nil and el.Set then
-			el:Set(v)
+	for k, v in pairs(DataOrErr) do
+	SlayLib.Flags[k] = v
+end
+
+for _, el in ipairs(SlayLib.Elements or {}) do
+	if el.Flag and el.Set then
+		local value = SlayLib.Flags[el.Flag]
+		if value ~= nil then
+			el:Set(value)
 		end
+	end
+end
+end
+
+-- [NEW] Used by the popup config manager's delete button.
+function SlayLib:DeleteConfig(Name)
+	local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
+	local ok = pcall(function()
+		if isfile(FullPath) then
+			pcall(function()
+	if isfile(FullPath) then
+		delfile(FullPath)
+	end
+end)
+		end
+	end)
+	if ok then
+		SlayLib:Notify({Title = "System", Content = "Config Deleted", Type = "Warning", Duration = 3})
+	else
+		SlayLib:Notify({Title = "System", Content = "Failed to delete config!", Type = "Error", Duration = 3})
 	end
 end
 
