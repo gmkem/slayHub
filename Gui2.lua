@@ -45,7 +45,8 @@ local Parent = (RunService:IsStudio() and LocalPlayer.PlayerGui or CoreGui)
 
 --// [ADDED] ANTI RE-EXECUTE SYSTEM (ระบบล้างของเก่าก่อนรันใหม่)
 for _, obj in pairs(Parent:GetChildren()) do
-	if obj.Name == "SlayLib_X_Engine" or obj.Name == "SlayLoadingEnv" or obj.Name == "SlayNotifFinal" then
+	if obj.Name == "SlayLib_X_Engine" or obj.Name == "SlayLoadingEnv" or obj.Name == "SlayNotifFinal"
+		or obj.Name == "SlayTooltipGui" or obj.Name == "SlayConfigPopup" then
 		obj:Destroy()
 	end
 end
@@ -87,12 +88,14 @@ end
 --// [FIX] Deep-merge defaults so partially-filled Props tables never leave
 --// required fields (like Callback) nil. This prevents "attempt to call a
 --// nil value" errors when a user only passes Name/Flag and skips Callback.
-local function MergeDefaults(props, defaults)
-	props = props or {}
-	for k, v in pairs(defaults) do
-		local function DeepCopy(t)
+--// [UPGRADE] Table-type defaults (e.g. Options = {"Option 1"}) are now
+--// deep-copied per call instead of shared by reference — otherwise every
+--// element created without its own Options table would silently share (and
+--// could mutate) the exact same table as every other element using that
+--// default.
+local function DeepCopy(t)
 	local new = {}
-	for k,v in pairs(t) do
+	for k, v in pairs(t) do
 		new[k] = (type(v) == "table") and DeepCopy(v) or v
 	end
 	return new
@@ -104,9 +107,6 @@ local function MergeDefaults(props, defaults)
 		if props[k] == nil then
 			props[k] = (type(v) == "table") and DeepCopy(v) or v
 		end
-	end
-	return props
-end
 	end
 	return props
 end
@@ -207,12 +207,8 @@ local function AttachTooltip(GuiObject, Text)
 		TipFrame.Visible = false
 	end)
 	GuiObject.AncestryChanged:Connect(function(_, parent)
-	if not parent and TipFrame then
-		TipFrame:Destroy()
-		TipFrame = nil
-	end
-end)
-
+		if not parent then TipFrame:Destroy() end
+	end)
 end
 
 --// SMART TEXT SCALING LOGIC
@@ -378,7 +374,6 @@ function SlayLib:Notify(Config)
 		-- if TextArea somehow never reports a size (e.g. destroyed mid-flight).
 		local waited = 0
 		repeat
-			task.wait()
 			waited += task.wait()
 		until TextArea.AbsoluteSize.Y > 0 or waited > 2 or not NotifFrame.Parent
 		if not NotifFrame.Parent then return end
@@ -511,6 +506,12 @@ function SlayLib:CreateWindow(Config)
 	Config = MergeDefaults(Config, {Name = "SlayLib X"})
 
 	ExecuteFinalSovereign()
+
+	-- [FIX] Since the anti re-execute system destroys the old UI but this
+	-- registry is a plain Lua table on SlayLib (not tied to any Instance),
+	-- it would otherwise keep growing with dead entries every time the
+	-- script is re-run. SetTheme already prunes dead entries lazily, but
+	-- resetting here keeps it clean from the start of every fresh window.
 	SlayLib.ThemeRegistry = {}
 
 	local OldUI = game:GetService("CoreGui"):FindFirstChild("SlayLib_X_Engine")
@@ -748,7 +749,7 @@ function SlayLib:CreateWindow(Config)
 		-- If the only reason a tab matched is because an element inside it
 		-- matched (not the tab's own name), open that tab and scroll/flash
 		-- the matching element so the user doesn't have to hunt for it.
-		if JumpTarget and Window.CurrentTab and Window.CurrentTab.Page ~= JumpTab.Page then
+		if JumpTarget and Window.CurrentTab ~= nil and Window.CurrentTab.Page ~= JumpTab.Page then
 			JumpTab.Activate()
 			task.defer(function()
 				local frame = JumpTarget.Frame
@@ -1057,7 +1058,7 @@ function SlayLib:CreateWindow(Config)
 				local function SetValue(v, ignoreInput)
 					Value = math.clamp(v, Props.Min, Props.Max)
 					local range = math.max(Props.Max - Props.Min, 1)
-local Percent = (Value - Props.Min) / range
+					local Percent = (Value - Props.Min) / range
 
 					Tween(Fill, {Size = UDim2.new(Percent, 0, 1, 0)}, 0.1)
 
@@ -1132,13 +1133,16 @@ local Percent = (Value - Props.Min) / range
 				})
 
 				local IsOpen = false
+				-- [UPGRADE] Non-multi dropdowns with no explicit Default now start
+				-- on the first option instead of always showing "None" (which
+				-- previously meant SlayLib.Flags[Props.Flag] started as nil even
+				-- though something was visually selectable).
 				local Selected
-
-if Props.Multi then
-	Selected = (type(Props.Default) == "table" and Props.Default) or {}
-else
-	Selected = Props.Default or Props.Options[1]
-end
+				if Props.Multi then
+					Selected = (type(Props.Default) == "table" and Props.Default) or {}
+				else
+					Selected = Props.Default or Props.Options[1]
+				end
 				local SearchText = ""
 
 				local DContainer = Create("Frame", {
@@ -1259,8 +1263,7 @@ end
 										return
 									end
 
-									Selected = Selected or {}
-Selected[opt] = not Selected[opt]
+									Selected[opt] = not Selected[opt]
 									CheckHighlight()
 									task.spawn(Props.Callback, Selected)
 								else
@@ -1711,9 +1714,7 @@ function SlayLib:SaveConfig(Name)
 	local ok, err = pcall(function()
 		local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
 		local Data = HttpService:JSONEncode(SlayLib.Flags)
-		pcall(function()
-	writefile(FullPath, Data)
-end)
+		writefile(FullPath, Data)
 	end)
 
 	if ok then
@@ -1744,30 +1745,38 @@ function SlayLib:LoadConfig(Name)
 	-- [FIX] Wrapped in pcall: a corrupted/edited-by-hand JSON file used to
 	-- throw inside JSONDecode and hard-crash the script instead of showing
 	-- a clean error notification.
-	local ok, data = pcall(function()
-	return HttpService:JSONDecode(readfile(FullPath))
-end)
+	local ok, DataOrErr = pcall(function()
+		return HttpService:JSONDecode(readfile(FullPath))
+	end)
 
 	if not ok then
 		SlayLib:Notify({Title = "System", Content = "Config file is corrupted!", Type = "Error", Duration = 4})
 		return
 	end
 
-	if type(DataOrErr) ~= "table" then return end
+	-- [FIX] Guard against a JSON file that decodes to something other than
+	-- a table (e.g. a bare string/number), which would otherwise error on
+	-- the pairs() loop below.
+	if type(DataOrErr) ~= "table" then
+		SlayLib:Notify({Title = "System", Content = "Config file is invalid!", Type = "Error", Duration = 4})
+		return
+	end
+
+	-- [FIX] Merge instead of replace: SlayLib.Flags = DataOrErr used to wipe
+	-- out flags for any element not present in the saved file (e.g. loading
+	-- an older config saved before a new toggle was added), leaving that
+	-- element with no Flag entry at all instead of its current/default value.
+	for k, v in pairs(DataOrErr) do
+		SlayLib.Flags[k] = v
+	end
 	SlayLib:Notify({Title = "System", Content = "Config Loaded!", Type = "Success", Duration = 3})
 
-	for k, v in pairs(DataOrErr) do
-	SlayLib.Flags[k] = v
-end
-
-for _, el in ipairs(SlayLib.Elements or {}) do
-	if el.Flag and el.Set then
-		local value = SlayLib.Flags[el.Flag]
-		if value ~= nil then
-			el:Set(value)
+	for _, el in pairs(SlayLib.Elements or {}) do
+		local v = SlayLib.Flags[el.Flag]
+		if v ~= nil and el.Set then
+			el:Set(v)
 		end
 	end
-end
 end
 
 -- [NEW] Used by the popup config manager's delete button.
@@ -1775,11 +1784,7 @@ function SlayLib:DeleteConfig(Name)
 	local FullPath = SlayLib.Folder .. "/" .. Name .. ".json"
 	local ok = pcall(function()
 		if isfile(FullPath) then
-			pcall(function()
-	if isfile(FullPath) then
-		delfile(FullPath)
-	end
-end)
+			delfile(FullPath)
 		end
 	end)
 	if ok then
