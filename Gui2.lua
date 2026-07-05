@@ -3,6 +3,7 @@ Folder = "SlayLib_Config",
 Settings = {},
 Flags = {},
 Signals = {},
+Elements = {},
 Theme = {
 MainColor = Color3.fromRGB(120, 80, 255),
 Background = Color3.fromRGB(12, 12, 12),
@@ -778,6 +779,20 @@ local PageList = Create("UIListLayout", {
                 Tween(Dot, {Position = TState and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)}, 0.2)  
                 task.spawn(Props.Callback, TState)  
             end)  
+local Obj = {}
+
+function Obj:Set(v)
+    TState = v
+    SlayLib.Flags[Props.Flag] = v
+    Switch.BackgroundColor3 = v and SlayLib.Theme.MainColor or Color3.fromRGB(45,45,45)
+    Dot.Position = v and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7)
+end
+
+Obj.Flag = Props.Flag
+table.insert(SlayLib.Elements, Obj)
+
+return Obj
+
         end  
 
         -- 2. [UPGRADED] SLIDER (เน้นความลื่นไหลและแม่นยำ)
@@ -900,9 +915,12 @@ local PageList = Create("UIListLayout", {
         end
     end)
 
-    return {
-        Set = function(v) SetValue(v) end
-    }
+    local Obj = {}
+
+Obj.Flag = Props.Flag
+table.insert(SlayLib.Elements, Obj)
+
+return Obj
 end
 
                         -- 3. [UPGRADED] DROPDOWN (Smart Layering & Search)
@@ -1003,9 +1021,9 @@ end)
         if Props.Multi then
             local Count = GetSelectedCount()
             local MaxStr = Props.Max and ("/" .. Props.Max) or ""
-            DLbl.Text = Props.Name .. ": " .. Count .. MaxStr .. " Selected"
+            DLbl.Text = tostring(Props.Name) .. ": " .. Count .. MaxStr .. " Selected"
         else
-            DLbl.Text = Props.Name .. ": " .. tostring(Selected or "None")
+            DLbl.Text = tostring(Props.Name) .. ": " .. tostring(Selected or "None")
         end
     end
 
@@ -1013,7 +1031,8 @@ end)
     local function RefreshOptions()
         for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
 
-        for _, opt in pairs(Props.Options) do
+        for _, option in pairs(Props.Options or {}) do
+    local opt = tostring(option)
             -- ค้นหาคำ (Case-insensitive)
             if SearchText == "" or string.find(string.lower(opt), string.lower(SearchText)) then
                 local Item = Create("TextButton", {
@@ -1089,7 +1108,7 @@ end)
 
     RefreshOptions()
     UpdateText()
-    return {
+    local Obj = {
     Refresh = function(NewOptions)
         if NewOptions then
             Props.Options = NewOptions
@@ -1116,6 +1135,7 @@ end)
         RefreshOptions()
 
         SlayLib.Flags[Props.Flag] = Selected
+task.spawn(Props.Callback, Selected)
     end,
 
     Get = function()
@@ -1127,6 +1147,11 @@ end)
         UpdateText()
     end
 }
+
+Obj.Flag = Props.Flag
+table.insert(SlayLib.Elements, Obj)
+
+return Obj
 end
 
         -- 4. [UPGRADED] INTERACTIVE BUTTON
