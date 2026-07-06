@@ -1232,53 +1232,64 @@ function SlayLib:CreateWindow(Config)
 				local function RefreshOptions()
 					for _, v in pairs(List:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
 
-					for _, option in pairs(Props.Options or {}) do
-						local opt = tostring(option)
-						if SearchText == "" or string.find(string.lower(opt), string.lower(SearchText)) then
-							local Item = Create("TextButton", {
-								Size = UDim2.new(1, 0, 0, 32),
-								BackgroundColor3 = Color3.fromRGB(45, 45, 45),
-								BackgroundTransparency = 0.8,
-								Text = "  " .. opt,
-								Font = "Gotham", TextSize = 12, TextColor3 = Color3.fromRGB(200, 200, 200),
-								TextXAlignment = "Left", ZIndex = 39, Parent = List
-							})
-							Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = Item})
+					-- [FIX] Defensive guard: if Props.Options somehow ends up as
+					-- something other than a table (e.g. a stray Obj passed in by
+					-- mistake elsewhere), iterating it would error or, worse, show
+					-- garbage. Also skip any individual entry that isn't a plain
+					-- string/number/boolean so a mistake never renders as
+					-- "function: 0x..." in the list again.
+					local optionsList = (type(Props.Options) == "table") and Props.Options or {}
 
-							local function CheckHighlight()
-								local IsActive = Props.Multi and Selected[opt] or Selected == opt
-								Tween(Item, {
-									BackgroundTransparency = IsActive and 0.4 or 0.8,
-									TextColor3 = IsActive and SlayLib.Theme.MainColor or Color3.fromRGB(200, 200, 200)
-								}, 0.2)
-							end
-							CheckHighlight()
+					for _, option in pairs(optionsList) do
+						local optType = type(option)
+						if optType == "string" or optType == "number" or optType == "boolean" then
+							local opt = tostring(option)
+							if SearchText == "" or string.find(string.lower(opt), string.lower(SearchText)) then
+								local Item = Create("TextButton", {
+									Size = UDim2.new(1, 0, 0, 32),
+									BackgroundColor3 = Color3.fromRGB(45, 45, 45),
+									BackgroundTransparency = 0.8,
+									Text = "  " .. opt,
+									Font = "Gotham", TextSize = 12, TextColor3 = Color3.fromRGB(200, 200, 200),
+									TextXAlignment = "Left", ZIndex = 39, Parent = List
+								})
+								Create("UICorner", {CornerRadius = UDim.new(0, 4), Parent = Item})
 
-							Item.MouseButton1Click:Connect(function()
-								if Props.Multi then
-									if not Selected[opt] and Props.Max and GetSelectedCount() >= Props.Max then
-										Tween(DStroke, {Color = Color3.new(1, 0, 0)}, 0.1)
-										task.wait(0.1)
-										Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.2)
-										return
-									end
-
-									Selected[opt] = not Selected[opt]
-									CheckHighlight()
-									task.spawn(Props.Callback, Selected)
-								else
-									Selected = opt
-									IsOpen = false
-									SearchInput.Visible = false
-									Tween(DContainer, {Size = UDim2.new(1, 0, 0, 45)}, 0.3)
-									Tween(Chevron, {Rotation = 0}, 0.3)
-									DContainer.ZIndex = 35
-									RefreshOptions()
-									task.spawn(Props.Callback, Selected)
+								local function CheckHighlight()
+									local IsActive = Props.Multi and Selected[opt] or Selected == opt
+									Tween(Item, {
+										BackgroundTransparency = IsActive and 0.4 or 0.8,
+										TextColor3 = IsActive and SlayLib.Theme.MainColor or Color3.fromRGB(200, 200, 200)
+									}, 0.2)
 								end
-								SlayLib.Flags[Props.Flag] = Selected
-								UpdateText()
-							end)
+								CheckHighlight()
+
+								Item.MouseButton1Click:Connect(function()
+									if Props.Multi then
+										if not Selected[opt] and Props.Max and GetSelectedCount() >= Props.Max then
+											Tween(DStroke, {Color = Color3.new(1, 0, 0)}, 0.1)
+											task.wait(0.1)
+											Tween(DStroke, {Color = SlayLib.Theme.MainColor}, 0.2)
+											return
+										end
+
+										Selected[opt] = not Selected[opt]
+										CheckHighlight()
+										task.spawn(Props.Callback, Selected)
+									else
+										Selected = opt
+										IsOpen = false
+										SearchInput.Visible = false
+										Tween(DContainer, {Size = UDim2.new(1, 0, 0, 45)}, 0.3)
+										Tween(Chevron, {Rotation = 0}, 0.3)
+										DContainer.ZIndex = 35
+										RefreshOptions()
+										task.spawn(Props.Callback, Selected)
+									end
+									SlayLib.Flags[Props.Flag] = Selected
+									UpdateText()
+								end)
+							end
 						end
 					end
 				end
@@ -1308,7 +1319,15 @@ function SlayLib:CreateWindow(Config)
 				SlayLib.Flags[Props.Flag] = Selected
 
 				local Obj = {
-					Refresh = function(NewOptions)
+					-- [FIX] All methods below now take a leading `_` (self) param so
+					-- they work correctly with colon-call syntax, e.g. Dropdown:Refresh(list).
+					-- Previously only Set() had this; calling Refresh/SetOptions/SetLimit
+					-- with ":" (the natural way, matching Set) silently passed the Obj
+					-- table itself as the argument instead of the real list, which then
+					-- got iterated and tostring()'d into garbage entries like
+					-- "function: 0x..." — exactly the bug seen when refreshing a
+					-- dropdown's options after switching islands/maps.
+					Refresh = function(_, NewOptions)
 						if NewOptions then
 							Props.Options = NewOptions
 						end
@@ -1316,7 +1335,7 @@ function SlayLib:CreateWindow(Config)
 						UpdateText()
 					end,
 
-					SetOptions = function(NewOptions)
+					SetOptions = function(_, NewOptions)
 						Props.Options = NewOptions or {}
 						RefreshOptions()
 						UpdateText()
@@ -1336,11 +1355,11 @@ function SlayLib:CreateWindow(Config)
 						task.spawn(Props.Callback, Selected)
 					end,
 
-					Get = function()
+					Get = function(_)
 						return Selected
 					end,
 
-					SetLimit = function(NewMax)
+					SetLimit = function(_, NewMax)
 						Props.Max = NewMax
 						UpdateText()
 					end
