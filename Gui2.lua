@@ -76,6 +76,31 @@ function SlayLib:ListConfigs()
 	return names
 end
 
+--// [NEW] AUTOLOAD MARKER
+-- A tiny separate file that just holds the name of the config to load
+-- automatically next time CreateWindow runs. Kept apart from the configs
+-- themselves so it's trivial to read before anything else has to happen.
+local AUTOLOAD_MARKER = SlayLib.Folder .. "/_autoload.txt"
+
+function SlayLib:SetAutoloadConfig(Name)
+	pcall(function()
+		if Name then
+			writefile(AUTOLOAD_MARKER, Name)
+		elseif isfile(AUTOLOAD_MARKER) then
+			delfile(AUTOLOAD_MARKER)
+		end
+	end)
+end
+
+function SlayLib:GetAutoloadConfig()
+	if not isfile(AUTOLOAD_MARKER) then return nil end
+	local ok, name = pcall(readfile, AUTOLOAD_MARKER)
+	if ok and name and name ~= "" then
+		return name
+	end
+	return nil
+end
+
 --// UTILITY FUNCTIONS (THE BRAIN)
 local function Create(class, props)
 	local obj = Instance.new(class)
@@ -140,6 +165,36 @@ SlayLib.ThemeRegistry = {}
 local function RegisterThemed(instance, prop)
 	table.insert(SlayLib.ThemeRegistry, {Instance = instance, Prop = prop})
 	return instance
+end
+
+--// [NEW] DEBUG MODE
+-- Set SlayLib.Debug = true to get warn() output for internal issues that are
+-- otherwise silently handled (e.g. a Dropdown Options entry that isn't a
+-- string/number/boolean). Off by default so normal use stays quiet.
+SlayLib.Debug = false
+local function DebugWarn(msg)
+	if SlayLib.Debug then
+		warn("[SlayLib] " .. tostring(msg))
+	end
+end
+
+--// [NEW] DEPENDENT VISIBILITY
+-- Any element's Props can include DependsOn = <another element's Obj> and
+-- optionally DependsValue (default true). The element's container is then
+-- shown/hidden automatically whenever the depended-on Toggle/Dropdown
+-- changes, and set correctly right away based on its current value.
+local function BindVisibility(Container, DependsOn, DependsValue)
+	if not DependsOn or not DependsOn.Changed then return end
+	if DependsValue == nil then DependsValue = true end
+
+	local function Apply(v)
+		Container.Visible = (v == DependsValue)
+	end
+	table.insert(DependsOn.Changed, Apply)
+
+	if DependsOn.Flag and SlayLib.Flags[DependsOn.Flag] ~= nil then
+		Apply(SlayLib.Flags[DependsOn.Flag])
+	end
 end
 
 function SlayLib:SetTheme(nameOrColor)
@@ -230,7 +285,7 @@ local function ApplyTextLogic(label, content, maxSize)
 end
 
 --// DRAGGING SYSTEM
-local function RegisterDrag(Frame, Handle)
+local function RegisterDrag(Frame, Handle, OnEnd)
 	local Dragging = false
 	local DragInput, DragStart, StartPos
 
@@ -243,6 +298,9 @@ local function RegisterDrag(Frame, Handle)
 			input.Changed:Connect(function()
 				if input.UserInputState == Enum.UserInputState.End then
 					Dragging = false
+					-- [NEW] Lets callers (e.g. window/toggle position memory) react
+					-- once a drag finishes, without needing their own InputEnded plumbing.
+					if OnEnd then OnEnd(Frame.Position) end
 				end
 			end)
 		end
@@ -269,21 +327,18 @@ end
 
 --// NOTIFICATION ENGINE (PROXIMITY BASED)
 function SlayLib:Notify(Config)
-	-- [FIX] Merge with defaults instead of "Config or {...}" so partial
-	-- tables (e.g. {Title = "Hi"}) don't leave Duration/Type nil, which
-	-- previously caused the progress bar duration to desync from the
-	-- actual auto-close wait time.
-	Config = MergeDefaults(Config, {Title = "SYSTEM", Content = "Message Content", Duration = 6, Type = "Neutral"})
+	-- [FIX] Default Duration lowered from 6s to 3s per feedback: a forgotten
+	-- Duration used to seem like it barely flashed on screen before this fix
+	-- (see MergeDefaults history above) — 3s now reads as a deliberate, quick
+	-- toast rather than a glitch.
+	Config = MergeDefaults(Config, {Title = "SYSTEM", Content = "Message Content", Duration = 3, Type = "Neutral"})
 
 	local NotifColor = SlayLib.Theme.MainColor
-	if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success
-	elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error
-	elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning end
+	local Glyph = "•"
+	if Config.Type == "Success" then NotifColor = SlayLib.Theme.Success; Glyph = "✓"
+	elseif Config.Type == "Error" then NotifColor = SlayLib.Theme.Error; Glyph = "✕"
+	elseif Config.Type == "Warning" then NotifColor = SlayLib.Theme.Warning; Glyph = "!" end
 
-	-- [FIX] Always use a dedicated, always-on-top ScreenGui for notifications.
-	-- The old code sometimes parented notifications inside "SlayLib_X_Engine"
-	-- (DisplayOrder 0) instead of "SlayNotifFinal" (DisplayOrder 9999),
-	-- which made notifications randomly render behind other UI.
 	local ParentGui = game:GetService("CoreGui"):FindFirstChild("SlayNotifFinal")
 	if not ParentGui then
 		ParentGui = Create("ScreenGui", {Name = "SlayNotifFinal", Parent = game:GetService("CoreGui"), DisplayOrder = 9999})
@@ -304,91 +359,91 @@ function SlayLib:Notify(Config)
 		})
 	end
 
+	-- [REDESIGN] Nicer notification card: solid dark card with a thin colored
+	-- accent bar on the left, a circular icon badge with a glyph matching
+	-- Type (✓/✕/!/•), title + message stacked next to it, and a slim
+	-- countdown bar along the bottom.
 	local NotifFrame = Create("CanvasGroup", {
-		Size = UDim2.new(1, 0, 0, 0),
-		BackgroundColor3 = Color3.fromRGB(15, 15, 15),
+		Size = UDim2.new(0.001, 0, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundColor3 = Color3.fromRGB(24, 24, 27),
 		GroupTransparency = 1,
 		ClipsDescendants = true,
 		Parent = Holder
 	})
-	Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = NotifFrame})
+	Create("UICorner", {CornerRadius = UDim.new(0, 12), Parent = NotifFrame})
+	Create("UIStroke", {Color = NotifColor, Transparency = 0.55, Thickness = 1, Parent = NotifFrame})
 
-	local Stroke = Create("UIStroke", {
-		Color = NotifColor,
-		Transparency = 0.6,
-		Thickness = 1.4,
-		Parent = NotifFrame
+	local AccentBar = Create("Frame", {
+		Size = UDim2.new(0, 4, 1, 0), BackgroundColor3 = NotifColor, BorderSizePixel = 0, ZIndex = 2, Parent = NotifFrame
 	})
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AccentBar})
 
-	local TextArea = Create("Frame", {
-		Size = UDim2.new(1, 0, 0, 0),
-		BackgroundTransparency = 1,
-		AutomaticSize = "Y",
-		Parent = NotifFrame
+	local Row = Create("Frame", {
+		Size = UDim2.new(1, -16, 0, 0), Position = UDim2.new(0, 16, 0, 0),
+		AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 2, Parent = NotifFrame
 	})
-	Create("UIListLayout", {Parent = TextArea, Padding = UDim.new(0, 4), SortOrder = "LayoutOrder"})
 	Create("UIPadding", {
-		PaddingTop = UDim.new(0, 14),
-		PaddingBottom = UDim.new(0, 26),
-		PaddingLeft = UDim.new(0, 16),
-		PaddingRight = UDim.new(0, 16),
-		Parent = TextArea
+		PaddingTop = UDim.new(0, 14), PaddingBottom = UDim.new(0, 18),
+		PaddingRight = UDim.new(0, 14), Parent = Row
+	})
+	Create("UIListLayout", {
+		Parent = Row, FillDirection = Enum.FillDirection.Horizontal,
+		VerticalAlignment = Enum.VerticalAlignment.Top, Padding = UDim.new(0, 10),
+		SortOrder = Enum.SortOrder.LayoutOrder
 	})
 
-	local TitleLabel = Create("TextLabel", {
-		Text = Config.Title:upper(), Font = "GothamBold", TextSize = 13,
+	local IconBadge = Create("Frame", {
+		Size = UDim2.new(0, 28, 0, 28), BackgroundColor3 = NotifColor, BackgroundTransparency = 0.82,
+		ZIndex = 3, Parent = Row
+	})
+	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = IconBadge})
+	Create("TextLabel", {
+		Text = Glyph, Font = Enum.Font.GothamBold, TextSize = 15, TextColor3 = NotifColor,
+		BackgroundTransparency = 1, Size = UDim2.new(1, 0, 1, 0), ZIndex = 4, Parent = IconBadge
+	})
+
+	local TextColumn = Create("Frame", {
+		Size = UDim2.new(1, -38, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+		BackgroundTransparency = 1, ZIndex = 3, Parent = Row
+	})
+	Create("UIListLayout", {Parent = TextColumn, Padding = UDim.new(0, 3), SortOrder = Enum.SortOrder.LayoutOrder})
+
+	Create("TextLabel", {
+		Text = Config.Title:upper(), Font = Enum.Font.GothamBold, TextSize = 13,
 		TextColor3 = NotifColor, BackgroundTransparency = 1, TextXAlignment = "Left",
-		Size = UDim2.new(1, 0, 0, 16), LayoutOrder = 1, Parent = TextArea
+		Size = UDim2.new(1, 0, 0, 16), ZIndex = 4, Parent = TextColumn
 	})
-
-	local ContentLabel = Create("TextLabel", {
-		Text = Config.Content, Font = "GothamMedium", TextSize = 12,
-		TextColor3 = Color3.fromRGB(220, 220, 220), BackgroundTransparency = 1,
+	Create("TextLabel", {
+		Text = Config.Content, Font = Enum.Font.GothamMedium, TextSize = 12,
+		TextColor3 = Color3.fromRGB(215, 215, 215), BackgroundTransparency = 1,
 		TextXAlignment = "Left", TextWrapped = true, Size = UDim2.new(1, 0, 0, 14),
-		AutomaticSize = "Y", LayoutOrder = 2, Parent = TextArea
+		AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 4, Parent = TextColumn
 	})
 
 	local BarContainer = Create("Frame", {
-		Name = "BarContainer",
-		Size = UDim2.new(1, -32, 0, 3),
-		Position = UDim2.new(0.5, 0, 1, -12),
-		AnchorPoint = Vector2.new(0.5, 0.5),
-		BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-		BackgroundTransparency = 0.9,
-		BorderSizePixel = 0,
-		Parent = NotifFrame
+		Size = UDim2.new(1, -16, 0, 3), Position = UDim2.new(0.5, 0, 1, -6),
+		AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0.92, BorderSizePixel = 0, ZIndex = 2, Parent = NotifFrame
 	})
 	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarContainer})
-
 	local BarFill = Create("Frame", {
-		Name = "Fill",
-		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundColor3 = NotifColor,
-		BorderSizePixel = 0,
-		Parent = BarContainer
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = NotifColor, BorderSizePixel = 0, ZIndex = 3, Parent = BarContainer
 	})
 	Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = BarFill})
 
+	-- [FIX] Removed the old manual "wait until TextArea reports a height"
+	-- timing hack entirely — AutomaticSize already gives the correct height
+	-- the instant the labels are created, so entrance/exit only needs to
+	-- animate width + fade, which is both simpler and impossible to get
+	-- stuck at height 0.
+	Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0), GroupTransparency = 0}, 0.35, Enum.EasingStyle.Back)
+	Tween(BarFill, {Size = UDim2.new(0, 0, 1, 0)}, Config.Duration, Enum.EasingStyle.Linear)
+
 	task.spawn(function()
-		-- [FIX] Add a timeout guard so a notification never gets stuck forever
-		-- if TextArea somehow never reports a size (e.g. destroyed mid-flight).
-		local waited = 0
-		repeat
-			waited += task.wait()
-		until TextArea.AbsoluteSize.Y > 0 or waited > 2 or not NotifFrame.Parent
-		if not NotifFrame.Parent then return end
-
-		local FinalHeight = TextArea.AbsoluteSize.Y
-
-		Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, FinalHeight), GroupTransparency = 0}, 0.5, Enum.EasingStyle.Quart)
-		Tween(BarFill, {Size = UDim2.new(0, 0, 1, 0)}, Config.Duration, Enum.EasingStyle.Linear)
-
 		task.wait(Config.Duration)
 		if not NotifFrame.Parent then return end
-
-		local ExitTween = Tween(NotifFrame, {GroupTransparency = 1}, 0.4, Enum.EasingStyle.Quart)
-		Tween(NotifFrame, {Size = UDim2.new(1, 0, 0, 0)}, 0.5)
-
+		local ExitTween = Tween(NotifFrame, {Size = UDim2.new(0.001, 0, 0, 0), GroupTransparency = 1}, 0.3, Enum.EasingStyle.Quart)
 		ExitTween.Completed:Connect(function()
 			if NotifFrame then NotifFrame:Destroy() end
 		end)
@@ -527,7 +582,12 @@ function SlayLib:CreateWindow(Config)
 
 	local MainFrame = Create("Frame", {
 		Name = "MainFrame",
-		Size = UDim2.new(0, 620, 0, 440),
+		-- [FIX] Was a fixed 620x440 pixels, which is oversized on phone
+		-- screens and forces constant dragging just to see past it. Now
+		-- scales with the screen (78%/70%) but is clamped by the
+		-- UISizeConstraint below so it never gets too small on a tiny phone
+		-- or too huge on a desktop monitor.
+		Size = UDim2.new(0.78, 0, 0.7, 0),
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		BackgroundColor3 = Color3.fromRGB(18, 18, 20),
@@ -536,9 +596,32 @@ function SlayLib:CreateWindow(Config)
 		ClipsDescendants = true,
 		Visible = true
 	})
+	Create("UISizeConstraint", {MinSize = Vector2.new(400, 320), MaxSize = Vector2.new(560, 400), Parent = MainFrame})
 	Create("UICorner", {CornerRadius = UDim.new(0, 10), Parent = MainFrame})
 	local MainStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = MainFrame})
 	RegisterThemed(MainStroke, "Color")
+
+	-- [NEW] Remember the fully-open size once layout has settled so the
+	-- minimize/restore tween below always restores to the correct
+	-- (possibly clamped/scaled) size instead of a hardcoded pixel value.
+	local OpenSize = MainFrame.Size
+
+	-- [NEW] WINDOW / TOGGLE POSITION MEMORY
+	-- Dragging the window or the floating toggle now persists the final
+	-- position into SlayLib.Flags under reserved keys, which SaveConfig
+	-- picks up automatically like any other flag. LoadConfig (or an
+	-- autoloaded config, see below) re-applies it on the next run.
+	local function RestoreFramePos(Frame, key)
+		local saved = SlayLib.Flags[key]
+		if type(saved) == "table" and saved.xs and saved.xo and saved.ys and saved.yo then
+			Frame.Position = UDim2.new(saved.xs, saved.xo, saved.ys, saved.yo)
+		end
+	end
+	local function SavePosFn(key)
+		return function(pos)
+			SlayLib.Flags[key] = {xs = pos.X.Scale, xo = pos.X.Offset, ys = pos.Y.Scale, yo = pos.Y.Offset}
+		end
+	end
 
 	-- [FIX] REMOVED the entire duplicate/legacy sidebar block that used to
 	-- exist here (a second "Sidebar" frame at width 155 with its own Title,
@@ -551,7 +634,7 @@ function SlayLib:CreateWindow(Config)
 	-- [FLOATING TOGGLE]
 	local FloatingToggle = Create("Frame", {
 		Name = "FloatingToggle",
-		Size = UDim2.new(0, 50, 0, 50),
+		Size = UDim2.new(0, 46, 0, 46),
 		Position = UDim2.new(0.05, 0, 0.15, 0),
 		BackgroundColor3 = Color3.fromRGB(25, 25, 27),
 		Parent = CoreGuiFrame,
@@ -562,7 +645,7 @@ function SlayLib:CreateWindow(Config)
 	RegisterThemed(FloatToggleStroke, "Color")
 
 	local ToggleIcon = Create("ImageLabel", {
-		Size = UDim2.new(0, 26, 0, 26),
+		Size = UDim2.new(0, 24, 0, 24),
 		Position = UDim2.new(0.5, 0, 0.5, 0),
 		AnchorPoint = Vector2.new(0.5, 0.5),
 		Image = SlayLib.Icons.Logo,
@@ -579,13 +662,14 @@ function SlayLib:CreateWindow(Config)
 		Parent = FloatingToggle
 	})
 
-	RegisterDrag(FloatingToggle, FloatingToggle)
+	RestoreFramePos(FloatingToggle, "_SlayLibTogglePos")
+	RegisterDrag(FloatingToggle, FloatingToggle, SavePosFn("_SlayLibTogglePos"))
 
 	ToggleButton.MouseButton1Click:Connect(function()
 		Window.Toggled = not Window.Toggled
 		if Window.Toggled then
 			MainFrame.Visible = true
-			MainFrame:TweenSize(UDim2.new(0, 620, 0, 440), "Out", "Back", 0.35, true)
+			MainFrame:TweenSize(OpenSize, "Out", "Back", 0.35, true)
 		else
 			MainFrame:TweenSize(UDim2.new(0, 0, 0, 0), "In", "Quart", 0.3, true)
 			task.delay(0.3, function()
@@ -597,7 +681,7 @@ function SlayLib:CreateWindow(Config)
 	-- [1] SIDEBAR (the single, real sidebar implementation)
 	local Sidebar = Create("Frame", {
 		Name = "Sidebar",
-		Size = UDim2.new(0, 200, 1, -12),
+		Size = UDim2.new(0, 170, 1, -12),
 		Position = UDim2.new(0, 6, 0, 6),
 		BackgroundColor3 = SlayLib.Theme.Sidebar,
 		ZIndex = 10,
@@ -684,7 +768,11 @@ function SlayLib:CreateWindow(Config)
 		ZIndex = 11,
 		Parent = Sidebar,
 		CanvasSize = UDim2.new(0,0,0,0),
-		AutomaticCanvasSize = Enum.AutomaticSize.Y
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		-- [FIX] "Never" stops the frame firmly at its scroll limits instead
+		-- of rubber-banding past the edge and springing back, which was
+		-- making the last tab hard to tap reliably.
+		ElasticBehavior = Enum.ElasticBehavior.Never
 	})
 	local TabLayout = Create("UIListLayout", {
 		Parent = TabScroll,
@@ -694,16 +782,18 @@ function SlayLib:CreateWindow(Config)
 	})
 
 	-- [2] CONTENT AREA
+	-- [FIX] Offsets recalculated for the sidebar's new 170px width (was 200px).
 	local PageContainer = Create("Frame", {
 		Name = "PageContainer",
-		Size = UDim2.new(1, -225, 1, -20),
-		Position = UDim2.new(0, 215, 0, 10),
+		Size = UDim2.new(1, -195, 1, -20),
+		Position = UDim2.new(0, 185, 0, 10),
 		BackgroundTransparency = 1,
 		ZIndex = 10,
 		Parent = MainFrame
 	})
 
-	RegisterDrag(MainFrame, SideHeader)
+	RestoreFramePos(MainFrame, "_SlayLibWindowPos")
+	RegisterDrag(MainFrame, SideHeader, SavePosFn("_SlayLibWindowPos"))
 
 	-- [NEW] Briefly flashes an element's border to draw the eye to it after a search jump.
 	local function HighlightFrame(Frame)
@@ -821,6 +911,10 @@ function SlayLib:CreateWindow(Config)
 			AutomaticCanvasSize = Enum.AutomaticSize.Y,
 			ZIndex = 20,
 			ClipsDescendants = false,
+			-- [FIX] Was bouncing/springing back right at the bottom of a long
+			-- list, making the last button hard to reach reliably. "Never"
+			-- makes scrolling stop firmly at the true end instead.
+			ElasticBehavior = Enum.ElasticBehavior.Never,
 			Parent = PageContainer
 		})
 
@@ -828,7 +922,11 @@ function SlayLib:CreateWindow(Config)
 			PaddingLeft = UDim.new(0, 4),
 			PaddingRight = UDim.new(0, 8),
 			PaddingTop = UDim.new(0, 5),
-			PaddingBottom = UDim.new(0, 5),
+			-- [FIX] Bumped from 5px to 24px: with almost no bottom padding,
+			-- the very last element sat flush against the scroll limit, so
+			-- combined with the elastic bounce there was effectively no way
+			-- to comfortably see/tap it. This gives real breathing room.
+			PaddingBottom = UDim.new(0, 24),
 			Parent = Page
 		})
 
@@ -900,7 +998,9 @@ function SlayLib:CreateWindow(Config)
 				-- so a call like CreateToggle({Name="X", Flag="Y"}) no longer
 				-- crashes on click with "attempt to call a nil value" because
 				-- Callback was nil.
-				Props = MergeDefaults(Props, {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end, Tooltip = nil})
+				-- [NEW] DependsOn/DependsValue: pass another element's Obj to
+				-- hide/show this toggle automatically based on that element's value.
+				Props = MergeDefaults(Props, {Name = "Toggle", CurrentValue = false, Flag = "Toggle_1", Callback = function() end, Tooltip = nil, DependsOn = nil, DependsValue = nil})
 				local TState = Props.CurrentValue
 				SlayLib.Flags[Props.Flag] = TState
 
@@ -955,32 +1055,36 @@ function SlayLib:CreateWindow(Config)
 					Parent = TContainer
 				})
 
+				local Obj = {Changed = {}}
+
 				ClickArea.MouseButton1Click:Connect(function()
 					TState = not TState
 					SlayLib.Flags[Props.Flag] = TState
 					Tween(Switch, {BackgroundColor3 = TState and SlayLib.Theme.MainColor or Color3.fromRGB(45, 45, 45)}, 0.2)
 					Tween(Dot, {Position = TState and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)}, 0.2)
 					task.spawn(Props.Callback, TState)
+					for _, fn in ipairs(Obj.Changed) do task.spawn(fn, TState) end
 				end)
-
-				local Obj = {}
 
 				function Obj:Set(v)
 					TState = v
 					SlayLib.Flags[Props.Flag] = v
 					Switch.BackgroundColor3 = v and SlayLib.Theme.MainColor or Color3.fromRGB(45,45,45)
 					Dot.Position = v and UDim2.new(1,-17,0.5,-7) or UDim2.new(0,3,0.5,-7)
+					for _, fn in ipairs(Obj.Changed) do task.spawn(fn, v) end
 				end
 
 				Obj.Flag = Props.Flag
 				table.insert(SlayLib.Elements, Obj)
+				BindVisibility(TContainer, Props.DependsOn, Props.DependsValue)
 
 				return Obj
 			end
 
 			-- 2. SLIDER
 			function Section:CreateSlider(Props)
-				Props = MergeDefaults(Props, {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end, Tooltip = nil})
+				Props = MergeDefaults(Props, {Name = "Slider", Min = 0, Max = 100, Def = 50, Flag = "Slider_1", Callback = function() end, Tooltip = nil, DependsOn = nil, DependsValue = nil})
+
 
 				-- [FIX] Guard against Max == Min (or Max < Min), which used to
 				-- cause a divide-by-zero -> NaN -> broken UDim2/fill size.
@@ -1115,6 +1219,7 @@ function SlayLib:CreateWindow(Config)
 
 				Obj.Flag = Props.Flag
 				table.insert(SlayLib.Elements, Obj)
+				BindVisibility(SContainer, Props.DependsOn, Props.DependsValue)
 
 				return Obj
 			end
@@ -1129,7 +1234,9 @@ function SlayLib:CreateWindow(Config)
 					Max = nil,
 					Default = nil,
 					Callback = function() end,
-					Tooltip = nil
+					Tooltip = nil,
+					DependsOn = nil,
+					DependsValue = nil
 				})
 
 				local IsOpen = false
@@ -1144,6 +1251,15 @@ function SlayLib:CreateWindow(Config)
 					Selected = Props.Default or Props.Options[1]
 				end
 				local SearchText = ""
+
+				-- [FIX] Declared here (before RefreshOptions/the option click
+				-- handlers below) rather than at the end of the function, because
+				-- those closures reference Obj.Changed — if Obj were declared
+				-- later as a fresh `local Obj = {...}`, those closures would have
+				-- already captured a nonexistent global `Obj` instead, erroring
+				-- as soon as an option was clicked. Methods are attached to it
+				-- further down once RefreshOptions/UpdateText exist.
+				local Obj = {Changed = {}}
 
 				local DContainer = Create("Frame", {
 					Name = Props.Name .. "_Dropdown",
@@ -1208,7 +1324,8 @@ function SlayLib:CreateWindow(Config)
 				local List = Create("ScrollingFrame", {
 					Size = UDim2.new(1, -10, 0, 100), Position = UDim2.new(0, 5, 0, 90),
 					BackgroundTransparency = 1, ScrollBarThickness = 0,
-					CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 38, Parent = DContainer
+					CanvasSize = UDim2.new(0,0,0,0), AutomaticCanvasSize = Enum.AutomaticSize.Y,
+					ElasticBehavior = Enum.ElasticBehavior.Never, ZIndex = 38, Parent = DContainer
 				})
 				Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 4)})
 
@@ -1288,8 +1405,11 @@ function SlayLib:CreateWindow(Config)
 									end
 									SlayLib.Flags[Props.Flag] = Selected
 									UpdateText()
+									for _, fn in ipairs(Obj.Changed) do task.spawn(fn, Selected) end
 								end)
 							end
+						else
+							DebugWarn("Dropdown '" .. tostring(Props.Name) .. "' got an Options entry of type '" .. optType .. "' — only string/number/boolean are shown. This usually means a colon-call passed the wrong argument (e.g. Dropdown:Refresh(list) works, but check nothing else is mutating Options directly).")
 						end
 					end
 				end
@@ -1318,62 +1438,87 @@ function SlayLib:CreateWindow(Config)
 				UpdateText()
 				SlayLib.Flags[Props.Flag] = Selected
 
-				local Obj = {
-					-- [FIX] All methods below now take a leading `_` (self) param so
-					-- they work correctly with colon-call syntax, e.g. Dropdown:Refresh(list).
-					-- Previously only Set() had this; calling Refresh/SetOptions/SetLimit
-					-- with ":" (the natural way, matching Set) silently passed the Obj
-					-- table itself as the argument instead of the real list, which then
-					-- got iterated and tostring()'d into garbage entries like
-					-- "function: 0x..." — exactly the bug seen when refreshing a
-					-- dropdown's options after switching islands/maps.
-					Refresh = function(_, NewOptions)
-						if NewOptions then
-							Props.Options = NewOptions
-						end
-						RefreshOptions()
-						UpdateText()
-					end,
-
-					SetOptions = function(_, NewOptions)
-						Props.Options = NewOptions or {}
-						RefreshOptions()
-						UpdateText()
-					end,
-
-					Set = function(_, Value)
-						if Props.Multi then
-							Selected = type(Value) == "table" and Value or {}
-						else
-							Selected = Value
-						end
-
-						UpdateText()
-						RefreshOptions()
-
-						SlayLib.Flags[Props.Flag] = Selected
-						task.spawn(Props.Callback, Selected)
-					end,
-
-					Get = function(_)
-						return Selected
-					end,
-
-					SetLimit = function(_, NewMax)
-						Props.Max = NewMax
-						UpdateText()
+				-- [FIX] Attaching methods to the Obj declared earlier (see note
+				-- above) instead of overwriting it with a fresh table literal —
+				-- that would have orphaned the Changed list the click handlers
+				-- above already captured a reference to.
+				-- All methods take a leading `_` (self) param so they work
+				-- correctly with colon-call syntax, e.g. Dropdown:Refresh(list).
+				Obj.Refresh = function(_, NewOptions)
+					if NewOptions then
+						Props.Options = NewOptions
 					end
-				}
+					RefreshOptions()
+					UpdateText()
+				end
+
+				Obj.SetOptions = function(_, NewOptions)
+					Props.Options = NewOptions or {}
+					RefreshOptions()
+					UpdateText()
+				end
+
+				Obj.Set = function(_, Value)
+					if Props.Multi then
+						Selected = type(Value) == "table" and Value or {}
+					else
+						Selected = Value
+					end
+
+					UpdateText()
+					RefreshOptions()
+
+					SlayLib.Flags[Props.Flag] = Selected
+					task.spawn(Props.Callback, Selected)
+					for _, fn in ipairs(Obj.Changed) do task.spawn(fn, Selected) end
+				end
+
+				Obj.Get = function(_)
+					return Selected
+				end
+
+				Obj.SetLimit = function(_, NewMax)
+					Props.Max = NewMax
+					UpdateText()
+				end
+
+				-- [NEW] Dropdown:BindToSignal(signal, mapFn?) — auto-refreshes the
+				-- option list whenever `signal` fires, without the caller having
+				-- to remember to call Refresh/SetOptions manually every time (e.g.
+				-- an island/zone-changed signal that should repopulate a mob list).
+				-- If mapFn is given, it receives the signal's arguments and must
+				-- return the new options array; otherwise the signal's first
+				-- argument is used directly as the options array.
+				Obj.BindToSignal = function(_, signal, mapFn)
+					if not signal or type(signal.Connect) ~= "function" then
+						DebugWarn("Dropdown:BindToSignal got something that isn't a connectable signal")
+						return
+					end
+					signal:Connect(function(...)
+						local newList
+						if mapFn then
+							newList = mapFn(...)
+						else
+							newList = ...
+						end
+						if type(newList) == "table" then
+							Obj:SetOptions(newList)
+						else
+							DebugWarn("Dropdown:BindToSignal's mapFn (or the signal itself) didn't produce a table of options")
+						end
+					end)
+				end
 
 				Obj.Flag = Props.Flag
 				table.insert(SlayLib.Elements, Obj)
+				BindVisibility(DContainer, Props.DependsOn, Props.DependsValue)
 
 				return Obj
 			end
 
 			-- 4. BUTTON
 			function Section:CreateButton(Props)
-				Props = MergeDefaults(Props, {Name = "Action Button", Callback = function() end, Tooltip = nil})
+				Props = MergeDefaults(Props, {Name = "Action Button", Callback = function() end, Tooltip = nil, DependsOn = nil, DependsValue = nil})
 
 				local BFrame = Create("TextButton", {
 					Size = UDim2.new(1, 0, 0, 42),
@@ -1397,6 +1542,7 @@ function SlayLib:CreateWindow(Config)
 					Tween(BFrame, {BackgroundColor3 = OldCol}, 0.4)
 					task.spawn(Props.Callback)
 				end)
+				BindVisibility(BFrame, Props.DependsOn, Props.DependsValue)
 			end
 
 			-- 5. INPUT BOX
@@ -1404,7 +1550,7 @@ function SlayLib:CreateWindow(Config)
 				-- [FIX] Added Flag support (was completely missing before, so
 				-- input values could never be part of SlayLib.Flags / saved
 				-- configs) and a safe default Callback.
-				Props = MergeDefaults(Props, {Name = "Input Field", Placeholder = "Value...", Flag = nil, Callback = function() end, Tooltip = nil})
+				Props = MergeDefaults(Props, {Name = "Input Field", Placeholder = "Value...", Flag = nil, Callback = function() end, Tooltip = nil, DependsOn = nil, DependsValue = nil})
 
 				local IContainer = Create("Frame", {
 					Size = UDim2.new(1, 0, 0, 52),
@@ -1454,13 +1600,14 @@ function SlayLib:CreateWindow(Config)
 				if Props.Flag then
 					table.insert(SlayLib.Elements, Obj)
 				end
+				BindVisibility(IContainer, Props.DependsOn, Props.DependsValue)
 
 				return Obj
 			end
 
 			-- 6. PARAGRAPH
 			function Section:CreateParagraph(Props)
-				Props = MergeDefaults(Props, {Title = "Information", Content = "Description here."})
+				Props = MergeDefaults(Props, {Title = "Information", Content = "Description here.", DependsOn = nil, DependsValue = nil})
 
 				local PContainer = Create("Frame", {
 					Size = UDim2.new(1, 0, 0, 0),
@@ -1496,13 +1643,14 @@ function SlayLib:CreateWindow(Config)
 					ZIndex = 26, LayoutOrder = 2, Parent = PContainer
 				})
 				PCnt.Text = Props.Content
+				BindVisibility(PContainer, Props.DependsOn, Props.DependsValue)
 			end
 
 			-- 7. [NEW] THEME SWITCHER
 			-- A row of color swatches. Clicking one calls SlayLib:SetTheme(name)
 			-- which live-recolors every registered accent across the whole UI.
 			function Section:CreateThemeSwitcher(Props)
-				Props = MergeDefaults(Props, {Name = "Theme"})
+				Props = MergeDefaults(Props, {Name = "Theme", DependsOn = nil, DependsValue = nil})
 
 				local Container = Create("Frame", {
 					Size = UDim2.new(1, 0, 0, 48),
@@ -1554,17 +1702,19 @@ function SlayLib:CreateWindow(Config)
 						end
 					end)
 				end
+				BindVisibility(Container, Props.DependsOn, Props.DependsValue)
 			end
 
 			-- 8. [NEW] POPUP CONFIG SELECTOR
 			-- Adds a "save as" row plus a "..." button that opens a modal
 			-- popup listing every config saved via SlayLib:SaveConfig, with
-			-- Load / Delete actions per entry.
+			-- Load / Delete actions per entry, plus an "Auto" toggle to
+			-- automatically load a chosen config the next time the script runs.
 			function Section:CreateConfigManager(Props)
-				Props = MergeDefaults(Props, {Name = "Config Manager"})
+				Props = MergeDefaults(Props, {Name = "Config Manager", DependsOn = nil, DependsValue = nil})
 
 				local Container = Create("Frame", {
-					Size = UDim2.new(1, 0, 0, 52),
+					Size = UDim2.new(1, 0, 0, 90),
 					BackgroundColor3 = SlayLib.Theme.Element,
 					ZIndex = 25, Parent = Page
 				})
@@ -1573,7 +1723,7 @@ function SlayLib:CreateWindow(Config)
 				table.insert(SearchItems, {Name = Props.Name, Frame = Container})
 
 				local NameBox = Create("TextBox", {
-					Size = UDim2.new(1, -140, 0, 30), Position = UDim2.new(0, 15, 0.5, -15),
+					Size = UDim2.new(1, -140, 0, 30), Position = UDim2.new(0, 15, 0, 10),
 					BackgroundColor3 = Color3.fromRGB(20, 20, 20), Text = "", PlaceholderText = "Config name...",
 					TextColor3 = SlayLib.Theme.MainColor, Font = "Gotham", TextSize = 13, ZIndex = 26, Parent = Container
 				})
@@ -1581,7 +1731,7 @@ function SlayLib:CreateWindow(Config)
 				RegisterThemed(NameBox, "TextColor3")
 
 				local SaveBtn = Create("TextButton", {
-					Size = UDim2.new(0, 58, 0, 30), Position = UDim2.new(1, -120, 0.5, -15),
+					Size = UDim2.new(0, 58, 0, 30), Position = UDim2.new(1, -120, 0, 10),
 					BackgroundColor3 = SlayLib.Theme.MainColor, Text = "Save", Font = "GothamBold", TextSize = 12,
 					TextColor3 = Color3.new(1, 1, 1), ZIndex = 26, Parent = Container, AutoButtonColor = false
 				})
@@ -1589,12 +1739,56 @@ function SlayLib:CreateWindow(Config)
 				RegisterThemed(SaveBtn, "BackgroundColor3")
 
 				local ManageBtn = Create("TextButton", {
-					Size = UDim2.new(0, 54, 0, 30), Position = UDim2.new(1, -58, 0.5, -15),
+					Size = UDim2.new(0, 54, 0, 30), Position = UDim2.new(1, -58, 0, 10),
 					BackgroundColor3 = Color3.fromRGB(40, 40, 40), Text = "...", Font = "GothamBold", TextSize = 16,
 					TextColor3 = SlayLib.Theme.Text, ZIndex = 26, Parent = Container, AutoButtonColor = false
 				})
 				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = ManageBtn})
 				AttachTooltip(ManageBtn, "Browse saved configs")
+
+				-- [NEW] Auto-load row: when on, the config name currently typed
+				-- (or last saved) is written to a small marker file and loaded
+				-- automatically the next time SlayLib:CreateWindow runs.
+				local AutoLbl = Create("TextLabel", {
+					Text = "Auto-load on start",
+					Size = UDim2.new(1, -70, 0, 20), Position = UDim2.new(0, 15, 0, 54),
+					Font = "Gotham", TextSize = 12, TextColor3 = SlayLib.Theme.TextSecondary,
+					TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 26, Parent = Container
+				})
+
+				local AutoState = (SlayLib:GetAutoloadConfig() ~= nil)
+				local AutoSwitch = Create("Frame", {
+					Size = UDim2.new(0, 34, 0, 18), Position = UDim2.new(1, -49, 0, 53),
+					BackgroundColor3 = AutoState and SlayLib.Theme.MainColor or Color3.fromRGB(45, 45, 45),
+					ZIndex = 26, Parent = Container
+				})
+				Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AutoSwitch})
+				local AutoDot = Create("Frame", {
+					Size = UDim2.new(0, 12, 0, 12),
+					Position = AutoState and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 3, 0.5, -6),
+					BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 27, Parent = AutoSwitch
+				})
+				Create("UICorner", {CornerRadius = UDim.new(1, 0), Parent = AutoDot})
+				local AutoClick = Create("TextButton", {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 1, Text = "", ZIndex = 28, Parent = AutoSwitch})
+
+				AutoClick.MouseButton1Click:Connect(function()
+					if not AutoState then
+						local nm = NameBox.Text
+						if nm == "" then
+							SlayLib:Notify({Title = "System", Content = "Type/save a config name first", Type = "Warning", Duration = 3})
+							return
+						end
+						AutoState = true
+						SlayLib:SetAutoloadConfig(nm)
+						SlayLib:Notify({Title = "System", Content = "Will auto-load '" .. nm .. "' next time", Type = "Success", Duration = 3})
+					else
+						AutoState = false
+						SlayLib:SetAutoloadConfig(nil)
+						SlayLib:Notify({Title = "System", Content = "Auto-load disabled", Type = "Warning", Duration = 3})
+					end
+					Tween(AutoSwitch, {BackgroundColor3 = AutoState and SlayLib.Theme.MainColor or Color3.fromRGB(45, 45, 45)}, 0.2)
+					Tween(AutoDot, {Position = AutoState and UDim2.new(1, -15, 0.5, -6) or UDim2.new(0, 3, 0.5, -6)}, 0.2)
+				end)
 
 				SaveBtn.MouseButton1Click:Connect(function()
 					local nm = NameBox.Text
@@ -1645,7 +1839,8 @@ function SlayLib:CreateWindow(Config)
 					local List = Create("ScrollingFrame", {
 						Size = UDim2.new(1, 0, 0, 180), BackgroundTransparency = 1, ScrollBarThickness = 3,
 						ScrollBarImageColor3 = SlayLib.Theme.MainColor, CanvasSize = UDim2.new(0, 0, 0, 0),
-						AutomaticCanvasSize = Enum.AutomaticSize.Y, ZIndex = 3, LayoutOrder = 2, Parent = Panel
+						AutomaticCanvasSize = Enum.AutomaticSize.Y, ElasticBehavior = Enum.ElasticBehavior.Never,
+						ZIndex = 3, LayoutOrder = 2, Parent = Panel
 					})
 					Create("UIListLayout", {Parent = List, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder})
 
@@ -1715,12 +1910,117 @@ function SlayLib:CreateWindow(Config)
 				end
 
 				ManageBtn.MouseButton1Click:Connect(OpenPopup)
+				BindVisibility(Container, Props.DependsOn, Props.DependsValue)
+			end
+
+			-- 9. [NEW] KEYBIND
+			-- Shows a label + a small box displaying the currently bound key.
+			-- Click the box, then press any keyboard key to (re)bind it. Once
+			-- bound, pressing that key anywhere fires Callback(true) — held
+			-- keys don't repeat-fire, this is an edge-triggered press event.
+			function Section:CreateKeybind(Props)
+				Props = MergeDefaults(Props, {Name = "Keybind", Default = nil, Flag = "Keybind_1", Callback = function() end, Tooltip = nil, DependsOn = nil, DependsValue = nil})
+
+				local CurrentKey = Props.Default
+				SlayLib.Flags[Props.Flag] = CurrentKey
+
+				local KContainer = Create("Frame", {
+					Name = Props.Name .. "_Keybind",
+					Size = UDim2.new(1, 0, 0, 48),
+					BackgroundColor3 = SlayLib.Theme.Element,
+					ZIndex = 25, Parent = Page
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = KContainer})
+				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = KContainer})
+				AttachTooltip(KContainer, Props.Tooltip)
+				table.insert(SearchItems, {Name = Props.Name, Frame = KContainer})
+
+				local KLbl = Create("TextLabel", {
+					Size = UDim2.new(1, -100, 1, 0), Position = UDim2.new(0, 15, 0, 0),
+					Font = "GothamMedium", TextSize = 14, TextColor3 = SlayLib.Theme.Text,
+					TextXAlignment = "Left", BackgroundTransparency = 1, ZIndex = 26, Parent = KContainer
+				})
+				ApplyTextLogic(KLbl, Props.Name, 14)
+
+				local KeyBox = Create("TextButton", {
+					Size = UDim2.new(0, 74, 0, 28), Position = UDim2.new(1, -86, 0.5, -14),
+					BackgroundColor3 = Color3.fromRGB(20, 20, 20), Text = CurrentKey or "None",
+					Font = "Code", TextSize = 12, TextColor3 = SlayLib.Theme.MainColor,
+					ZIndex = 26, Parent = KContainer, AutoButtonColor = false
+				})
+				Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = KeyBox})
+				RegisterThemed(KeyBox, "TextColor3")
+
+				local ListenConn = nil
+				local GlobalConn = nil
+
+				-- [NEW] The actual "does this bound key fire the callback" listener.
+				-- Re-created every time the bind changes so it always checks
+				-- against the current CurrentKey.
+				local function RebindGlobalListener()
+					if GlobalConn then GlobalConn:Disconnect() end
+					if not CurrentKey then return end
+					GlobalConn = UserInputService.InputBegan:Connect(function(input, processed)
+						if processed then return end
+						if input.KeyCode and input.KeyCode.Name == CurrentKey then
+							task.spawn(Props.Callback, true)
+						end
+					end)
+				end
+
+				KeyBox.MouseButton1Click:Connect(function()
+					if ListenConn then return end -- already listening for the next key
+					KeyBox.Text = "..."
+					ListenConn = UserInputService.InputBegan:Connect(function(input, processed)
+						if input.UserInputType == Enum.UserInputType.Keyboard then
+							CurrentKey = input.KeyCode.Name
+							KeyBox.Text = CurrentKey
+							SlayLib.Flags[Props.Flag] = CurrentKey
+							RebindGlobalListener()
+							ListenConn:Disconnect()
+							ListenConn = nil
+						end
+					end)
+				end)
+
+				RebindGlobalListener()
+
+				local Obj = {}
+				function Obj:Set(keyName)
+					CurrentKey = keyName
+					KeyBox.Text = CurrentKey or "None"
+					SlayLib.Flags[Props.Flag] = CurrentKey
+					RebindGlobalListener()
+				end
+				Obj.Flag = Props.Flag
+				table.insert(SlayLib.Elements, Obj)
+				BindVisibility(KContainer, Props.DependsOn, Props.DependsValue)
+
+				return Obj
 			end
 
 			return Section
 		end -- จบ Section
 		return Tab
 	end -- จบ CreateTab
+
+	-- [NEW] AUTOLOAD: if the user has enabled "Auto-load on start" in a
+	-- Config Manager, load that config once the rest of this script's
+	-- synchronous UI-building (all the CreateTab/CreateSection/Create*
+	-- calls that normally happen right after CreateWindow returns) has had
+	-- a chance to finish, since elements need to exist for their flags to
+	-- be restorable. task.defer runs on the next resumption point, which in
+	-- practice is right after that synchronous block completes.
+	task.defer(function()
+		local autoName = SlayLib:GetAutoloadConfig()
+		if autoName then
+			SlayLib:LoadConfig(autoName)
+			-- LoadConfig only restores SlayLib.Elements (toggles/sliders/etc),
+			-- not the window/toggle position, so reapply those explicitly.
+			RestoreFramePos(MainFrame, "_SlayLibWindowPos")
+			RestoreFramePos(FloatingToggle, "_SlayLibTogglePos")
+		end
+	end)
 
 	return Window
 end -- จบ CreateWindow
