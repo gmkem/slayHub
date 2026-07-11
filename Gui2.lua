@@ -101,6 +101,59 @@ function SlayLib:GetAutoloadConfig()
 	return nil
 end
 
+--// [NEW] DYNAMIC TEXT SYSTEM
+-- SlayLib:FormatDynamic("Uptime: {uptime} | {fps} FPS") replaces every
+-- {placeholder} with a live value. Built-ins: {uptime} {time} {date} {fps}
+-- {ping} {player}. Add your own anywhere: SlayLib.DynamicVars.Gold = function()
+-- return tostring(getGold()) end, then use "{Gold}" in any Paragraph/Watermark
+-- text (with Props.Dynamic = true so it keeps refreshing).
+SlayLib._StartTime = os.clock()
+SlayLib.DynamicVars = {}
+
+local _fpsSamples = {}
+RunService.Heartbeat:Connect(function(dt)
+	if dt and dt > 0 then
+		table.insert(_fpsSamples, 1 / dt)
+		if #_fpsSamples > 30 then table.remove(_fpsSamples, 1) end
+	end
+end)
+
+SlayLib.DynamicVars.uptime = function()
+	local total = math.floor(os.clock() - SlayLib._StartTime)
+	local h, m, s = math.floor(total / 3600), math.floor((total % 3600) / 60), total % 60
+	if h > 0 then return string.format("%02d:%02d:%02d", h, m, s) end
+	return string.format("%02d:%02d", m, s)
+end
+SlayLib.DynamicVars.time = function() return os.date("%H:%M:%S") end
+SlayLib.DynamicVars.date = function() return os.date("%Y-%m-%d") end
+SlayLib.DynamicVars.fps = function()
+	if #_fpsSamples == 0 then return "0" end
+	local sum = 0
+	for _, v in ipairs(_fpsSamples) do sum += v end
+	return tostring(math.floor(sum / #_fpsSamples))
+end
+SlayLib.DynamicVars.ping = function()
+	local ok, val = pcall(function()
+		return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+	end)
+	return ok and tostring(val) or "?"
+end
+SlayLib.DynamicVars.player = function() return LocalPlayer.Name end
+
+function SlayLib:FormatDynamic(template)
+	if type(template) ~= "string" then return template end
+	local ok, result = pcall(function()
+		return (template:gsub("{(%w+)}", function(key)
+			local fn = SlayLib.DynamicVars[key]
+			if not fn then return "{" .. key .. "}" end
+			local ok2, val = pcall(fn)
+			if ok2 and val ~= nil then return tostring(val) end
+			return "{" .. key .. "}"
+		end))
+	end)
+	return ok and result or template
+end
+
 --// UTILITY FUNCTIONS (THE BRAIN)
 local function Create(class, props)
 	local obj = Instance.new(class)
@@ -195,6 +248,20 @@ local function BindVisibility(Container, DependsOn, DependsValue)
 	if DependsOn.Flag and SlayLib.Flags[DependsOn.Flag] ~= nil then
 		Apply(SlayLib.Flags[DependsOn.Flag])
 	end
+end
+
+--// [NEW] HOVER FEEDBACK
+-- Subtle background tween between Theme.Element and Theme.ElementHover (a
+-- theme color that existed but was never actually used anywhere before).
+-- Gives every interactive row a bit of life on desktop/mouse without
+-- affecting touch devices (MouseEnter/MouseLeave simply never fire there).
+local function ApplyHover(Container)
+	Container.MouseEnter:Connect(function()
+		Tween(Container, {BackgroundColor3 = SlayLib.Theme.ElementHover}, 0.15)
+	end)
+	Container.MouseLeave:Connect(function()
+		Tween(Container, {BackgroundColor3 = SlayLib.Theme.Element}, 0.15)
+	end)
 end
 
 function SlayLib:SetTheme(nameOrColor)
@@ -472,6 +539,14 @@ local function ExecuteFinalSovereign()
 	MainFrame.BorderSizePixel = 0
 	MainFrame.BackgroundTransparency = 1
 
+	-- [NEW] Subtle diagonal gradient instead of flat black, for a bit more depth.
+	local BGGradient = Instance.new("UIGradient", MainFrame)
+	BGGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 8, 12)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 12, 28))
+	})
+	BGGradient.Rotation = 45
+
 	local Hub = Instance.new("Frame", MainFrame)
 	Hub.AnchorPoint = Vector2.new(0.5, 0.5)
 	Hub.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -485,6 +560,21 @@ local function ExecuteFinalSovereign()
 	Logo.Image = SlayLib.Icons.Logofull
 	Logo.BackgroundTransparency = 1
 	Logo.ImageTransparency = 1
+
+	-- [NEW] Soft breathing glow around the logo while it's on screen.
+	local LogoGlow = Instance.new("UIStroke", Logo)
+	LogoGlow.Color = SlayLib.Theme.MainColor
+	LogoGlow.Thickness = 3
+	LogoGlow.Transparency = 1
+	task.spawn(function()
+		while Logo.Parent do
+			TweenService:Create(LogoGlow, TweenInfo.new(0.9, Enum.EasingStyle.Sine), {Transparency = 0.35}):Play()
+			task.wait(0.9)
+			if not Logo.Parent then break end
+			TweenService:Create(LogoGlow, TweenInfo.new(0.9, Enum.EasingStyle.Sine), {Transparency = 0.9}):Play()
+			task.wait(0.9)
+		end
+	end)
 
 	task.spawn(function()
 		TweenService:Create(MainFrame, TweenInfo.new(0.7), {BackgroundTransparency = 0.05}):Play()
@@ -522,10 +612,37 @@ local function ExecuteFinalSovereign()
 	Status.TextSize = 14
 	Status.BackgroundTransparency = 1
 	Status.TextTransparency = 1
-	Status.Text = "READY"
+	Status.Text = ""
 
-	TweenService:Create(Status, TweenInfo.new(0.8), {TextTransparency = 0.2}):Play()
-	task.wait(2.5)
+	-- [NEW] A thin progress bar tracking overall intro progress, and the
+	-- status text now cycles through a short loading narrative instead of
+	-- sitting on a static "READY" the whole time.
+	local ProgressTrack = Instance.new("Frame", MainFrame)
+	ProgressTrack.AnchorPoint = Vector2.new(0.5, 0.5)
+	ProgressTrack.Position = UDim2.new(0.5, 0, 0.89, 0)
+	ProgressTrack.Size = UDim2.new(0, 180, 0, 3)
+	ProgressTrack.BackgroundColor3 = Color3.new(1, 1, 1)
+	ProgressTrack.BackgroundTransparency = 0.9
+	ProgressTrack.BorderSizePixel = 0
+	Instance.new("UICorner", ProgressTrack).CornerRadius = UDim.new(1, 0)
+
+	local ProgressFill = Instance.new("Frame", ProgressTrack)
+	ProgressFill.Size = UDim2.new(0, 0, 1, 0)
+	ProgressFill.BackgroundColor3 = SlayLib.Theme.MainColor
+	ProgressFill.BorderSizePixel = 0
+	Instance.new("UICorner", ProgressFill).CornerRadius = UDim.new(1, 0)
+	TweenService:Create(ProgressFill, TweenInfo.new(2.5, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+	local Phrases = {"INITIALIZING", "LOADING MODULES", "PREPARING INTERFACE", "READY"}
+	local PerPhrase = 2.5 / #Phrases
+	for i, phrase in ipairs(Phrases) do
+		Status.Text = phrase
+		TweenService:Create(Status, TweenInfo.new(0.2), {TextTransparency = 0.15}):Play()
+		task.wait(math.max(PerPhrase - 0.2, 0.05))
+		TweenService:Create(Status, TweenInfo.new(0.2), {TextTransparency = 1}):Play()
+		task.wait(0.2)
+	end
+
 
 	pcall(function()
 		local FinalInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
@@ -1015,6 +1132,7 @@ function SlayLib:CreateWindow(Config)
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = TContainer})
 				AttachTooltip(TContainer, Props.Tooltip)
 				table.insert(SearchItems, {Name = Props.Name, Frame = TContainer})
+				ApplyHover(TContainer)
 
 				local TLbl = Create("TextLabel", {
 					Size = UDim2.new(1, -70, 1, 0),
@@ -1105,6 +1223,7 @@ function SlayLib:CreateWindow(Config)
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = SContainer})
 				AttachTooltip(SContainer, Props.Tooltip)
 				table.insert(SearchItems, {Name = Props.Name, Frame = SContainer})
+				ApplyHover(SContainer)
 
 				local SLbl = Create("TextLabel", {
 					Size = UDim2.new(1, -100, 0, 35),
@@ -1529,6 +1648,7 @@ function SlayLib:CreateWindow(Config)
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = BFrame})
 				AttachTooltip(BFrame, Props.Tooltip)
 				table.insert(SearchItems, {Name = Props.Name, Frame = BFrame})
+				ApplyHover(BFrame)
 
 				local BLbl = Create("TextLabel", {
 					Size = UDim2.new(1, 0, 1, 0), Font = "GothamBold", TextSize = 13,
@@ -1562,6 +1682,7 @@ function SlayLib:CreateWindow(Config)
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = IContainer})
 				AttachTooltip(IContainer, Props.Tooltip)
 				table.insert(SearchItems, {Name = Props.Name, Frame = IContainer})
+				ApplyHover(IContainer)
 
 				local ILbl = Create("TextLabel", {
 					Size = UDim2.new(0, 150, 1, 0), Position = UDim2.new(0, 15, 0, 0),
@@ -1607,7 +1728,10 @@ function SlayLib:CreateWindow(Config)
 
 			-- 6. PARAGRAPH
 			function Section:CreateParagraph(Props)
-				Props = MergeDefaults(Props, {Title = "Information", Content = "Description here.", DependsOn = nil, DependsValue = nil})
+				-- [NEW] Dynamic = true makes {placeholder} tokens in Title/Content
+				-- (e.g. "Uptime: {uptime}") resolve via SlayLib:FormatDynamic and
+				-- keep refreshing every RefreshRate seconds.
+				Props = MergeDefaults(Props, {Title = "Information", Content = "Description here.", DependsOn = nil, DependsValue = nil, Dynamic = false, RefreshRate = 1})
 
 				local PContainer = Create("Frame", {
 					Size = UDim2.new(1, 0, 0, 0),
@@ -1634,7 +1758,6 @@ function SlayLib:CreateWindow(Config)
 					TextXAlignment = "Left", ZIndex = 26, LayoutOrder = 1, Parent = PContainer
 				})
 				RegisterThemed(PTtl, "TextColor3")
-				PTtl.Text = Props.Title
 
 				local PCnt = Create("TextLabel", {
 					Size = UDim2.new(1, 0, 0, 0), Font = "Gotham", TextSize = 13,
@@ -1642,8 +1765,32 @@ function SlayLib:CreateWindow(Config)
 					TextXAlignment = "Left", TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y,
 					ZIndex = 26, LayoutOrder = 2, Parent = PContainer
 				})
-				PCnt.Text = Props.Content
+
+				local function Refresh()
+					PTtl.Text = SlayLib:FormatDynamic(Props.Title)
+					PCnt.Text = SlayLib:FormatDynamic(Props.Content)
+				end
+				Refresh()
+
+				if Props.Dynamic then
+					task.spawn(function()
+						while PContainer.Parent do
+							task.wait(Props.RefreshRate)
+							if not PContainer.Parent then break end
+							Refresh()
+						end
+					end)
+				end
+
 				BindVisibility(PContainer, Props.DependsOn, Props.DependsValue)
+
+				local Obj = {}
+				function Obj:Set(content, title)
+					Props.Content = content
+					if title then Props.Title = title end
+					Refresh()
+				end
+				return Obj
 			end
 
 			-- 7. [NEW] THEME SWITCHER
@@ -1934,6 +2081,7 @@ function SlayLib:CreateWindow(Config)
 				Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.6, Parent = KContainer})
 				AttachTooltip(KContainer, Props.Tooltip)
 				table.insert(SearchItems, {Name = Props.Name, Frame = KContainer})
+				ApplyHover(KContainer)
 
 				local KLbl = Create("TextLabel", {
 					Size = UDim2.new(1, -100, 1, 0), Position = UDim2.new(0, 15, 0, 0),
@@ -2003,6 +2151,55 @@ function SlayLib:CreateWindow(Config)
 		end -- จบ Section
 		return Tab
 	end -- จบ CreateTab
+
+	-- [NEW] WATERMARK
+	-- A small always-visible draggable pill, independent of tabs and of the
+	-- main window's minimized state. Text supports {placeholder} tokens via
+	-- the Dynamic Text System (e.g. "{player} | {fps} FPS | {uptime}").
+	function Window:CreateWatermark(Props)
+		Props = MergeDefaults(Props, {Text = "{player} | {fps} FPS | {uptime}", RefreshRate = 1})
+
+		local WM = Create("Frame", {
+			Name = "SlayWatermark",
+			Size = UDim2.new(0, 0, 0, 28),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Position = UDim2.new(0, 10, 0, 10),
+			BackgroundColor3 = Color3.fromRGB(15, 15, 17),
+			BackgroundTransparency = 0.08,
+			ZIndex = 90,
+			Parent = CoreGuiFrame
+		})
+		Create("UICorner", {CornerRadius = UDim.new(0, 6), Parent = WM})
+		local WMStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1, Transparency = 0.5, Parent = WM})
+		RegisterThemed(WMStroke, "Color")
+		Create("UIPadding", {PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10), Parent = WM})
+
+		local WMLbl = Create("TextLabel", {
+			Text = SlayLib:FormatDynamic(Props.Text),
+			Size = UDim2.new(0, 0, 1, 0),
+			AutomaticSize = Enum.AutomaticSize.X,
+			Font = Enum.Font.Code, TextSize = 12, TextColor3 = SlayLib.Theme.Text,
+			BackgroundTransparency = 1, ZIndex = 91, Parent = WM
+		})
+
+		RestoreFramePos(WM, "_SlayLibWatermarkPos")
+		RegisterDrag(WM, WM, SavePosFn("_SlayLibWatermarkPos"))
+
+		task.spawn(function()
+			while WM.Parent do
+				task.wait(Props.RefreshRate)
+				if not WM.Parent then break end
+				WMLbl.Text = SlayLib:FormatDynamic(Props.Text)
+			end
+		end)
+
+		local Obj = {Instance = WM}
+		function Obj:Set(text)
+			Props.Text = text
+			WMLbl.Text = SlayLib:FormatDynamic(Props.Text)
+		end
+		return Obj
+	end
 
 	-- [NEW] AUTOLOAD: if the user has enabled "Auto-load on start" in a
 	-- Config Manager, load that config once the rest of this script's
