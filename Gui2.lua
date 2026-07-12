@@ -46,12 +46,13 @@ local Parent = (RunService:IsStudio() and LocalPlayer.PlayerGui or CoreGui)
 --// [ADDED] ANTI RE-EXECUTE SYSTEM (ระบบล้างของเก่าก่อนรันใหม่)
 for _, obj in pairs(Parent:GetChildren()) do
 	if obj.Name == "SlayLib_X_Engine" or obj.Name == "SlayLoadingEnv" or obj.Name == "SlayNotifFinal"
-		or obj.Name == "SlayTooltipGui" or obj.Name == "SlayConfigPopup" then
+		or obj.Name == "SlayTooltipGui" or obj.Name == "SlayConfigPopup" or obj.Name == "SlayKeySystem" then
 		obj:Destroy()
 	end
 end
 if Lighting:FindFirstChild("SlayBlur") then Lighting.SlayBlur:Destroy() end
 if Lighting:FindFirstChild("Blur") then Lighting.Blur:Destroy() end
+if Lighting:FindFirstChild("SlayKeyBlur") then Lighting.SlayKeyBlur:Destroy() end
 
 --// Folder Management (Config)
 if not isfolder(SlayLib.Folder) then
@@ -517,11 +518,270 @@ function SlayLib:Notify(Config)
 	end)
 end
 
+--// [NEW] KEY SYSTEM
+-- SlayLib:CreateKeySystem(Config, OnSuccess) shows a blocking key-entry
+-- popup before the rest of your script runs. Put everything that should be
+-- gated behind the key (including SlayLib:CreateWindow) inside OnSuccess.
+--
+-- Config fields (all optional except when Enabled is true you'll want at
+-- least one of Keys/KeyURL/Validator, otherwise nothing will ever validate):
+--   Enabled       (bool, default true)  — set false to skip the whole thing;
+--                  OnSuccess just runs immediately, no key needed at all.
+--   Title         (string) — popup heading
+--   Subtitle      (string) — short instruction line
+--   Note          (string, optional) — small print under the buttons
+--   Keys          (array<string>, optional) — static valid keys, works fully offline
+--   KeyURL        (string, optional) — URL returning valid keys as plain text
+--                  (comma/whitespace/newline separated), fetched via game:HttpGet
+--   GetKeyURL     (string, optional) — shows a "Get Key" button that copies
+--                  this link to the clipboard
+--   SaveKey       (bool, default true) — remember a valid key locally so the
+--                  popup is skipped on future runs as long as it's still valid
+--   CaseSensitive (bool, default true)
+--   Validator     (function(key) -> boolean, optional) — custom check, runs
+--                  before Keys/KeyURL; return true to accept immediately
+function SlayLib:CreateKeySystem(Config, OnSuccess)
+	Config = MergeDefaults(Config, {
+		Enabled = true,
+		Title = "Key System",
+		Subtitle = "Enter your key to continue",
+		Note = nil,
+		Keys = {},
+		KeyURL = nil,
+		GetKeyURL = nil,
+		SaveKey = true,
+		CaseSensitive = true,
+		Validator = nil
+	})
+	OnSuccess = OnSuccess or function() end
+
+	if not Config.Enabled then
+		OnSuccess()
+		return
+	end
+
+	local KEY_FILE = SlayLib.Folder .. "/_key.txt"
+
+	local function Normalize(k)
+		k = tostring(k or ""):gsub("^%s+", ""):gsub("%s+$", "")
+		if not Config.CaseSensitive then k = k:lower() end
+		return k
+	end
+
+	local function CheckAgainstList(list, inputKey)
+		local norm = Normalize(inputKey)
+		for _, k in ipairs(list) do
+			if Normalize(k) == norm then return true end
+		end
+		return false
+	end
+
+	local function ValidateKey(inputKey)
+		if inputKey == nil or inputKey == "" then return false end
+
+		if Config.Validator then
+			local ok, result = pcall(Config.Validator, inputKey)
+			if ok and result then return true end
+		end
+
+		if Config.KeyURL then
+			local ok, body = pcall(function()
+				return game:HttpGet(Config.KeyURL)
+			end)
+			if ok and body then
+				local list = {}
+				for k in body:gmatch("[^,%s]+") do
+					table.insert(list, k)
+				end
+				if CheckAgainstList(list, inputKey) then return true end
+			else
+				DebugWarn("KeySystem: failed to fetch KeyURL — " .. tostring(body))
+			end
+		end
+
+		if #Config.Keys > 0 and CheckAgainstList(Config.Keys, inputKey) then
+			return true
+		end
+
+		return false
+	end
+
+	-- A still-valid saved key skips the popup entirely.
+	if Config.SaveKey and isfile(KEY_FILE) then
+		local ok, saved = pcall(readfile, KEY_FILE)
+		if ok and saved and saved ~= "" and ValidateKey(saved) then
+			OnSuccess()
+			return
+		end
+	end
+
+	local ExistingGui = game:GetService("CoreGui"):FindFirstChild("SlayKeySystem")
+	if ExistingGui then ExistingGui:Destroy() end
+
+	local KeyGui = Create("ScreenGui", {
+		Name = "SlayKeySystem", Parent = game:GetService("CoreGui"),
+		DisplayOrder = 999998, IgnoreGuiInset = true
+	})
+
+	local KeyBlur = Instance.new("BlurEffect", game:GetService("Lighting"))
+	KeyBlur.Name = "SlayKeyBlur"
+	KeyBlur.Size = 0
+	Tween(KeyBlur, {Size = 20}, 0.6)
+
+	local Dim = Create("Frame", {
+		Size = UDim2.new(1, 0, 1, 0), BackgroundColor3 = Color3.new(0, 0, 0),
+		BackgroundTransparency = 1, ZIndex = 1, Parent = KeyGui
+	})
+	Tween(Dim, {BackgroundTransparency = 0.4}, 0.4)
+
+	local Panel = Create("Frame", {
+		Size = UDim2.new(0, 320, 0, 0), AutomaticSize = Enum.AutomaticSize.Y,
+		AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.45, 0),
+		BackgroundColor3 = Color3.fromRGB(18, 18, 20), ZIndex = 2, Parent = KeyGui
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, 14), Parent = Panel})
+	local PanelStroke = Create("UIStroke", {Color = SlayLib.Theme.MainColor, Thickness = 1.2, Transparency = 0.4, Parent = Panel})
+	RegisterThemed(PanelStroke, "Color")
+	Create("UIPadding", {
+		PaddingTop = UDim.new(0, 24), PaddingBottom = UDim.new(0, 24),
+		PaddingLeft = UDim.new(0, 22), PaddingRight = UDim.new(0, 22), Parent = Panel
+	})
+	Create("UIListLayout", {
+		Parent = Panel, Padding = UDim.new(0, 12),
+		HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder
+	})
+
+	local LogoImg = Create("ImageLabel", {
+		Size = UDim2.new(0, 44, 0, 44), Image = SlayLib.Icons.Logo,
+		ImageColor3 = SlayLib.Theme.MainColor, BackgroundTransparency = 1,
+		ZIndex = 3, LayoutOrder = 1, Parent = Panel
+	})
+	RegisterThemed(LogoImg, "ImageColor3")
+
+	Create("TextLabel", {
+		Text = Config.Title, Font = Enum.Font.GothamBold, TextSize = 18,
+		TextColor3 = SlayLib.Theme.Text, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 22), ZIndex = 3, LayoutOrder = 2, Parent = Panel
+	})
+
+	Create("TextLabel", {
+		Text = Config.Subtitle, Font = Enum.Font.Gotham, TextSize = 13,
+		TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,
+		TextWrapped = true, Size = UDim2.new(1, 0, 0, 16), AutomaticSize = Enum.AutomaticSize.Y,
+		ZIndex = 3, LayoutOrder = 3, Parent = Panel
+	})
+
+	local InputBox = Create("TextBox", {
+		Size = UDim2.new(1, 0, 0, 42), BackgroundColor3 = Color3.fromRGB(26, 26, 29),
+		Text = "", PlaceholderText = "Enter key...", TextColor3 = SlayLib.Theme.MainColor,
+		Font = Enum.Font.Code, TextSize = 14, ZIndex = 3, LayoutOrder = 4, Parent = Panel,
+		ClearTextOnFocus = false
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = InputBox})
+	local InputStroke = Create("UIStroke", {Color = SlayLib.Theme.Stroke, Thickness = 1, Transparency = 0.5, Parent = InputBox})
+	RegisterThemed(InputBox, "TextColor3")
+
+	local ErrorLbl = Create("TextLabel", {
+		Text = "", Font = Enum.Font.GothamMedium, TextSize = 12,
+		TextColor3 = SlayLib.Theme.Error, BackgroundTransparency = 1,
+		Size = UDim2.new(1, 0, 0, 16), ZIndex = 3, LayoutOrder = 5, Parent = Panel, Visible = false
+	})
+
+	local BtnRow = Create("Frame", {
+		Size = UDim2.new(1, 0, 0, 40), BackgroundTransparency = 1, ZIndex = 3, LayoutOrder = 6, Parent = Panel
+	})
+	Create("UIListLayout", {
+		Parent = BtnRow, FillDirection = Enum.FillDirection.Horizontal,
+		Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder
+	})
+
+	local hasGetKey = Config.GetKeyURL ~= nil
+	local SubmitBtn = Create("TextButton", {
+		Size = hasGetKey and UDim2.new(0.62, -4, 1, 0) or UDim2.new(1, 0, 1, 0),
+		BackgroundColor3 = SlayLib.Theme.MainColor, Text = "Submit", Font = Enum.Font.GothamBold,
+		TextSize = 14, TextColor3 = Color3.new(1, 1, 1), ZIndex = 3, Parent = BtnRow, AutoButtonColor = false
+	})
+	Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = SubmitBtn})
+	RegisterThemed(SubmitBtn, "BackgroundColor3")
+
+	if hasGetKey then
+		local GetKeyBtn = Create("TextButton", {
+			Size = UDim2.new(0.38, -4, 1, 0), BackgroundColor3 = Color3.fromRGB(35, 35, 38),
+			Text = "Get Key", Font = Enum.Font.GothamBold, TextSize = 13,
+			TextColor3 = SlayLib.Theme.Text, ZIndex = 3, Parent = BtnRow, AutoButtonColor = false
+		})
+		Create("UICorner", {CornerRadius = UDim.new(0, 8), Parent = GetKeyBtn})
+		GetKeyBtn.MouseButton1Click:Connect(function()
+			local ok = pcall(function() setclipboard(Config.GetKeyURL) end)
+			SlayLib:Notify({
+				Title = "Key System",
+				Content = ok and "Link copied to clipboard!" or ("Copy this: " .. Config.GetKeyURL),
+				Type = ok and "Success" or "Warning", Duration = 4
+			})
+		end)
+	end
+
+	if Config.Note then
+		Create("TextLabel", {
+			Text = Config.Note, Font = Enum.Font.Gotham, TextSize = 11,
+			TextColor3 = SlayLib.Theme.TextSecondary, BackgroundTransparency = 1,
+			TextWrapped = true, Size = UDim2.new(1, 0, 0, 14), AutomaticSize = Enum.AutomaticSize.Y,
+			ZIndex = 3, LayoutOrder = 7, Parent = Panel
+		})
+	end
+
+	local Checking = false
+	local function AttemptSubmit()
+		if Checking then return end
+		local key = InputBox.Text
+		if key == "" then
+			ErrorLbl.Text = "Please enter a key"
+			ErrorLbl.Visible = true
+			return
+		end
+
+		Checking = true
+		SubmitBtn.Text = "Checking..."
+		ErrorLbl.Visible = false
+
+		task.spawn(function()
+			local valid = ValidateKey(key)
+			Checking = false
+			SubmitBtn.Text = "Submit"
+
+			if valid then
+				if Config.SaveKey then
+					pcall(writefile, KEY_FILE, key)
+				end
+				Tween(Dim, {BackgroundTransparency = 1}, 0.3)
+				Tween(KeyBlur, {Size = 0}, 0.3)
+				task.wait(0.3)
+				KeyGui:Destroy()
+				KeyBlur:Destroy()
+				OnSuccess()
+			else
+				ErrorLbl.Text = "Invalid key. Try again."
+				ErrorLbl.Visible = true
+				Tween(InputStroke, {Color = SlayLib.Theme.Error, Transparency = 0}, 0.1)
+				task.wait(0.6)
+				Tween(InputStroke, {Color = SlayLib.Theme.Stroke, Transparency = 0.5}, 0.3)
+			end
+		end)
+	end
+
+	SubmitBtn.MouseButton1Click:Connect(AttemptSubmit)
+	InputBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then AttemptSubmit() end
+	end)
+end
+
 --// LOADING SEQUENCE (HIGH FIDELITY)
 local function ExecuteFinalSovereign()
 	local TweenService = game:GetService("TweenService")
 	local Lighting = game:GetService("Lighting")
 	local Debris = game:GetService("Debris")
+
+	local TOTAL_DURATION = 2.6
 
 	local Screen = Instance.new("ScreenGui")
 	Screen.Name = "SLAY_SOVEREIGN_FIXED"
@@ -535,23 +795,73 @@ local function ExecuteFinalSovereign()
 
 	local MainFrame = Instance.new("Frame", Screen)
 	MainFrame.Size = UDim2.new(1, 0, 1, 0)
-	MainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	MainFrame.BackgroundColor3 = Color3.fromRGB(6, 6, 10)
 	MainFrame.BorderSizePixel = 0
 	MainFrame.BackgroundTransparency = 1
 
-	-- [NEW] Subtle diagonal gradient instead of flat black, for a bit more depth.
+	-- [REDESIGN] Three-stop gradient that slowly drifts rotation the whole
+	-- time the screen is up, instead of a flat/static background.
 	local BGGradient = Instance.new("UIGradient", MainFrame)
 	BGGradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 8, 12)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(18, 12, 28))
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(8, 6, 14)),
+		ColorSequenceKeypoint.new(0.5, Color3.fromRGB(15, 10, 26)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(9, 8, 16))
 	})
-	BGGradient.Rotation = 45
+	BGGradient.Rotation = 20
+	task.spawn(function()
+		while MainFrame.Parent do
+			TweenService:Create(BGGradient, TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 110}):Play()
+			task.wait(4)
+			if not MainFrame.Parent then break end
+			TweenService:Create(BGGradient, TweenInfo.new(4, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut), {Rotation = 20}):Play()
+			task.wait(4)
+		end
+	end)
 
 	local Hub = Instance.new("Frame", MainFrame)
 	Hub.AnchorPoint = Vector2.new(0.5, 0.5)
 	Hub.Position = UDim2.new(0.5, 0, 0.5, 0)
 	Hub.Size = UDim2.new(0, 400, 0, 400)
 	Hub.BackgroundTransparency = 1
+
+	-- [NEW] Orbit ring: a set of small dots arranged in a circle around the
+	-- logo. They're all children of one holder frame, so continuously
+	-- spinning the holder's Rotation spins the whole ring for free.
+	local RingHolder = Instance.new("Frame", Hub)
+	RingHolder.AnchorPoint = Vector2.new(0.5, 0.5)
+	RingHolder.Position = UDim2.new(0.5, 0, 0.5, 0)
+	RingHolder.Size = UDim2.new(0, 1, 0, 1)
+	RingHolder.BackgroundTransparency = 1
+
+	local DOT_COUNT, RING_RADIUS = 10, 150
+	local Dots = {}
+	for i = 1, DOT_COUNT do
+		local angle = (i / DOT_COUNT) * math.pi * 2
+		local dot = Instance.new("Frame", RingHolder)
+		dot.AnchorPoint = Vector2.new(0.5, 0.5)
+		dot.Size = UDim2.new(0, 6, 0, 6)
+		dot.Position = UDim2.new(0.5, math.cos(angle) * RING_RADIUS, 0.5, math.sin(angle) * RING_RADIUS)
+		dot.BackgroundColor3 = SlayLib.Theme.MainColor
+		dot.BackgroundTransparency = 1
+		Instance.new("UICorner", dot).CornerRadius = UDim.new(1, 0)
+		table.insert(Dots, dot)
+	end
+
+	task.spawn(function()
+		-- Ring materializes dot by dot instead of popping in all at once.
+		for _, dot in ipairs(Dots) do
+			if not dot.Parent then break end
+			TweenService:Create(dot, TweenInfo.new(0.3), {BackgroundTransparency = 0.15}):Play()
+			task.wait(0.05)
+		end
+	end)
+
+	task.spawn(function()
+		while RingHolder.Parent do
+			TweenService:Create(RingHolder, TweenInfo.new(4, Enum.EasingStyle.Linear), {Rotation = RingHolder.Rotation + 360}):Play()
+			task.wait(4)
+		end
+	end)
 
 	local Logo = Instance.new("ImageLabel", Hub)
 	Logo.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -560,8 +870,9 @@ local function ExecuteFinalSovereign()
 	Logo.Image = SlayLib.Icons.Logofull
 	Logo.BackgroundTransparency = 1
 	Logo.ImageTransparency = 1
+	Logo.ZIndex = 5
 
-	-- [NEW] Soft breathing glow around the logo while it's on screen.
+	-- Soft breathing glow around the logo while it's on screen.
 	local LogoGlow = Instance.new("UIStroke", Logo)
 	LogoGlow.Color = SlayLib.Theme.MainColor
 	LogoGlow.Thickness = 3
@@ -605,7 +916,7 @@ local function ExecuteFinalSovereign()
 
 	local Status = Instance.new("TextLabel", MainFrame)
 	Status.AnchorPoint = Vector2.new(0.5, 0.5)
-	Status.Position = UDim2.new(0.5, 0, 0.84, 0)
+	Status.Position = UDim2.new(0.5, 0, 0.83, 0)
 	Status.Size = UDim2.new(0, 500, 0, 20)
 	Status.Font = Enum.Font.Code
 	Status.TextColor3 = SlayLib.Theme.MainColor
@@ -614,13 +925,13 @@ local function ExecuteFinalSovereign()
 	Status.TextTransparency = 1
 	Status.Text = ""
 
-	-- [NEW] A thin progress bar tracking overall intro progress, and the
-	-- status text now cycles through a short loading narrative instead of
-	-- sitting on a static "READY" the whole time.
+	-- [REDESIGN] Progress bar now has a two-tone gradient fill (accent color
+	-- fading into a lighter tint) instead of a flat color, plus a live
+	-- percentage readout underneath synced to real elapsed time.
 	local ProgressTrack = Instance.new("Frame", MainFrame)
 	ProgressTrack.AnchorPoint = Vector2.new(0.5, 0.5)
-	ProgressTrack.Position = UDim2.new(0.5, 0, 0.89, 0)
-	ProgressTrack.Size = UDim2.new(0, 180, 0, 3)
+	ProgressTrack.Position = UDim2.new(0.5, 0, 0.88, 0)
+	ProgressTrack.Size = UDim2.new(0, 190, 0, 4)
 	ProgressTrack.BackgroundColor3 = Color3.new(1, 1, 1)
 	ProgressTrack.BackgroundTransparency = 0.9
 	ProgressTrack.BorderSizePixel = 0
@@ -631,10 +942,37 @@ local function ExecuteFinalSovereign()
 	ProgressFill.BackgroundColor3 = SlayLib.Theme.MainColor
 	ProgressFill.BorderSizePixel = 0
 	Instance.new("UICorner", ProgressFill).CornerRadius = UDim.new(1, 0)
-	TweenService:Create(ProgressFill, TweenInfo.new(2.5, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+	local ProgressGradient = Instance.new("UIGradient", ProgressFill)
+	ProgressGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, SlayLib.Theme.MainColor),
+		ColorSequenceKeypoint.new(1, SlayLib.Theme.MainColor:Lerp(Color3.new(1, 1, 1), 0.5))
+	})
+	TweenService:Create(ProgressFill, TweenInfo.new(TOTAL_DURATION, Enum.EasingStyle.Linear), {Size = UDim2.new(1, 0, 1, 0)}):Play()
+
+	local PercentLabel = Instance.new("TextLabel", MainFrame)
+	PercentLabel.AnchorPoint = Vector2.new(0.5, 0.5)
+	PercentLabel.Position = UDim2.new(0.5, 0, 0.93, 0)
+	PercentLabel.Size = UDim2.new(0, 100, 0, 16)
+	PercentLabel.BackgroundTransparency = 1
+	PercentLabel.Font = Enum.Font.Code
+	PercentLabel.TextSize = 11
+	PercentLabel.TextColor3 = SlayLib.Theme.TextSecondary
+	PercentLabel.TextTransparency = 1
+	PercentLabel.Text = "0%"
+	TweenService:Create(PercentLabel, TweenInfo.new(0.4), {TextTransparency = 0.35}):Play()
+
+	local StartClock = os.clock()
+	task.spawn(function()
+		while PercentLabel.Parent do
+			local pct = math.clamp(math.floor(((os.clock() - StartClock) / TOTAL_DURATION) * 100), 0, 100)
+			PercentLabel.Text = pct .. "%"
+			if pct >= 100 then break end
+			task.wait(0.05)
+		end
+	end)
 
 	local Phrases = {"INITIALIZING", "LOADING MODULES", "PREPARING INTERFACE", "READY"}
-	local PerPhrase = 2.5 / #Phrases
+	local PerPhrase = TOTAL_DURATION / #Phrases
 	for i, phrase in ipairs(Phrases) do
 		Status.Text = phrase
 		TweenService:Create(Status, TweenInfo.new(0.2), {TextTransparency = 0.15}):Play()
@@ -643,13 +981,18 @@ local function ExecuteFinalSovereign()
 		task.wait(0.2)
 	end
 
-
 	pcall(function()
 		local FinalInfo = TweenInfo.new(0.7, Enum.EasingStyle.Quart, Enum.EasingDirection.In)
 
 		TweenService:Create(Logo, FinalInfo, {
 			Size = UDim2.new(0, 2, 0, 2000),
 			ImageTransparency = 1
+		}):Play()
+
+		-- [NEW] The ring spins up hard and collapses inward as part of the exit.
+		TweenService:Create(RingHolder, TweenInfo.new(0.6, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+			Rotation = RingHolder.Rotation + 180,
+			Size = UDim2.new(0, 0, 0, 0)
 		}):Play()
 
 		local FinalCollapse = TweenService:Create(MainFrame, FinalInfo, {
